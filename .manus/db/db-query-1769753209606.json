@@ -1,0 +1,88 @@
+{
+  "query": "SELECT id, projectId, title, createdAt FROM editorProjects ORDER BY createdAt DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2jTy2vzKXQHpxLK.e3660242cfdd --database H2YruPRmXWuVUzSC5Hb9Y4 --execute SELECT id, projectId, title, createdAt FROM editorProjects ORDER BY createdAt DESC;",
+  "rows": [
+    {
+      "id": "60010",
+      "projectId": "1",
+      "title": "Test Editor Project",
+      "createdAt": "2026-01-30 03:49:05"
+    },
+    {
+      "id": "60009",
+      "projectId": "1",
+      "title": "Test Editor Project",
+      "createdAt": "2026-01-30 03:41:31"
+    },
+    {
+      "id": "60008",
+      "projectId": "1",
+      "title": "Test Editor Project",
+      "createdAt": "2026-01-30 03:41:11"
+    },
+    {
+      "id": "60007",
+      "projectId": "1",
+      "title": "Test Editor Project",
+      "createdAt": "2026-01-30 03:33:58"
+    },
+    {
+      "id": "60006",
+      "projectId": "1",
+      "title": "Test Editor Project",
+      "createdAt": "2026-01-30 03:29:49"
+    },
+    {
+      "id": "60005",
+      "projectId": "1",
+      "title": "Test Editor Project",
+      "createdAt": "2026-01-30 03:14:32"
+    },
+    {
+      "id": "60004",
+      "projectId": "1",
+      "title": "Test Editor Project",
+      "createdAt": "2026-01-30 03:09:40"
+    },
+    {
+      "id": "60003",
+      "projectId": "1",
+      "title": "Test Editor Project",
+      "createdAt": "2026-01-30 03:05:00"
+    },
+    {
+      "id": "60002",
+      "projectId": "1",
+      "title": "Test Editor Project",
+      "createdAt": "2026-01-30 03:04:37"
+    },
+    {
+      "id": "60001",
+      "projectId": "1",
+      "title": "Test Editor Project",
+      "createdAt": "2026-01-30 03:04:14"
+    },
+    {
+      "id": "30002",
+      "projectId": "1",
+      "title": "Test Editor Project",
+      "createdAt": "2026-01-30 00:12:17"
+    },
+    {
+      "id": "30001",
+      "projectId": "1",
+      "title": "Test Editor Project",
+      "createdAt": "2026-01-29 23:58:46"
+    },
+    {
+      "id": "1",
+      "projectId": "1",
+      "title": "Test Editor Project",
+      "createdAt": "2026-01-29 23:22:21"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tprojectId\ttitle\tcreatedAt\n60010\t1\tTest Editor Project\t2026-01-30 03:49:05\n60009\t1\tTest Editor Project\t2026-01-30 03:41:31\n60008\t1\tTest Editor Project\t2026-01-30 03:41:11\n60007\t1\tTest Editor Project\t2026-01-30 03:33:58\n60006\t1\tTest Editor Project\t2026-01-30 03:29:49\n60005\t1\tTest Editor Project\t2026-01-30 03:14:32\n60004\t1\tTest Editor Project\t2026-01-30 03:09:40\n60003\t1\tTest Editor Project\t2026-01-30 03:05:00\n60002\t1\tTest Editor Project\t2026-01-30 03:04:37\n60001\t1\tTest Editor Project\t2026-01-30 03:04:14\n30002\t1\tTest Editor Project\t2026-01-30 00:12:17\n30001\t1\tTest Editor Project\t2026-01-29 23:58:46\n1\t1\tTest Editor Project\t2026-01-29 23:22:21\n",
+  "stderr": "",
+  "execution_time_ms": 55
+}

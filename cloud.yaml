@@ -1,0 +1,128 @@
+# Google Cloud Run Deployment Configuration
+# This file defines the deployment settings for AI Film Studio on Google Cloud Run
+
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: ai-film-studio
+  namespace: default
+  labels:
+    app: ai-film-studio
+    version: v1
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: "10"
+        autoscaling.knative.dev/minScale: "1"
+        run.googleapis.com/cloudsql-instances: PROJECT_ID:REGION:ai-film-studio-db
+        run.googleapis.com/cpu-throttling: "false"
+    spec:
+      serviceAccountName: ai-film-studio-app
+      containers:
+      - image: us-central1-docker.pkg.dev/PROJECT_ID/ai-film-studio/app:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "8080"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: database-url
+              key: url
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secret
+              key: secret
+        - name: VITE_APP_ID
+          valueFrom:
+            secretKeyRef:
+              name: manus-oauth
+              key: app-id
+        - name: OAUTH_SERVER_URL
+          value: "https://api.manus.im"
+        - name: VITE_OAUTH_PORTAL_URL
+          value: "https://app.manus.im/login"
+        - name: BUILT_IN_FORGE_API_URL
+          value: "https://api.manus.im/forge"
+        - name: BUILT_IN_FORGE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: manus-api-keys
+              key: forge-api-key
+        - name: VITE_FRONTEND_FORGE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: manus-api-keys
+              key: frontend-forge-key
+        - name: VITE_FRONTEND_FORGE_API_URL
+          value: "https://api.manus.im/forge"
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ai-service-keys
+              key: openai-key
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ai-service-keys
+              key: gemini-key
+        - name: SORA_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ai-service-keys
+              key: sora-key
+        - name: VEO3_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ai-service-keys
+              key: veo3-key
+        - name: NANOBANANA_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ai-service-keys
+              key: nanobanana-key
+        - name: ELEVENLABS_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ai-service-keys
+              key: elevenlabs-key
+        - name: GOOGLE_CLOUD_PROJECT
+          value: "PROJECT_ID"
+        - name: GCS_BUCKET
+          value: "ai-film-studio-media"
+        - name: VITE_APP_TITLE
+          value: "AI Film Studio"
+        - name: VITE_APP_LOGO
+          value: "/logo.svg"
+        resources:
+          limits:
+            cpu: "2"
+            memory: "2Gi"
+          requests:
+            cpu: "1"
+            memory: "1Gi"
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 2
+      timeoutSeconds: 3600
+  traffic:
+  - percent: 100
+    latestRevision: true

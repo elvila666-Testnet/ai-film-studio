@@ -1,0 +1,104 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1768526842219,
+      "tag": "0000_silky_paibok",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1768526934754,
+      "tag": "0001_orange_steve_rogers",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1769727560127,
+      "tag": "0002_perfect_quasar",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1769728663789,
+      "tag": "0003_whole_mister_sinister",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1769729433462,
+      "tag": "0004_next_mysterio",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1769731664074,
+      "tag": "0005_closed_ultimates",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1769742112794,
+      "tag": "0006_numerous_metal_master",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1769743708964,
+      "tag": "0007_sparkling_shape",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1769748788485,
+      "tag": "0008_cuddly_major_mapleleaf",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1769793069167,
+      "tag": "0009_real_eddie_brock",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1769794167216,
+      "tag": "0010_parched_snowbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1769795131655,
+      "tag": "0011_wonderful_arclight",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1769796902682,
+      "tag": "0012_grey_misty_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "5",
+      "when": 1769797473369,
+      "tag": "0013_safe_reaper",
+      "breakpoints": true
+    }
+  ]
+}

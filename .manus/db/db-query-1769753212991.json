@@ -1,0 +1,9 @@
+{
+  "query": "DELETE FROM editorProjects WHERE id NOT IN (SELECT id FROM (SELECT id FROM editorProjects ORDER BY createdAt DESC LIMIT 1) AS latest);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2jTy2vzKXQHpxLK.e3660242cfdd --database H2YruPRmXWuVUzSC5Hb9Y4 --execute DELETE FROM editorProjects WHERE id NOT IN (SELECT id FROM (SELECT id FROM editorProjects ORDER BY createdAt DESC LIMIT 1) AS latest);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 63
+}
