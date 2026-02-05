@@ -15,7 +15,8 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 🗑️ REMOVED: "Install pnpm" and "Set up Node.js" (Not needed for Docker builds)
+      # Note: We removed the "Setup Node" and "pnpm" steps here.
+      # If you still see a pnpm error, it is coming from your Dockerfile, not this file.
 
       - name: Authenticate to Google Cloud
         id: auth
