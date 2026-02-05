@@ -1,24 +1,17 @@
-name: Production Build
+name: Debug Build
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  id-token: write
-
 jobs:
-  build-and-deploy:
+  debug-deploy:
     runs-on: ubuntu-latest
     steps:
-      # ✅ THE FIX: Using your Personal Access Token (GH_PAT)
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GH_PAT }}
-          fetch-depth: 0
+      - name: Manual Clone Debug
+        run: |
+          echo "Attempting raw clone..."
+          # This command tries to clone manually and prints the REAL error
+          git clone https://oauth2:${{ secrets.GH_PAT }}@github.com/${{ github.repository }} . || echo "CLONE FAILED - CHECK LOGS ABOVE"
 
       - name: Authenticate to Google Cloud
         id: auth
@@ -26,27 +19,5 @@ jobs:
         with:
           credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
 
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Configure Docker
-        run: gcloud auth configure-docker us-central1-docker.pkg.dev
-
-      - name: Build and Push Container
-        run: |-
-          PROJECT_ID=${{ steps.auth.outputs.project_id }}
-          docker build -t us-central1-docker.pkg.dev/$PROJECT_ID/ai-film-studio/app:${{ github.sha }} .
-          docker push us-central1-docker.pkg.dev/$PROJECT_ID/ai-film-studio/app:${{ github.sha }}
-
-      - name: Deploy to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: ai-film-studio
-          image: us-central1-docker.pkg.dev/${{ steps.auth.outputs.project_id }}/ai-film-studio/app:${{ github.sha }}
-          region: us-central1
-          env_vars: |-
-            NODE_ENV=production
-            CLOUD_SQL_CONNECTION_NAME=${{ secrets.CLOUD_SQL_CONNECTION_NAME }}
-            DB_NAME=${{ secrets.CLOUD_SQL_DATABASE }}
-            DB_USER=${{ secrets.CLOUD_SQL_USER }}
-            DB_PASS=${{ secrets.CLOUD_SQL_PASSWORD }}
+      - name: Check Files
+        run: ls -la
