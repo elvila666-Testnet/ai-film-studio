@@ -1,22 +1,22 @@
-# Triggering a fresh run to clear the cache
 name: Deploy to GCP production
 
 on:
+  # Trigger on push to main
   push:
     branches: [ main ]
+  # ✅ ADDED: Manual trigger button (The "Eject" Button)
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: 'read'
-      id-token: 'write'
+    # ✅ REMOVED: "permissions" block (Not needed for JSON keys, caused Git 128 error)
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 1. Authenticate using the JSON Key
+      # 1. Authenticate with JSON Key
       - name: Authenticate to Google Cloud
         id: auth
         uses: google-github-actions/auth@v2
@@ -26,18 +26,18 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      # 2. Configure Docker using the Auto-Detected Project ID
+      # 2. Configure Docker
       - name: Configure Docker
         run: gcloud auth configure-docker us-central1-docker.pkg.dev
 
-      # 3. Build & Push (Using the ID from Step 1)
+      # 3. Build & Push
       - name: Build and Push Container
         run: |-
           PROJECT_ID=${{ steps.auth.outputs.project_id }}
           docker build -t us-central1-docker.pkg.dev/$PROJECT_ID/ai-film-studio/app:${{ github.sha }} .
           docker push us-central1-docker.pkg.dev/$PROJECT_ID/ai-film-studio/app:${{ github.sha }}
 
-      # 4. Deploy (Using the ID from Step 1)
+      # 4. Deploy
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
