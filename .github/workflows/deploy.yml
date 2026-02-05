@@ -15,8 +15,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Note: Pure Docker build. No local Node/pnpm install.
-
+      # 1. Authenticate using the JSON Key
       - name: Authenticate to Google Cloud
         id: auth
         uses: google-github-actions/auth@v2
@@ -26,19 +25,23 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      # 2. Configure Docker using the Auto-Detected Project ID
       - name: Configure Docker
         run: gcloud auth configure-docker us-central1-docker.pkg.dev
 
+      # 3. Build & Push (Using the ID from Step 1)
       - name: Build and Push Container
         run: |-
-          docker build -t us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/ai-film-studio/app:${{ github.sha }} .
-          docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/ai-film-studio/app:${{ github.sha }}
+          PROJECT_ID=${{ steps.auth.outputs.project_id }}
+          docker build -t us-central1-docker.pkg.dev/$PROJECT_ID/ai-film-studio/app:${{ github.sha }} .
+          docker push us-central1-docker.pkg.dev/$PROJECT_ID/ai-film-studio/app:${{ github.sha }}
 
+      # 4. Deploy (Using the ID from Step 1)
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ai-film-studio
-          image: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/ai-film-studio/app:${{ github.sha }}
+          image: us-central1-docker.pkg.dev/${{ steps.auth.outputs.project_id }}/ai-film-studio/app:${{ github.sha }}
           region: us-central1
           env_vars: |-
             NODE_ENV=production
@@ -46,8 +49,3 @@ jobs:
             DB_NAME=${{ secrets.CLOUD_SQL_DATABASE }}
             DB_USER=${{ secrets.CLOUD_SQL_USER }}
             DB_PASS=${{ secrets.CLOUD_SQL_PASSWORD }}
-
-      - name: Notify Slack
-        if: always()
-        run: |-
-          curl -X POST -H 'Content-type: application/json' --data '{"text":"Deployment Status: ${{ job.status }}"}' ${{ secrets.SLACK_WEBHOOK_URL }}
