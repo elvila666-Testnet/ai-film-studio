@@ -5,21 +5,19 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-# ✅ MAX PERMISSIONS: Unlocking everything to fix Error 128
 permissions:
-  contents: write
-  packages: write
+  contents: read
   id-token: write
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
+      # ✅ THE FIX: Using your Personal Access Token (GH_PAT)
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          # 🔑 FORCE TOKEN: Explicitly using the secret to bypass the lock
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_PAT }}
           fetch-depth: 0
 
       - name: Authenticate to Google Cloud
