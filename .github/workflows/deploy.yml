@@ -1,52 +1,71 @@
-name: Deploy to GCP production
+name: Deploy to Google Cloud (WIF)
 
 on:
-  # Trigger on push to main
   push:
-    branches: [ main ]
-  # ✅ ADDED: Manual trigger button (The "Eject" Button)
+    branches: [main]
   workflow_dispatch:
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: us-central1
+  GAR_REGISTRY: us-central1-docker.pkg.dev
+  SERVICE_NAME: ai-film-studio
+  IMAGE_NAME: app
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # ✅ REMOVED: "permissions" block (Not needed for JSON keys, caused Git 128 error)
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      # 1. Authenticate with JSON Key
       - name: Authenticate to Google Cloud
-        id: auth
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      # 2. Configure Docker
-      - name: Configure Docker
-        run: gcloud auth configure-docker us-central1-docker.pkg.dev
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ env.GAR_REGISTRY }}
 
-      # 3. Build & Push
-      - name: Build and Push Container
-        run: |-
-          PROJECT_ID=${{ steps.auth.outputs.project_id }}
-          docker build -t us-central1-docker.pkg.dev/$PROJECT_ID/ai-film-studio/app:${{ github.sha }} .
-          docker push us-central1-docker.pkg.dev/$PROJECT_ID/ai-film-studio/app:${{ github.sha }}
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t ${{ env.GAR_REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            -t ${{ env.GAR_REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.IMAGE_NAME }}:latest \
+            .
 
-      # 4. Deploy
+      - name: Push Docker image to Artifact Registry
+        run: |
+          docker push ${{ env.GAR_REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ env.GAR_REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.IMAGE_NAME }}:latest
+
       - name: Deploy to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: ai-film-studio
-          image: us-central1-docker.pkg.dev/${{ steps.auth.outputs.project_id }}/ai-film-studio/app:${{ github.sha }}
-          region: us-central1
-          env_vars: |-
-            NODE_ENV=production
-            CLOUD_SQL_CONNECTION_NAME=${{ secrets.CLOUD_SQL_CONNECTION_NAME }}
-            DB_NAME=${{ secrets.CLOUD_SQL_DATABASE }}
-            DB_USER=${{ secrets.CLOUD_SQL_USER }}
-            DB_PASS=${{ secrets.CLOUD_SQL_PASSWORD }}
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image=${{ env.GAR_REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --region=${{ env.REGION }} \
+            --platform=managed \
+            --memory=2Gi \
+            --cpu=2 \
+            --timeout=3600 \
+            --allow-unauthenticated \
+            --set-cloudsql-instances=${{ env.PROJECT_ID }}:${{ env.REGION }}:ai-film-studio-db \
+            --service-account=${{ secrets.WIF_SERVICE_ACCOUNT }} \
+            --set-env-vars=NODE_ENV=production,CLOUD_SQL_CONNECTION_NAME=${{ secrets.CLOUD_SQL_CONNECTION_NAME }},CLOUD_SQL_DATABASE=${{ secrets.CLOUD_SQL_DATABASE }},CLOUD_SQL_USER=${{ secrets.CLOUD_SQL_USER }},CLOUD_SQL_PASSWORD=${{ secrets.CLOUD_SQL_PASSWORD }}
+
+      - name: Get Cloud Run service URL
+        run: |
+          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --format='value(status.url)')
+          echo "✅ Deployment successful!"
+          echo "Service URL: $SERVICE_URL"
