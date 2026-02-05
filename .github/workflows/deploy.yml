@@ -15,8 +15,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Note: We removed the "Setup Node" and "pnpm" steps here.
-      # If you still see a pnpm error, it is coming from your Dockerfile, not this file.
+      # Note: NO Node.js or pnpm setup here. Pure Docker.
 
       - name: Authenticate to Google Cloud
         id: auth
@@ -47,8 +46,3 @@ jobs:
             DB_NAME=${{ secrets.CLOUD_SQL_DATABASE }}
             DB_USER=${{ secrets.CLOUD_SQL_USER }}
             DB_PASS=${{ secrets.CLOUD_SQL_PASSWORD }}
-
-      - name: Notify Slack
-        if: always()
-        run: |-
-          curl -X POST -H 'Content-type: application/json' --data '{"text":"Deployment Status: ${{ job.status }}"}' ${{ secrets.SLACK_WEBHOOK_URL }}
