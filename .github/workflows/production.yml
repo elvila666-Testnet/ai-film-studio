@@ -5,18 +5,22 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-# ✅ Explicitly granting read access to fix Error 128
+# ✅ SECURITY FIX: Grant explicit permissions to the Runner
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
+      # 1. Checkout with "Deep Fetch" to fix Error 128
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # 1. Authenticate with JSON Key
+      # 2. Authenticate with JSON Key
       - name: Authenticate to Google Cloud
         id: auth
         uses: google-github-actions/auth@v2
@@ -26,18 +30,18 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      # 2. Configure Docker
+      # 3. Configure Docker
       - name: Configure Docker
         run: gcloud auth configure-docker us-central1-docker.pkg.dev
 
-      # 3. Build & Push
+      # 4. Build & Push
       - name: Build and Push Container
         run: |-
           PROJECT_ID=${{ steps.auth.outputs.project_id }}
           docker build -t us-central1-docker.pkg.dev/$PROJECT_ID/ai-film-studio/app:${{ github.sha }} .
           docker push us-central1-docker.pkg.dev/$PROJECT_ID/ai-film-studio/app:${{ github.sha }}
 
-      # 4. Deploy
+      # 5. Deploy
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
