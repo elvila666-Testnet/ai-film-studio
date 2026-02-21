@@ -58,20 +58,20 @@ describe("Video Debugging and Playback", () => {
   });
 
   it("should validate file URL is not empty", () => {
-    const fileUrl = "https://example.com/video.mp4";
+    const fileUrl: string = "https://example.com/video.mp4";
     const isValid = fileUrl && fileUrl.trim() !== "";
     expect(!!isValid).toBe(true);
   });
 
   it("should reject empty file URL", () => {
-    const fileUrl = "";
-    const isValid = fileUrl && fileUrl.trim() !== "";
+    const fileUrl: string = "";
+    const isValid = fileUrl && (fileUrl as string).trim() !== "";
     expect(!isValid).toBe(true);
   });
 
   it("should reject whitespace-only file URL", () => {
-    const fileUrl = "   ";
-    const isValid = fileUrl && fileUrl.trim() !== "";
+    const fileUrl: string = "   ";
+    const isValid = fileUrl && (fileUrl as string).trim() !== "";
     expect(!isValid).toBe(true);
   });
 
@@ -119,10 +119,10 @@ describe("Video Debugging and Playback", () => {
   it("should reset playback state on source change", () => {
     let isPlaying = true;
     let currentTime = 5;
-    
+
     isPlaying = false;
     currentTime = 0;
-    
+
     expect(!isPlaying).toBe(true);
     expect(currentTime).toEqual(0);
   });
@@ -165,13 +165,13 @@ describe("Video Debugging and Playback", () => {
   });
 
   it("should handle null clips data", () => {
-    const clipsData = null;
+    const clipsData: any = null;
     const hasClips = clipsData && clipsData.length > 0;
     expect(!hasClips).toBe(true);
   });
 
   it("should handle undefined clips data", () => {
-    const clipsData = undefined;
+    const clipsData: any = undefined;
     const hasClips = clipsData && clipsData.length > 0;
     expect(!hasClips).toBe(true);
   });

@@ -34,21 +34,35 @@ export type GenerateImageResponse = {
 export async function generateImage(
   options: GenerateImageOptions
 ): Promise<GenerateImageResponse> {
-  if (!ENV.forgeApiUrl) {
-    throw new Error("BUILT_IN_FORGE_API_URL is not configured");
-  }
-  if (!ENV.forgeApiKey) {
-    throw new Error("BUILT_IN_FORGE_API_KEY is not configured");
+  const { getActiveModelConfig } = await import("../db");
+  const activeConfig = await getActiveModelConfig("image");
+
+  let apiKey = ENV.forgeApiKey;
+  let apiUrl = ENV.forgeApiUrl;
+  let modelId = activeConfig?.modelId || "Nanobanana Pro";
+
+  if (activeConfig) {
+    if (activeConfig.apiKey) apiKey = activeConfig.apiKey;
+    if (activeConfig.apiEndpoint) apiUrl = activeConfig.apiEndpoint;
   }
 
-  // Build the full URL by appending the service path to the base URL
-  const baseUrl = ENV.forgeApiUrl.endsWith("/")
-    ? ENV.forgeApiUrl
-    : `${ENV.forgeApiUrl}/`;
-  const fullUrl = new URL(
-    "images.v1.ImageService/GenerateImage",
-    baseUrl
-  ).toString();
+  if (!apiUrl) {
+    throw new Error("Image service URL is not configured");
+  }
+  if (!apiKey) {
+    throw new Error("Image service API key is not configured");
+  }
+
+  // Build the full URL
+  const baseUrl = apiUrl.endsWith("/") ? apiUrl : `${apiUrl}/`;
+
+  // Custom providers might use different endpoint structures. 
+  // For built-in ImageService, we use the standard gRPC-Gateway path.
+  const fullUrl = activeConfig?.apiEndpoint
+    ? apiUrl
+    : new URL("images.v1.ImageService/GenerateImage", baseUrl).toString();
+
+  console.log(`[AI] Generating image with ${modelId} at ${fullUrl}...`);
 
   const response = await fetch(fullUrl, {
     method: "POST",
@@ -56,13 +70,15 @@ export async function generateImage(
       accept: "application/json",
       "content-type": "application/json",
       "connect-protocol-version": "1",
-      authorization: `Bearer ${ENV.forgeApiKey}`,
+      authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       prompt: options.prompt,
+      model: modelId,
       original_images: options.originalImages || [],
     }),
   });
+
 
   if (!response.ok) {
     const detail = await response.text().catch(() => "");

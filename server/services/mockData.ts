@@ -358,3 +358,8 @@ export async function mockLLMResponse(content: string, delayMs: number = 1000): 
     }, delayMs);
   });
 }
+
+export async function mockImageGeneration(pose: string): Promise<string> {
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  return `https://placehold.co/1024x1024/png?text=${encodeURIComponent(pose)}`;
+}

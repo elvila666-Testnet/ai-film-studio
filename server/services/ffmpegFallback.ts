@@ -1,5 +1,3 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import { storagePut } from '../storage';
 
 /**
@@ -10,7 +8,7 @@ import { storagePut } from '../storage';
  * Generate placeholder thumbnail when FFmpeg fails
  */
 export async function generatePlaceholderThumbnail(
-  videoUrl: string,
+  _videoUrl: string,
   width: number = 320,
   height: number = 180
 ): Promise<string> {
@@ -32,7 +30,7 @@ export async function generatePlaceholderThumbnail(
 /**
  * Create placeholder image buffer (simple gradient)
  */
-function createPlaceholderImage(width: number, height: number): Buffer {
+function createPlaceholderImage(_width: number, _height: number): Buffer {
   // Create a simple JPEG placeholder (1x1 pixel that can be scaled)
   // This is a minimal valid JPEG file
   const jpegHeader = Buffer.from([

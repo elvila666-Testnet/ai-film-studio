@@ -154,9 +154,11 @@ export async function validateFlowOutput(
     }
 
     // Check video duration is within acceptable range
-    const expectedDuration = frameDescriptor.duration;
-    const toleranceRange = 0.5; // ±0.5 seconds
-    
+    const _expectedDuration = frameDescriptor.duration;
+    const _toleranceRange = 0.5; // ±0.5 seconds
+    void _expectedDuration;
+    void _toleranceRange;
+
     // Note: Would need video analysis to verify actual duration
     // This is a placeholder
 

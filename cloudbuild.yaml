@@ -1,93 +1,27 @@
-# Google Cloud Build configuration for AI Film Studio
-
 steps:
-  # Step 1: Build Docker image
+  # 1. Build the Docker image
   - name: 'gcr.io/cloud-builders/docker'
-    id: 'build-image'
-    args:
-      - 'build'
-      - '-t'
-      - 'gcr.io/$PROJECT_ID/ai-film-studio:latest'
-      - '-t'
-      - 'gcr.io/$PROJECT_ID/ai-film-studio:$SHORT_SHA'
-      - '-t'
-      - 'gcr.io/$PROJECT_ID/ai-film-studio:$COMMIT_SHA'
-      - '.'
-    env:
-      - 'DOCKER_BUILDKIT=1'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/ai-film-studio:latest', '.']
 
-  # Step 2: Push image to Container Registry
+  # 2. Push the Docker image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
-    id: 'push-image'
-    args:
-      - 'push'
-      - 'gcr.io/$PROJECT_ID/ai-film-studio'
-    waitFor: ['build-image']
+    args: ['push', 'gcr.io/$PROJECT_ID/ai-film-studio:latest']
 
-  # Step 3: Deploy to Cloud Run
-  - name: 'gcr.io/cloud-builders/run'
-    id: 'deploy-cloud-run'
-    args:
-      - 'deploy'
-      - 'ai-film-studio'
-      - '--image'
-      - 'gcr.io/$PROJECT_ID/ai-film-studio:$SHORT_SHA'
-      - '--region'
-      - 'us-central1'
-      - '--platform'
-      - 'managed'
-      - '--memory'
-      - '2Gi'
-      - '--cpu'
-      - '2'
-      - '--timeout'
-      - '3600'
-      - '--allow-unauthenticated'
-      - '--set-cloudsql-instances'
-      - '${PROJECT_ID}:us-central1:ai-film-studio-db'
-      - '--service-account'
-      - 'ai-film-studio-sa@${PROJECT_ID}.iam.gserviceaccount.com'
-    env:
-      - 'CLOUDSDK_COMPUTE_REGION=us-central1'
-    waitFor: ['push-image']
-
-  # Step 4: Run database migrations
-  - name: 'gcr.io/cloud-builders/gke-deploy'
-    id: 'run-migrations'
+  # 3. Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
     args:
       - 'run'
-      - '--filename=.'
-      - '--image=gcr.io/$PROJECT_ID/ai-film-studio:$SHORT_SHA'
-      - '--location=us-central1'
-      - '--output=/workspace/output'
-    env:
-      - 'DATABASE_URL=${_DATABASE_URL}'
-    waitFor: ['deploy-cloud-run']
+      - 'deploy'
+      - 'ai-film-studio'
+      - '--image=gcr.io/$PROJECT_ID/ai-film-studio:latest'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      # Adjust memory/CPU as needed for production
+      - '--memory=2Gi'
+      - '--cpu=2'
+      - '--set-env-vars=DATABASE_URL=mysql://filmstudio:xGcpz3Zr4ekNqbL5@localhost/ai_film_studio?socketPath=/cloudsql/ai-film-studio-485900:us-central1:ai-film-studio-db'
 
-# Images to be pushed to Container Registry
 images:
   - 'gcr.io/$PROJECT_ID/ai-film-studio:latest'
-  - 'gcr.io/$PROJECT_ID/ai-film-studio:$SHORT_SHA'
-  - 'gcr.io/$PROJECT_ID/ai-film-studio:$COMMIT_SHA'
-
-# Build options
-options:
-  machineType: 'N1_HIGHCPU_8'
-  logging: CLOUD_LOGGING_ONLY
-  
-# Build timeout (1 hour)
-timeout: '3600s'
-
-# Substitutions for custom values
-substitutions:
-  _DATABASE_URL: 'mysql://filmstudio:PASSWORD@/ai_film_studio?unix_socket=/cloudsql/ai-film-studio:us-central1:ai-film-studio-db'
-  _REGION: 'us-central1'
-  _SERVICE_NAME: 'ai-film-studio'
-
-# Artifacts to store
-artifacts:
-  objects:
-    location: 'gs://${PROJECT_ID}_cloudbuild/artifacts'
-    paths:
-      - 'dist/**/*'
-      - 'client/dist/**/*'

@@ -134,7 +134,7 @@ Format your response as JSON with this structure:
 
     // Map character names back to IDs
     const suggestions: CharacterSuggestion[] = parsed.suggestions
-      .map((sugg: any) => {
+      .map((sugg: Record<string, unknown>) => {
         const character = characterLibrary.find((c) => c.name === sugg.characterName);
         if (!character) return null;
 

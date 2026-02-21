@@ -1,9 +1,5 @@
-import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
+import { router, protectedProcedure } from '../_core/trpc';
 import { z } from 'zod';
-import * as batchProcessing from '../services/batchProcessing';
-import * as timelinePlayback from '../services/timelinePlayback';
-import * as collaboration from '../services/collaboration';
-import * as costAnalytics from '../services/costAnalytics';
 // Note: costAnalytics functions are for reference; actual implementation uses database
 
 /**
@@ -26,7 +22,9 @@ export const advancedFeaturesRouter = router({
           provider: z.enum(['veo3', 'sora', 'flow']).default('veo3'),
         })
       )
-      .mutation(async ({ input, ctx }) => {
+      .mutation(async ({ input: _input, ctx: _ctx }) => {
+        void _input;
+        void _ctx;
         // Add to batch queue
         return {
           success: true,
@@ -40,7 +38,8 @@ export const advancedFeaturesRouter = router({
      */
     getQueueStatus: protectedProcedure
       .input(z.object({ projectId: z.number() }))
-      .query(({ input }) => {
+      .query(({ input: _input }) => {
+        void _input;
         // Get queue status from database
         return {
           queue: [],
@@ -60,7 +59,9 @@ export const advancedFeaturesRouter = router({
      */
     processBatch: protectedProcedure
       .input(z.object({ projectId: z.number(), maxJobs: z.number().default(5) }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input: _input, ctx: _ctx }) => {
+        void _input;
+        void _ctx;
         // Process batch queue
         return {
           success: true,
@@ -74,7 +75,8 @@ export const advancedFeaturesRouter = router({
      */
     cancelJob: protectedProcedure
       .input(z.object({ jobId: z.number() }))
-      .mutation(({ input }) => {
+      .mutation(({ input: _input }) => {
+        void _input;
         // Cancel job
         return {
           success: true,
@@ -96,7 +98,8 @@ export const advancedFeaturesRouter = router({
           speed: z.number().default(1.0),
         })
       )
-      .mutation(({ input }) => {
+      .mutation(({ input: _input }) => {
+        void _input;
         // Start playback session
         return {
           success: true,
@@ -150,7 +153,8 @@ export const advancedFeaturesRouter = router({
      */
     stopPlayback: protectedProcedure
       .input(z.object({ sessionId: z.number() }))
-      .mutation(({ input }) => {
+      .mutation(({ input: _input }) => {
+        void _input;
         // Stop playback session
         return {
           success: true,
@@ -172,7 +176,9 @@ export const advancedFeaturesRouter = router({
           currentTab: z.string().optional(),
         })
       )
-      .mutation(({ input, ctx }) => {
+      .mutation(({ input: _input, ctx: _ctx }) => {
+        void _input;
+        void _ctx;
         // Update presence in memory or database
         return {
           success: true,
@@ -185,7 +191,8 @@ export const advancedFeaturesRouter = router({
      */
     getActiveUsers: protectedProcedure
       .input(z.object({ projectId: z.number() }))
-      .query(({ input }) => {
+      .query(({ input: _input }) => {
+        void _input;
         // Get active users from database
         return {
           count: 0,
@@ -224,7 +231,8 @@ export const advancedFeaturesRouter = router({
      */
     getComments: protectedProcedure
       .input(z.object({ projectId: z.number() }))
-      .query(({ input }) => {
+      .query(({ input: _input }) => {
+        void _input;
         // Get comments from database
         return {
           count: 0,
@@ -237,7 +245,8 @@ export const advancedFeaturesRouter = router({
      */
     getActivityLog: protectedProcedure
       .input(z.object({ projectId: z.number(), limit: z.number().default(50) }))
-      .query(({ input }) => {
+      .query(({ input: _input }) => {
+        void _input;
         // Get activity log from database
         return {
           count: 0,
@@ -256,7 +265,9 @@ export const advancedFeaturesRouter = router({
           details: z.record(z.string(), z.any()).optional(),
         })
       )
-      .mutation(({ input, ctx }) => {
+      .mutation(({ input: _input, ctx: _ctx }) => {
+        void _input;
+        void _ctx;
         // Log activity to database
         return {
           success: true,
@@ -272,7 +283,8 @@ export const advancedFeaturesRouter = router({
      */
     getCostSummary: protectedProcedure
       .input(z.object({ projectId: z.number() }))
-      .query(({ input }) => {
+      .query(({ input: _input }) => {
+        void _input;
         // Return default cost summary
         return {
           totalCost: 0,
@@ -290,7 +302,8 @@ export const advancedFeaturesRouter = router({
      */
     getQualityMetrics: protectedProcedure
       .input(z.object({ projectId: z.number() }))
-      .query(({ input }) => {
+      .query(({ input: _input }) => {
+        void _input;
         // Quality metrics would be computed from cost data
         return {
           count: 0,
@@ -303,7 +316,8 @@ export const advancedFeaturesRouter = router({
      */
     getBudgetAlert: protectedProcedure
       .input(z.object({ projectId: z.number() }))
-      .query(({ input }) => {
+      .query(({ input: _input }) => {
+        void _input;
         // Return null if no budget set
         return null;
       }),
@@ -335,7 +349,8 @@ export const advancedFeaturesRouter = router({
      */
     getCostTrends: protectedProcedure
       .input(z.object({ projectId: z.number(), days: z.number().default(30) }))
-      .query(({ input }) => {
+      .query(({ input: _input }) => {
+        void _input;
         // Return empty trends for now
         return {
           count: 0,
@@ -348,7 +363,8 @@ export const advancedFeaturesRouter = router({
      */
     getProviderComparison: protectedProcedure
       .input(z.object({ projectId: z.number() }))
-      .query(({ input }) => {
+      .query(({ input: _input }) => {
+        void _input;
         // Provider comparison based on cost data
         return {
           veo3: { totalCost: 0, videoCount: 0, averageCost: 0 },

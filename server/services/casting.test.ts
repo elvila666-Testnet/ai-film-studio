@@ -2,7 +2,7 @@
  * Tests for Casting System (Character Suggestion, Moodboard, Voiceover)
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   suggestCharactersForScript,
   scoreCharacterForRole,
@@ -22,6 +22,8 @@ import { BrandGuidelines } from "./brandBrain";
 
 // Mock data
 const mockBrand: BrandGuidelines = {
+  id: 1,
+  name: "TestBrand",
   targetCustomer: "Young professionals aged 25-35",
   aesthetic: "Modern, minimalist, tech-forward",
   mission: "Empower creative professionals",

@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, Pause, Volume2, VolumeX } from "lucide-react";
+import { Volume2, VolumeX } from "lucide-react";
 
 interface VideoComparisonProps {
   shotNumber: number;
@@ -41,8 +41,8 @@ export function VideoComparison({
   comparison,
   onSelect,
 }: VideoComparisonProps) {
-  const [playingFlow, setPlayingFlow] = useState(false);
-  const [playingSora, setPlayingSora] = useState(false);
+  const [, setPlayingFlow] = useState(false);
+  const [, setPlayingSora] = useState(false);
   const [muteFlow, setMuteFlow] = useState(false);
   const [muteSora, setMuteSora] = useState(false);
 

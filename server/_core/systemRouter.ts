@@ -6,12 +6,17 @@ export const systemRouter = router({
   health: publicProcedure
     .input(
       z.object({
-        timestamp: z.number().min(0, "timestamp cannot be negative"),
+        timestamp: z.number().optional(),
       })
     )
-    .query(() => ({
-      ok: true,
-    })),
+    .query(async () => {
+      const { getDb } = await import("../db");
+      const db = await getDb();
+      return {
+        ok: true,
+        database: !!db,
+      };
+    }),
 
   notifyOwner: adminProcedure
     .input(

@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Edit2, Trash2, Check } from "lucide-react";
+import { Plus, Edit2, Trash2, Check, Link } from "lucide-react";
+import { toast } from "sonner";
 
 interface BrandSelectorProps {
   selectedBrandId?: number;
@@ -22,7 +23,8 @@ export function BrandSelector({ selectedBrandId, onBrandSelect }: BrandSelectorP
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingBrandId, setEditingBrandId] = useState<number | null>(null);
-  
+
+  const [urlInput, setUrlInput] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     targetCustomer: "",
@@ -33,6 +35,30 @@ export function BrandSelector({ selectedBrandId, onBrandSelect }: BrandSelectorP
 
   // Fetch user's brands
   const brandsQuery = trpc.brands.list.useQuery();
+  const utils = trpc.useUtils();
+
+  const scrapeDNAMutation = trpc.brands.scrapeDNA.useMutation({
+    onSuccess: (data: unknown) => {
+      setFormData(prev => ({
+        ...prev,
+        name: data.name || prev.name,
+        targetCustomer: data.targetCustomer || prev.targetCustomer,
+        aesthetic: data.aesthetic || prev.aesthetic,
+        mission: data.mission || prev.mission,
+        coreMessaging: data.coreMessaging || prev.coreMessaging,
+        description: data.description || "",
+      }));
+      toast.success("Brand DNA extracted from digital footprint");
+    },
+    onError: (err: unknown) => {
+      toast.error(`Extraction failed: ${err.message}`);
+    }
+  });
+
+  const handleImportUrl = async () => {
+    if (!urlInput.trim()) return;
+    await scrapeDNAMutation.mutateAsync({ url: urlInput });
+  };
   const createBrandMutation = trpc.brands.create.useMutation({
     onSuccess: () => {
       brandsQuery.refetch();
@@ -72,7 +98,7 @@ export function BrandSelector({ selectedBrandId, onBrandSelect }: BrandSelectorP
     });
   };
 
-  const handleEditBrand = (brand: any) => {
+  const handleEditBrand = (brand: unknown) => {
     setEditingBrandId(brand.id);
     setFormData({
       name: brand.name,
@@ -84,7 +110,7 @@ export function BrandSelector({ selectedBrandId, onBrandSelect }: BrandSelectorP
     setIsEditing(true);
   };
 
-  const selectedBrand = brandsQuery.data?.find((b: any) => b.id === selectedBrandId);
+  const selectedBrand = brandsQuery.data?.find((b: unknown) => b.id === selectedBrandId);
 
   return (
     <div className="space-y-6">
@@ -107,6 +133,28 @@ export function BrandSelector({ selectedBrandId, onBrandSelect }: BrandSelectorP
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
+                <div className="p-4 bg-muted/50 rounded-lg border border-border space-y-3">
+                  <Label htmlFor="brand-url" className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Import from Website</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="brand-url"
+                      placeholder="https://example.com"
+                      value={urlInput}
+                      onChange={(e) => setUrlInput(e.target.value)}
+                      className="bg-background"
+                    />
+                    <Button
+                      onClick={handleImportUrl}
+                      disabled={scrapeDNAMutation.isPending || !urlInput.trim()}
+                      variant="secondary"
+                    >
+                      {scrapeDNAMutation.isPending ? <Plus className="h-4 w-4 animate-spin" /> : <Link className="h-4 w-4 mr-2" />}
+                      Import
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">AI will analyze the website to extract brand DNA.</p>
+                </div>
+
                 <div>
                   <Label htmlFor="brand-name">Brand Name</Label>
                   <Input
@@ -184,12 +232,11 @@ export function BrandSelector({ selectedBrandId, onBrandSelect }: BrandSelectorP
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {brandsQuery.data?.map((brand: any) => (
+            {brandsQuery.data?.map((brand: unknown) => (
               <Card
                 key={brand.id}
-                className={`cursor-pointer transition-all ${
-                  selectedBrandId === brand.id ? "ring-2 ring-primary" : "hover:shadow-lg"
-                }`}
+                className={`cursor-pointer transition-all ${selectedBrandId === brand.id ? "ring-2 ring-primary" : "hover:shadow-lg"
+                  }`}
                 onClick={() => onBrandSelect(brand.id)}
               >
                 <CardHeader className="pb-3">

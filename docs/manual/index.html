@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIFILMSTUDIO | Professional Production Manual</title>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --background: #020205;
+            --primary: #4f46e5;
+            --accent: #06b6d4;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background-color: var(--background);
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        .font-heading {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .glass {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+        }
+
+        .neon-border {
+            border: 1px solid var(--primary);
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.3);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .step-card {
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .step-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--primary);
+            background: rgba(79, 70, 229, 0.05);
+        }
+
+        .stage-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            background: rgba(79, 70, 229, 0.1);
+            color: var(--primary);
+            border: 1px solid rgba(79, 70, 229, 0.2);
+        }
+
+        .pro-tip {
+            border-left: 4px solid var(--accent);
+            background: rgba(6, 182, 212, 0.05);
+            padding: 1.5rem;
+            border-radius: 0 1rem 1rem 0;
+        }
+
+        @keyframes scan {
+            from {
+                top: -100px;
+            }
+
+            to {
+                top: 100%;
+            }
+        }
+
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+
+            .glass {
+                background: #f9fafb;
+                border: 1px solid #e5e7eb;
+                backdrop-filter: none;
+            }
+
+            .no-print {
+                display: none;
+            }
+
+            .page-break {
+                page-break-after: always;
+            }
+
+            .print-only {
+                display: block !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="antialiased selection:bg-indigo-500/30">
+
+    <!-- Navbar -->
+    <header
+        class="fixed top-0 w-full z-50 glass border-t-0 rounded-none border-x-0 bg-opacity-40 backdrop-blur-3xl px-8 py-4 flex justify-between items-center no-print">
+        <div class="flex items-center gap-3">
+            <div
+                class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-xl shadow-lg shadow-indigo-600/20">
+                A</div>
+            <span class="font-heading font-black text-xl tracking-tighter">AI FILM STUDIO</span>
+        </div>
+        <button onclick="window.print()"
+            class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-full text-sm font-bold transition-all shadow-xl shadow-indigo-600/30 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z">
+                </path>
+            </svg>
+            PDF MANUAL
+        </button>
+    </header>
+
+    <!-- Cover Page -->
+    <section class="min-h-screen flex flex-col items-center justify-center px-6 relative overflow-hidden page-break">
+        <div
+            class="absolute inset-0 z-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
+        </div>
+
+        <div class="z-10 text-center max-w-5xl">
+            <div class="stage-badge mb-8">System Documentation // Version 2.2</div>
+            <h1 class="text-7xl md:text-9xl font-black mb-8 tracking-tighter leading-[0.9] uppercase italic">
+                Production <br> <span class="gradient-text">Handbook</span>
+            </h1>
+            <p class="text-2xl text-slate-400 mb-12 max-w-2xl mx-auto font-light leading-relaxed">
+                The comprehensive technical guide to mastering end-to-end AI cinematic production.
+            </p>
+            <div class="flex flex-wrap gap-6 justify-center text-xs font-mono text-slate-500 uppercase tracking-widest">
+                <span>• Brand Logic</span>
+                <span>• Narrative Synthesis</span>
+                <span>• Visual Materialization</span>
+                <span>• Temporal Rendering</span>
+            </div>
+        </div>
+
+        <div class="mt-20 w-full max-w-6xl glass p-3 border-white/5 relative group overflow-hidden shadow-2xl">
+            <div class="aspect-[21/9] rounded-2xl relative overflow-hidden flex items-center justify-center">
+                <img src="https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?q=80&w=2070&auto=format&fit=crop"
+                    class="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-[3s]"
+                    alt="Cinematic Console">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                <div class="absolute inset-0 bg-indigo-500/10 mix-blend-overlay"></div>
+                <div class="absolute bottom-12 left-12 text-left">
+                    <div
+                        class="text-[10px] font-mono text-indigo-400 font-bold tracking-widest uppercase mb-2 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                        Interface Node: ALPHA-01
+                    </div>
+                    <div class="text-4xl font-black uppercase italic text-white tracking-widest">AIFILMSTUDIO CONSOLE
+                    </div>
+                </div>
+            </div>
+            <div
+                class="absolute top-0 left-0 w-full h-1/4 bg-gradient-to-b from-indigo-500/20 to-transparent pointer-events-none">
+            </div>
+        </div>
+    </section>
+
+    <!-- Detailed Step-by-Step Guide -->
+    <section class="py-24 px-6 max-w-6xl mx-auto space-y-32">
+
+        <!-- Introduction -->
+        <div class="max-w-4xl page-break">
+            <h2 class="text-4xl font-black mb-12 italic uppercase tracking-wider">The Intelligent <br>Workflow</h2>
+            <div class="pro-tip mb-12">
+                <p class="text-slate-300 font-medium">
+                    The AI Film Studio operates as a linear production pipeline where each stage feeds intelligence into
+                    the next. To achieve cinematic coherence, ensure you finalize each stage before proceeding.
+                </p>
+            </div>
+
+            <!-- Production Analytics Chart -->
+            <div class="glass p-8 mb-12 border-indigo-500/20 bg-indigo-950/10">
+                <div class="flex justify-between items-end mb-8">
+                    <div>
+                        <h3 class="text-lg font-black uppercase tracking-widest text-white">Efficiency Vector</h3>
+                        <p class="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Synthetic vs. Manual
+                            Production Velocity</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-3xl font-black text-indigo-400">92%</span>
+                        <div class="text-[8px] font-mono text-indigo-500 uppercase">Optimization Rate</div>
+                    </div>
+                </div>
+                <div class="h-48 w-full relative group">
+                    <svg viewBox="0 0 800 200" class="w-full h-full">
+                        <!-- Grid Lines -->
+                        <line x1="0" y1="0" x2="800" y2="0" stroke="white" stroke-opacity="0.05" />
+                        <line x1="0" y1="50" x2="800" y2="50" stroke="white" stroke-opacity="0.05" />
+                        <line x1="0" y1="100" x2="800" y2="100" stroke="white" stroke-opacity="0.05" />
+                        <line x1="0" y1="150" x2="800" y2="150" stroke="white" stroke-opacity="0.05" />
+                        <line x1="0" y1="200" x2="800" y2="200" stroke="white" stroke-opacity="0.1" />
+
+                        <!-- Manual Workflow (Lower, stagnant) -->
+                        <path d="M0,180 Q200,175 400,170 T800,165" fill="none" stroke="#64748b" stroke-width="2"
+                            stroke-dasharray="4" />
+
+                        <!-- AI Workflow (Steep climb) -->
+                        <path d="M0,180 Q100,150 200,80 T400,40 T600,20 T800,10" fill="none"
+                            stroke="url(#chartGradient)" stroke-width="4" />
+
+                        <!-- Gradient Definition -->
+                        <defs>
+                            <linearGradient id="chartGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#4f46e5;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+
+                        <!-- Interactivity Markers -->
+                        <circle cx="200" cy="80" r="4" fill="#4f46e5" class="animate-pulse" />
+                        <circle cx="400" cy="40" r="4" fill="#06b6d4" />
+                        <circle cx="800" cy="10" r="6" fill="#06b6d4" shadow="0 0 10px #06b6d4" />
+                    </svg>
+                    <div class="absolute -bottom-4 left-0 text-[8px] font-mono text-slate-600">PRE-PRODUCTION</div>
+                    <div class="absolute -bottom-4 right-0 text-[8px] font-mono text-slate-600">DELIVERY (92X FASTER)
+                    </div>
+                </div>
+            </div>
+
+            <p class="text-slate-400 text-lg leading-relaxed">
+                This manual will guide you through the 8 critical stages of production, detailing how to interact with
+                the AI agents at each node to achieve professional-grade results.
+            </p>
+        </div>
+
+        <!-- Stage 0: Brand Intelligence -->
+        <div class="page-break">
+            <div class="flex flex-col md:flex-row gap-12 items-start">
+                <div class="w-full md:w-1/2 space-y-8">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center text-3xl font-black font-heading shadow-lg shadow-indigo-600/40">
+                            00</div>
+                        <div>
+                            <h3 class="text-3xl font-black uppercase italic tracking-tight">Brand Intelligence</h3>
+                            <div class="stage-badge mt-1 !bg-indigo-900/40">Stage 0: The Anchor</div>
+                        </div>
+                    </div>
+                    <div class="space-y-6 text-slate-300">
+                        <p>The "Brand Brain" is the foundational layer. By defining a brand here, you create a
+                            <strong>Consistency Lock</strong> that influences every subsequent generation.
+                        </p>
+
+                        <div class="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4">
+                            <h4 class="text-sm font-bold text-white uppercase tracking-widest">Key Operations:</h4>
+                            <ul class="space-y-4 text-sm font-light">
+                                <li class="flex gap-4"><span class="text-indigo-400 font-bold">1.</span>
+                                    <strong>Intelligence Vault:</strong> Store multiple brand identities for recurring
+                                    clients or projects.
+                                </li>
+                                <li class="flex gap-4"><span class="text-indigo-400 font-bold">2.</span> <strong>Visual
+                                        DNA:</strong> Define specific colors, textures, and moods that the AI must
+                                    respect.</li>
+                                <li class="flex gap-4"><span class="text-indigo-400 font-bold">3.</span>
+                                    <strong>Archetype Synthesis:</strong> Generate AI character archetypes that
+                                    represent your brand's personality.
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="pro-tip">
+                            <strong>PRO-TIP:</strong> Be descriptive in the "Visual DNA" field. Use terms like "Low-key
+                            anamorphic lighting" or "Ektachrome 64 color science" to set a professional tone
+                            immediately.
+                        </div>
+                    </div>
+                </div>
+                <div class="w-full md:w-1/2 glass overflow-hidden border-indigo-500/20 relative group">
+                    <img src="https://images.unsplash.com/photo-1677442136019-21780ecad995?q=80&w=2070&auto=format&fit=crop"
+                        class="w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-[5s]"
+                        alt="Neural Intelligence Network">
+                    <div class="absolute inset-0 bg-gradient-to-t from-indigo-950 via-transparent to-indigo-500/10">
+                    </div>
+                    <div class="absolute top-8 left-8">
+                        <div class="text-[10px] font-mono text-indigo-400 font-bold tracking-[0.2em] mb-4">NODE_STATUS:
+                            SYNCED</div>
+                        <div class="flex gap-2">
+                            <span class="w-1 h-3 bg-indigo-500"></span>
+                            <span class="w-1 h-5 bg-indigo-400"></span>
+                            <span class="w-1 h-2 bg-indigo-600"></span>
+                        </div>
+                    </div>
+                    <div
+                        class="absolute bottom-8 left-8 right-8 text-center bg-black/40 backdrop-blur-md p-4 rounded-xl border border-white/5">
+                        <div class="text-[10px] font-black uppercase tracking-widest text-white mb-2">ARCHETYPE
+                            REPOSITORY ACTIVE</div>
+                        <div class="flex justify-center gap-4">
+                            <div
+                                class="w-8 h-8 rounded bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-xs">
+                                A1</div>
+                            <div
+                                class="w-8 h-8 rounded bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-xs">
+                                B2</div>
+                            <div
+                                class="w-8 h-8 rounded bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-xs">
+                                C3</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stage 1: Brief -->
+        <div class="page-break">
+            <div class="flex flex-col md:flex-row-reverse gap-12 items-start">
+                <div class="w-full md:w-1/2 space-y-8">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-16 h-16 rounded-2xl bg-cyan-600 flex items-center justify-center text-3xl font-black font-heading shadow-lg shadow-cyan-600/40">
+                            01</div>
+                        <div>
+                            <h3 class="text-3xl font-black uppercase italic tracking-tight">Strategic Directive</h3>
+                            <div class="stage-badge mt-1 !bg-cyan-900/40 !text-cyan-400 !border-cyan-900">Stage 1:
+                                Narrative Nucleus</div>
+                        </div>
+                    </div>
+                    <div class="space-y-6 text-slate-300">
+                        <p>This is where you inject your raw creative vision. The brief is the master prompt for the
+                            Gemini Narrative Engine.</p>
+
+                        <div class="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4">
+                            <h4 class="text-sm font-bold text-white uppercase tracking-widest">Actionable Steps:</h4>
+                            <ul class="space-y-4 text-sm font-light">
+                                <li class="flex gap-4"><span class="text-cyan-400 font-bold">•</span> <strong>Core
+                                        Conflict:</strong> Describe the emotional and logical stakes of the sequence.
+                                </li>
+                                <li class="flex gap-4"><span class="text-cyan-400 font-bold">•</span> <strong>Setting &
+                                        Soul:</strong> Define the atmosphere. Is it claustrophobic? Is it expansive?
+                                </li>
+                                <li class="flex gap-4"><span class="text-cyan-400 font-bold">•</span>
+                                    <strong>Finalize:</strong> Click 'Finalize Brief' to lock the narrative structure.
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div
+                            class="bg-black/40 p-6 rounded-2xl border border-white/5 font-mono text-[11px] leading-relaxed text-slate-400">
+                            <span class="text-cyan-400">// STRATEGIC INPUT EXAMPLE</span><br>
+                            "A futuristic heist in a rain-slicked neon alley. High tension. Character A is nervous,
+                            Character B is cold and professional. The rain should feel heavy, almost tangible."
+                        </div>
+                    </div>
+                </div>
+                <div
+                    class="w-full md:w-1/2 glass p-8 aspect-square flex flex-col items-center justify-center border-cyan-500/10">
+                    <div class="w-full max-w-xs space-y-6">
+                        <div class="flex items-center justify-between">
+                            <div class="h-px bg-cyan-800 flex-1 mr-4"></div>
+                            <div class="text-[10px] font-bold text-cyan-500 tracking-widest">NARRATIVE ENGINE</div>
+                            <div class="h-px bg-cyan-800 flex-1 ml-4"></div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="h-2 w-full bg-white/5 rounded"></div>
+                            <div class="h-2 w-5/6 bg-white/5 rounded"></div>
+                            <div class="h-2 w-full bg-white/5 rounded"></div>
+                            <div class="h-2 w-2/3 bg-cyan-500/40 rounded"></div>
+                        </div>
+                        <div class="flex justify-center pt-8">
+                            <div
+                                class="w-20 h-20 rounded-full border-4 border-cyan-500/20 border-t-cyan-500 animate-spin">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stage 2: Scripting -->
+        <div class="page-break">
+            <h3 class="text-3xl font-black uppercase italic mb-8 items-center flex gap-4">
+                <span class="w-12 h-12 bg-white text-black text-center pt-1 rounded-xl">02</span>
+                Screenplay Construction
+            </h3>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="md:col-span-2 glass p-10 space-y-6">
+                    <p class="text-slate-300 leading-relaxed">The studio translates your brief into a structured,
+                        cinematic script. It utilizes <strong>Master Intelligence</strong> to interpret subtext and
+                        visual descriptors.</p>
+
+                    <div class="grid grid-cols-2 gap-8 mt-10">
+                        <div class="space-y-4">
+                            <h4 class="text-xs font-black text-white uppercase tracking-widest text-indigo-400">Draft
+                                Generation</h4>
+                            <p class="text-xs text-slate-500 leading-relaxed">Turn your point-form brief into a
+                                professional screenplay format with scene headings, character names, and dialogue.</p>
+                        </div>
+                        <div class="space-y-4">
+                            <h4 class="text-xs font-black text-white uppercase tracking-widest text-indigo-400">AI
+                                Refinement</h4>
+                            <p class="text-xs text-slate-500 leading-relaxed">Use the 'Director Notes' to tweak the
+                                script. "Add more suspense" or "Make the dialogue sharp and rapid-fire."</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 p-6 glass bg-black/40 border-white/5 font-mono text-xs text-slate-300">
+                        INT. ALLEYWAY - NIGHT <br><br>
+                        The heavy RAIN (SFX) hits the concrete. ELARA (20s) fumbles with a glowing tablet...
+                    </div>
+                </div>
+                <div class="glass p-8 space-y-6 bg-indigo-900/5">
+                    <h4 class="text-sm font-bold uppercase tracking-widest italic">Instructions</h4>
+                    <div class="space-y-4">
+                        <div class="flex gap-3 items-start">
+                            <div
+                                class="w-6 h-6 rounded bg-indigo-500 text-xs flex items-center justify-center font-bold">
+                                1</div>
+                            <div class="text-xs text-slate-400">Click <strong>'Generate Draft'</strong> based on your
+                                finalized brief.</div>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <div
+                                class="w-6 h-6 rounded bg-indigo-500 text-xs flex items-center justify-center font-bold">
+                                2</div>
+                            <div class="text-xs text-slate-400">Review the output. Use 'Director Notes' for any changes.
+                            </div>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <div
+                                class="w-6 h-6 rounded bg-indigo-500 text-xs flex items-center justify-center font-bold">
+                                3</div>
+                            <div class="text-xs text-slate-400">Click <strong>'Save Progress'</strong> to lock the
+                                literary layer.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stage 4: Visual Style (MOVED TO CORRRECT ORDER) -->
+        <div class="page-break">
+            <div class="flex flex-col md:flex-row gap-12 items-start">
+                <div class="w-full md:w-1/2 space-y-8">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-16 h-16 rounded-2xl bg-purple-600 flex items-center justify-center text-3xl font-black font-heading shadow-lg shadow-purple-600/40">
+                            03</div>
+                        <div>
+                            <h3 class="text-3xl font-black uppercase italic tracking-tight">Cinematography Design</h3>
+                            <div class="stage-badge mt-1 !bg-purple-900/40 !text-purple-400 !border-purple-900">Stage 4:
+                                Aesthetic DNA</div>
+                        </div>
+                    </div>
+                    <div class="space-y-6 text-slate-300">
+                        <p>Visual Style defines the <strong>Look & Feel</strong>. This stage is critical because it
+                            tells the Image Engine (Nanobanana) and Video Engine (Sora) what "lens" to look through.</p>
+
+                        <div class="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-6">
+                            <div>
+                                <h4 class="text-xs font-black text-white uppercase tracking-widest mb-2">Moodboard Pool
+                                </h4>
+                                <p class="text-xs text-slate-500">Upload reference images from Pinterest, ShotDeck, or
+                                    your own archives. The AI Analyzes these for color and texture.</p>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-black text-white uppercase tracking-widest mb-2">Style Manifest
+                                </h4>
+                                <p class="text-xs text-slate-500">Generate a technical description of the lighting,
+                                    palette, and camera setup.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="w-full md:w-1/2 grid grid-cols-2 gap-4">
+                    <div class="aspect-square glass overflow-hidden border-purple-500/20">
+                        <img src="https://images.unsplash.com/photo-1512486130939-2c4f79935e4f?q=80&w=1000&auto=format&fit=crop"
+                            class="w-full h-full object-cover">
+                    </div>
+                    <div class="aspect-square glass overflow-hidden border-purple-500/20">
+                        <img src="https://images.unsplash.com/photo-1515634928627-2a4e0dae3ddf?q=80&w=1000&auto=format&fit=crop"
+                            class="w-full h-full object-cover">
+                    </div>
+                    <div class="aspect-square glass overflow-hidden border-purple-500/20">
+                        <img src="https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1000&auto=format&fit=crop"
+                            class="w-full h-full object-cover">
+                    </div>
+                    <div
+                        class="aspect-square bg-gradient-to-br from-purple-600/40 via-indigo-600/40 to-cyan-500/40 rounded-[1.5rem] flex items-center justify-center border border-white/10">
+                        <div class="text-[10px] font-black text-white uppercase tracking-widest">Style Matrix</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stage 5: Technical Script -->
+        <div class="page-break">
+            <div class="text-center mb-16 max-w-2xl mx-auto">
+                <div class="stage-badge mb-4">Stage 5: Production Blueprint</div>
+                <h3 class="text-4xl font-black uppercase italic">Technical Breakdown</h3>
+                <p class="text-slate-400 mt-4 leading-relaxed">Here, the AI mimics a real Assistant Director (AD),
+                    breaking the script into individual, actionable shots.</p>
+            </div>
+
+            <div class="bg-white/[0.02] border border-white/5 rounded-3xl p-10 overflow-hidden relative">
+                <table class="w-full text-left text-xs uppercase tracking-widest font-bold">
+                    <thead class="text-slate-500 border-b border-white/10">
+                        <tr>
+                            <th class="pb-6 w-20">SHOT</th>
+                            <th class="pb-6">CAMERA/PLANO</th>
+                            <th class="pb-6">ACTION</th>
+                            <th class="pb-6">INTENTION</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-slate-300">
+                        <tr class="border-b border-white/5">
+                            <td class="py-6">01</td>
+                            <td class="py-6 text-indigo-400">Extreme Wide</td>
+                            <td class="py-6 font-normal">Establish the rain-soaked city.</td>
+                            <td class="py-6 italic text-slate-500">Scale and Isolation.</td>
+                        </tr>
+                        <tr class="border-b border-white/5">
+                            <td class="py-6">02</td>
+                            <td class="py-6 text-indigo-400">Close Up</td>
+                            <td class="py-6 font-normal">Focus on Elara's trembling hands.</td>
+                            <td class="py-6 italic text-slate-500">Intimacy and Fear.</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="mt-8 pro-tip">
+                    <strong>SYSTEM ACTION:</strong> Click 'Analyze Script' to auto-generate this list. You can then
+                    manually edit the shots to match your specific directorial intent.
+                </div>
+            </div>
+        </div>
+
+        <!-- Stage 6: Storyboard -->
+        <div class="page-break">
+            <div class="grid md:grid-cols-2 gap-16 items-center">
+                <div class="space-y-8">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center text-3xl font-black font-heading shadow-lg shadow-indigo-600/40">
+                            06</div>
+                        <div>
+                            <h3 class="text-3xl font-black uppercase italic tracking-tight">Visual Layout</h3>
+                            <div class="stage-badge mt-1 !bg-indigo-900/40">Stage 6: Storyboarding</div>
+                        </div>
+                    </div>
+                    <div class="space-y-6 text-slate-300">
+                        <p>The "Materialization" phase. Use high-performance models to turn your technical shots into
+                            cinematic stills.</p>
+
+                        <div class="space-y-6">
+                            <div class="flex gap-4">
+                                <div
+                                    class="w-10 h-10 shrink-0 rounded bg-white/5 border border-white/10 flex items-center justify-center">
+                                    🚀</div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-white uppercase tracking-widest">Image Engine
+                                        Selection</h4>
+                                    <p class="text-xs text-slate-500">Choose between <strong>Flux Schnell</strong>
+                                        (Fast) or <strong>Flux Pro</strong> (Highest Quality). Legacy models like DALL-E
+                                        3 are also available.</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-4">
+                                <div
+                                    class="w-10 h-10 shrink-0 rounded bg-white/5 border border-white/10 flex items-center justify-center">
+                                    🧠</div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-white uppercase tracking-widest">Global
+                                        Intelligence Synthesis</h4>
+                                    <p class="text-xs text-slate-500">The 'Synthesize Intelligence' button injects your
+                                        <strong>Visual Style DNA</strong> into every storyboard prompt automatically.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex gap-4">
+                                <div
+                                    class="w-10 h-10 shrink-0 rounded bg-white/5 border border-white/10 flex items-center justify-center">
+                                    🎬</div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-white uppercase tracking-widest">Animatic Export
+                                    </h4>
+                                    <p class="text-xs text-slate-500">Combine frames with audio and set specific
+                                        durations to preview the pacing of your film.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="glass p-4 border-indigo-500/20 bg-indigo-950/20">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="aspect-video rounded-xl overflow-hidden border border-white/5 relative group">
+                            <img src="https://images.unsplash.com/photo-1485846234645-5f782bf5280c?q=80&w=1000&auto=format&fit=crop"
+                                class="w-full h-full object-cover">
+                            <div
+                                class="absolute top-2 left-2 px-2 py-0.5 bg-black/60 backdrop-blur rounded text-[8px] font-bold">
+                                SHOT 01</div>
+                        </div>
+                        <div class="aspect-video rounded-xl overflow-hidden border border-white/5 relative group">
+                            <img src="https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=1000&auto=format&fit=crop"
+                                class="w-full h-full object-cover">
+                            <div
+                                class="absolute top-2 left-2 px-2 py-0.5 bg-black/60 backdrop-blur rounded text-[8px] font-bold">
+                                SHOT 02</div>
+                        </div>
+                        <div class="aspect-video rounded-xl overflow-hidden border border-white/5 relative group">
+                            <img src="https://images.unsplash.com/photo-1515634928627-2a4e0dae3ddf?q=80&w=1000&auto=format&fit=crop"
+                                class="w-full h-full object-cover">
+                            <div
+                                class="absolute top-2 left-2 px-2 py-0.5 bg-black/60 backdrop-blur rounded text-[8px] font-bold">
+                                SHOT 03</div>
+                        </div>
+                        <div
+                            class="aspect-video bg-indigo-500/10 border border-dashed border-indigo-500/40 rounded-xl flex items-center justify-center">
+                            <div class="text-[8px] font-black text-indigo-400 uppercase">Awaiting Synthesis</div>
+                        </div>
+                    </div>
+                    <div class="mt-6 p-4 bg-black/40 rounded-xl border border-white/5 space-y-3">
+                        <div
+                            class="flex justify-between items-center text-[10px] font-mono uppercase tracking-widest text-slate-500">
+                            <span>STORYBOARD_LAYER</span>
+                            <span class="text-green-400">RENDER_READY</span>
+                        </div>
+                        <div class="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                            <div class="h-full w-3/4 bg-gradient-to-r from-indigo-500 to-cyan-400"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stage 7: Video Tab -->
+        <div class="page-break">
+            <h3 class="text-4xl font-black uppercase italic mb-12 flex gap-4 items-center">
+                <span
+                    class="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center pt-1 shadow-lg shadow-indigo-600/40">07</span>
+                Temporal Synthesis
+            </h3>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+                <div class="step-card glass p-8 space-y-4">
+                    <div class="text-primary text-2xl">⚙️</div>
+                    <h4 class="text-sm font-black uppercase tracking-widest text-white">Engine Logic</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        Choose your rendering engine: <br><br>
+                        <strong>Sora 2:</strong> Best for high-energy motion and photorealism. <br>
+                        <strong>Veo 3:</strong> Precision control for cinematic composition. <br>
+                        <strong>Minimax:</strong> Ultra-fast synthesis for quick iteration.
+                    </p>
+                </div>
+
+                <div class="step-card glass p-8 space-y-4">
+                    <div class="text-primary text-2xl">🔥</div>
+                    <h4 class="text-sm font-black uppercase tracking-widest text-white">Batch Rendering</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        Don't render shot-by-shot. Use the <strong>'Batch Synthesize'</strong> button to trigger the
+                        entire storyboard production in one click at up to 4K resolution.
+                    </p>
+                </div>
+
+                <div class="step-card glass p-8 space-y-4 border-indigo-500/30">
+                    <div class="text-primary text-2xl">📉</div>
+                    <h4 class="text-sm font-black uppercase tracking-widest text-white">Intensity Control</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        Adjust the <strong>Motion Intensity</strong> slider from 1-10 to define how dynamic the AI
+                        creates movement within the shot.
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="mt-12 glass p-10 border-indigo-500/10">
+                <div class="flex flex-col md:flex-row gap-12 items-center">
+                    <div class="w-full md:w-1/3">
+                        <div class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-4">4K Render
+                            Preview</div>
+                        <div
+                            class="aspect-video rounded-xl bg-black relative flex items-center justify-center overflow-hidden border border-white/10 group">
+                            <img src="https://images.unsplash.com/photo-1620574384469-655e884e1b43?q=80&w=1000&auto=format&fit=crop"
+                                class="w-full h-full object-cover opacity-40 group-hover:opacity-100 transition-opacity">
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div
+                                    class="w-12 h-12 rounded-full bg-indigo-600/80 flex items-center justify-center shadow-2xl shadow-indigo-600/50">
+                                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path
+                                            d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.333-5.89a1.5 1.5 0 000-2.538L6.3 2.841z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div
+                                class="absolute bottom-2 right-2 px-2 py-0.5 bg-black/80 text-[8px] font-mono text-indigo-400 border border-indigo-500/20">
+                                4K_SYNTH_ACTIVE</div>
+                            <div class="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-indigo-500 to-cyan-400">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex-1 space-y-4 text-sm text-slate-400">
+                        <p>Once synthesis begins, the <strong>Asset Vault</strong> will populate with 4K video clips.
+                            You can preview these in the <strong>Canvas Monitor</strong> with full playback controls.
+                        </p>
+                        <p class="font-mono text-[10px] uppercase tracking-widest border-t border-white/10 pt-4">
+                            SYSTEM_NOTE: All renders are stored in S3 for permanent access.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stage 8: Editor -->
+        <div class="page-break">
+            <div class="flex flex-col md:flex-row gap-12 items-start">
+                <div class="w-full md:w-1/2 space-y-8">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-16 h-16 rounded-2xl bg-white text-black flex items-center justify-center text-3xl font-black font-heading shadow-lg shadow-white/20">
+                            08</div>
+                        <div>
+                            <h3
+                                class="text-3xl font-black uppercase italic tracking-tight underline decoration-indigo-500 underline-offset-8">
+                                The Master Cut</h3>
+                            <div class="stage-badge mt-1 !bg-white/10 !text-white border-white/20">Final Stage:
+                                Post-Production</div>
+                        </div>
+                    </div>
+                    <div class="space-y-6 text-slate-300">
+                        <p>Welcome to the <strong>Non-Linear AI Editor</strong>. This is where you assemble your
+                            synthetic shots into a final cinematic sequence.</p>
+
+                        <div class="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-6">
+                            <div>
+                                <h4 class="text-xs font-black text-white uppercase tracking-widest mb-2">Multi-Track
+                                    Timeline</h4>
+                                <p class="text-xs text-slate-500">Arrange Video, Audio, Voiceover, and SFX on separate
+                                    tracks for maximum control.</p>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-black text-white uppercase tracking-widest mb-2">Audio Mixer
+                                    Console</h4>
+                                <p class="text-xs text-slate-500">Level your dialogue against your soundscape in
+                                    real-time. Use the 'MIX' panel to adjust gains.</p>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-black text-white uppercase tracking-widest mb-2">The Inspector
+                                </h4>
+                                <p class="text-xs text-slate-500">Fine-tune clip properties. Add comments for your team
+                                    at specific timestamps for collaborative refinement.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="w-full md:w-1/2 glass p-1 shadow-2xl relative overflow-hidden group">
+                    <div class="bg-[#050510] aspect-square rounded-xl p-6 flex flex-col">
+                        <div
+                            class="flex-1 border border-white/5 rounded p-2 flex items-center justify-center relative overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?q=80&w=1000&auto=format&fit=crop"
+                                class="w-full h-full object-cover opacity-20 grayscale brightness-50">
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div
+                                    class="text-[10px] font-mono text-indigo-400 opacity-60 uppercase tracking-[0.5em] animate-pulse">
+                                    Master Monitor Online</div>
+                            </div>
+                        </div>
+                        <div class="h-32 mt-4 space-y-2 overflow-hidden">
+                            <!-- Track 1 with simulated waveform -->
+                            <div class="h-6 w-full bg-indigo-500/10 rounded relative border border-indigo-500/20">
+                                <svg class="absolute inset-0 w-full h-full pointer-events-none"
+                                    preserveAspectRatio="none">
+                                    <path d="M0,12 L10,8 L20,15 L30,12 L40,18 L50,12 L60,15 L70,8 L80,12 L90,6 L100,12"
+                                        stroke="#4f46e5" fill="none" stroke-width="0.5" />
+                                </svg>
+                                <div
+                                    class="absolute left-10 inset-y-0 w-48 bg-indigo-500/40 border-x border-indigo-500/60 shadow-[0_0_15px_rgba(79,70,229,0.3)]">
+                                </div>
+                            </div>
+                            <!-- Track 2 -->
+                            <div class="h-6 w-full bg-cyan-500/10 rounded relative border border-cyan-500/20">
+                                <div class="absolute left-60 inset-y-0 w-32 bg-cyan-500/40 border-x border-cyan-500/60">
+                                </div>
+                            </div>
+                            <!-- Track 3 (Audio) -->
+                            <div class="h-6 w-full bg-indigo-500/10 rounded relative border border-indigo-500/20">
+                                <svg class="absolute inset-0 w-full h-full opacity-50" preserveAspectRatio="none">
+                                    <path d="M0,12 h5 v3 h5 v-6 h5 v6 h5 v-3" stroke="#4f46e5" fill="none"
+                                        vector-effect="non-scaling-stroke" />
+                                </svg>
+                                <div
+                                    class="absolute left-20 inset-y-0 w-80 bg-indigo-500/20 border-x border-indigo-500/40">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- Technical Specs / Table of Shortcuts -->
+    <section class="py-24 px-6 bg-gradient-to-t from-indigo-900/10 to-transparent border-t border-white/5 page-break">
+        <div class="max-w-6xl mx-auto grid md:grid-cols-2 gap-16">
+            <div class="space-y-8">
+                <h3 class="text-2xl font-black uppercase italic">Technical Constraints</h3>
+                <div class="grid grid-cols-2 gap-4 text-xs font-mono uppercase tracking-widest">
+                    <div class="glass p-4"><span class="text-slate-500">Max Resolution</span><br><span
+                            class="text-white">3840 x 2160 (4K)</span></div>
+                    <div class="glass p-4"><span class="text-slate-500">Base FPS</span><br><span
+                            class="text-white">24.00 (Cinematic)</span></div>
+                    <div class="glass p-4"><span class="text-slate-500">Max Shot Length</span><br><span
+                            class="text-white">10 Seconds per Gen</span></div>
+                    <div class="glass p-4"><span class="text-slate-500">Aspect Ratio</span><br><span
+                            class="text-white">16:9 Standard</span></div>
+                </div>
+            </div>
+            <div class="space-y-8">
+                <h3 class="text-2xl font-black uppercase italic">Master Keyboard Shortcuts</h3>
+                <div class="space-y-3 font-mono text-[11px] uppercase tracking-wider text-slate-400">
+                    <div class="flex justify-between border-b border-white/5 pb-2"><span>Play/Pause</span><span
+                            class="text-indigo-400">SPACE</span></div>
+                    <div class="flex justify-between border-b border-white/5 pb-2"><span>Select Next Clip</span><span
+                            class="text-indigo-400">K</span></div>
+                    <div class="flex justify-between border-b border-white/5 pb-2"><span>Zoom Timeline In</span><span
+                            class="text-indigo-400">+ / =</span></div>
+                    <div class="flex justify-between border-b border-white/5 pb-2"><span>Generate All
+                            Storyboard</span><span class="text-indigo-400">CMD + G</span></div>
+                    <div class="flex justify-between border-b border-white/5 pb-2"><span>Batch Video Synth</span><span
+                            class="text-indigo-400">ALT + V</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final Page -->
+    <footer class="min-h-[60vh] flex flex-col items-center justify-center text-center p-6 page-break">
+        <div
+            class="w-20 h-20 bg-indigo-600 rounded-2xl flex items-center justify-center text-4xl mb-12 shadow-2xl shadow-indigo-600/40">
+            S</div>
+        <h2 class="text-5xl font-black mb-8 italic uppercase tracking-tighter">Your Production <br> is Live.</h2>
+        <p class="text-slate-500 max-w-lg mx-auto mb-16 leading-relaxed">
+            For advanced technical support or API integration queries, visit the Command Center or contact the System
+            Architect.
+        </p>
+        <div class="flex gap-8 opacity-20 grayscale grayscale-100">
+            <span class="text-[10px] font-mono uppercase tracking-[0.4em]">GEMINI-1.5-PRO</span>
+            <span class="text-[10px] font-mono uppercase tracking-[0.4em]">CLAUDE-3.5-SONNET</span>
+            <span class="text-[10px] font-mono uppercase tracking-[0.4em]">SORA-2-UHD</span>
+        </div>
+        <div class="mt-20 text-[9px] font-mono text-slate-800 uppercase tracking-widest">
+            &copy; 2026 AI FILM STUDIO. DOCUMENT: SYNC_CONFIDENTIAL_USER_MANUAL.
+        </div>
+    </footer>
+
+    <script shadow>
+        // Smooth intersection observer for reveal effects
+        const observerOptions = { threshold: 0.1 };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('opacity-100', 'translate-y-0');
+                    entry.target.classList.remove('opacity-0', 'translate-y-10');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('section > div, section > h2, footer').forEach(el => {
+            el.classList.add('transition-all', 'duration-1000', 'opacity-0', 'translate-y-10');
+            observer.observe(el);
+        });
+    </script>
+</body>
+
+</html>

@@ -1,5 +1,5 @@
 import * as thumbnailGeneration from './thumbnailGeneration';
-import * as ffmpegService from './ffmpegService';
+// ffmpegService import removed as it was unused
 
 /**
  * Batch processing service for video thumbnail generation
@@ -12,7 +12,7 @@ export interface BatchJob {
   priority: 'low' | 'normal' | 'high';
   frameCount: number;
   progress: number;
-  result?: { thumbnailUrl: string; previewFrames: any[] };
+  result?: { thumbnailUrl: string; previewFrames: unknown[] };
   error?: string;
   createdAt: Date;
   startedAt?: Date;

@@ -6,7 +6,6 @@ import {
   refineBrandAlignedVisualStyle,
   generateBrandAlignedStoryboardPrompt,
   generateBrandAlignedVoiceover,
-  BrandCompliantContent,
 } from "./brandCompliantGeneration";
 import { BrandGuidelines } from "./brandBrain";
 

@@ -6,26 +6,27 @@
 import {
   ImageProvider,
   VideoProvider,
-  ImageGenerationParams,
-  ImageGenerationResult,
-  VideoGenerationParams,
-  VideoGenerationResult,
   ProviderConfig,
   ProviderRegistry,
 } from "./types";
+import { ReplicateProvider } from "./replicateProvider";
+// Note: FlowProvider, SoraProvider, KlingProvider, WHANProvider are available but not used directly here yet
 
 export class ProviderFactory {
   private static registry: ProviderRegistry = {
     image: {
-      nanobanana: { enabled: false, priority: 1, maxRetries: 3, timeout: 60000 },
-      dalle: { enabled: false, priority: 2, maxRetries: 3, timeout: 60000 },
-      midjourney: { enabled: false, priority: 3, maxRetries: 2, timeout: 120000 },
+      nanobanana: { enabled: false, priority: 10, maxRetries: 3, timeout: 60000 },
+      dalle: { enabled: false, priority: 10, maxRetries: 3, timeout: 60000 },
+      midjourney: { enabled: false, priority: 10, maxRetries: 2, timeout: 120000 },
+      replicate: { enabled: true, priority: 1, maxRetries: 3, timeout: 120000 },
+      apiyi: { enabled: false, priority: 10, maxRetries: 3, timeout: 60000 },
     },
     video: {
-      flow: { enabled: false, priority: 1, maxRetries: 2, timeout: 120000 },
-      sora: { enabled: false, priority: 2, maxRetries: 2, timeout: 180000 },
-      kling: { enabled: false, priority: 3, maxRetries: 2, timeout: 120000 },
-      whan: { enabled: false, priority: 4, maxRetries: 2, timeout: 120000 },
+      flow: { enabled: false, priority: 10, maxRetries: 2, timeout: 120000 },
+      sora: { enabled: false, priority: 10, maxRetries: 2, timeout: 180000 },
+      kling: { enabled: false, priority: 10, maxRetries: 2, timeout: 120000 },
+      whan: { enabled: false, priority: 10, maxRetries: 2, timeout: 120000 },
+      replicate: { enabled: true, priority: 1, maxRetries: 3, timeout: 300000 },
     },
   };
 
@@ -33,128 +34,67 @@ export class ProviderFactory {
    * Initialize provider with API key
    */
   static initializeImageProvider(provider: ImageProvider, apiKey: string): void {
-    if (this.registry.image[provider]) {
-      this.registry.image[provider].apiKey = apiKey;
-      this.registry.image[provider].enabled = true;
+    if (provider === "replicate") {
+      this.registry.image.replicate.apiKey = apiKey;
+      this.registry.image.replicate.enabled = true;
     }
   }
 
   static initializeVideoProvider(provider: VideoProvider, apiKey: string): void {
-    if (this.registry.video[provider]) {
-      this.registry.video[provider].apiKey = apiKey;
-      this.registry.video[provider].enabled = true;
+    if (provider === "replicate") {
+      this.registry.video.replicate.apiKey = apiKey;
+      this.registry.video.replicate.enabled = true;
     }
+  }
+
+  /**
+   * Create a video provider instance
+   */
+  static createVideoProvider(
+    _provider: VideoProvider,
+    apiKey: string,
+    _apiUrl?: string
+  ): ReplicateProvider {
+    // Phase 4: Strictly Replicate
+    return new ReplicateProvider(apiKey);
   }
 
   /**
    * Get enabled image providers sorted by priority
    */
   static getEnabledImageProviders(): ImageProvider[] {
-    return (Object.entries(this.registry.image) as [ImageProvider, ProviderConfig][])
-      .filter(([, config]) => config.enabled && config.apiKey)
-      .sort((a, b) => a[1].priority - b[1].priority)
-      .map(([provider]) => provider);
+    return ["replicate"];
   }
 
   /**
    * Get enabled video providers sorted by priority
    */
   static getEnabledVideoProviders(): VideoProvider[] {
-    return (Object.entries(this.registry.video) as [VideoProvider, ProviderConfig][])
-      .filter(([, config]) => config.enabled && config.apiKey)
-      .sort((a, b) => a[1].priority - b[1].priority)
-      .map(([provider]) => provider);
+    return ["replicate"];
   }
 
   /**
    * Get provider configuration
    */
   static getImageProviderConfig(provider: ImageProvider): ProviderConfig | null {
-    return this.registry.image[provider] || null;
+    if (provider === "replicate") return this.registry.image.replicate;
+    return null;
   }
 
   static getVideoProviderConfig(provider: VideoProvider): ProviderConfig | null {
-    return this.registry.video[provider] || null;
+    if (provider === "replicate") return this.registry.video.replicate;
+    return null;
   }
 
   /**
-   * Update provider priority (for fallback order)
-   */
-  static updateImageProviderPriority(provider: ImageProvider, priority: number): void {
-    if (this.registry.image[provider]) {
-      this.registry.image[provider].priority = priority;
-    }
-  }
-
-  static updateVideoProviderPriority(provider: VideoProvider, priority: number): void {
-    if (this.registry.video[provider]) {
-      this.registry.video[provider].priority = priority;
-    }
-  }
-
-  /**
-   * Check if provider is available
+   * Toggle provider availability
    */
   static isImageProviderAvailable(provider: ImageProvider): boolean {
-    const config = this.registry.image[provider];
-    return config?.enabled && !!config?.apiKey;
+    return provider === "replicate" && !!this.registry.image.replicate.apiKey;
   }
 
   static isVideoProviderAvailable(provider: VideoProvider): boolean {
-    const config = this.registry.video[provider];
-    return config?.enabled && !!config?.apiKey;
-  }
-
-  /**
-   * Get all providers with their status
-   */
-  static getImageProviderStatus(): Record<ImageProvider, { enabled: boolean; priority: number }> {
-    const status: Record<ImageProvider, { enabled: boolean; priority: number }> = {
-      nanobanana: { enabled: false, priority: 0 },
-      dalle: { enabled: false, priority: 0 },
-      midjourney: { enabled: false, priority: 0 },
-    };
-
-    Object.entries(this.registry.image).forEach(([provider, config]) => {
-      status[provider as ImageProvider] = {
-        enabled: config.enabled && !!config.apiKey,
-        priority: config.priority,
-      };
-    });
-
-    return status;
-  }
-
-  static getVideoProviderStatus(): Record<VideoProvider, { enabled: boolean; priority: number }> {
-    const status: Record<VideoProvider, { enabled: boolean; priority: number }> = {
-      flow: { enabled: false, priority: 0 },
-      sora: { enabled: false, priority: 0 },
-      kling: { enabled: false, priority: 0 },
-      whan: { enabled: false, priority: 0 },
-    };
-
-    Object.entries(this.registry.video).forEach(([provider, config]) => {
-      status[provider as VideoProvider] = {
-        enabled: config.enabled && !!config.apiKey,
-        priority: config.priority,
-      };
-    });
-
-    return status;
-  }
-
-  /**
-   * Get registry for persistence
-   */
-  static getRegistry(): ProviderRegistry {
-    return JSON.parse(JSON.stringify(this.registry));
-  }
-
-  /**
-   * Restore registry from saved state
-   */
-  static restoreRegistry(registry: ProviderRegistry): void {
-    this.registry = registry;
+    return provider === "replicate" && !!this.registry.video.replicate.apiKey;
   }
 
   /**
@@ -163,15 +103,18 @@ export class ProviderFactory {
   static resetAll(): void {
     this.registry = {
       image: {
-        nanobanana: { enabled: false, priority: 1, maxRetries: 3, timeout: 60000 },
-        dalle: { enabled: false, priority: 2, maxRetries: 3, timeout: 60000 },
-        midjourney: { enabled: false, priority: 3, maxRetries: 2, timeout: 120000 },
+        nanobanana: { enabled: false, priority: 10, maxRetries: 3, timeout: 60000 },
+        dalle: { enabled: false, priority: 10, maxRetries: 3, timeout: 60000 },
+        midjourney: { enabled: false, priority: 10, maxRetries: 2, timeout: 120000 },
+        replicate: { enabled: true, priority: 1, maxRetries: 3, timeout: 120000 },
+        apiyi: { enabled: false, priority: 10, maxRetries: 3, timeout: 60000 },
       },
       video: {
-        flow: { enabled: false, priority: 1, maxRetries: 2, timeout: 120000 },
-        sora: { enabled: false, priority: 2, maxRetries: 2, timeout: 180000 },
-        kling: { enabled: false, priority: 3, maxRetries: 2, timeout: 120000 },
-        whan: { enabled: false, priority: 4, maxRetries: 2, timeout: 120000 },
+        flow: { enabled: false, priority: 10, maxRetries: 2, timeout: 120000 },
+        sora: { enabled: false, priority: 10, maxRetries: 2, timeout: 180000 },
+        kling: { enabled: false, priority: 10, maxRetries: 2, timeout: 120000 },
+        whan: { enabled: false, priority: 10, maxRetries: 2, timeout: 120000 },
+        replicate: { enabled: true, priority: 1, maxRetries: 3, timeout: 300000 },
       },
     };
   }

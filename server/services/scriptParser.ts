@@ -20,18 +20,18 @@ export function extractCharacterNames(scriptText: string): string[] {
 
   // Pattern for character names in dialogue (typically in caps on their own line)
   const dialoguePattern = /^[A-Z][A-Z\s\-']+$/;
-  
+
   // Pattern for character names in action (e.g., "JOHN enters the room")
   const actionPattern = /\b([A-Z][A-Z]+)\s+(enters|exits|walks|runs|sits|stands|looks|speaks|says|yells|whispers|shouts|laughs|cries|screams|nods|shakes|points|reaches|grabs|throws|catches|falls|jumps|climbs|opens|closes|picks|puts|takes|gives|shows|tells|asks|answers|calls|waits|watches|sees|hears|smells|tastes|feels|thinks|remembers|forgets|knows|learns|teaches|helps|hurts|loves|hates|fears|hopes|wishes|wants|needs|tries|fails|succeeds|begins|ends|continues|stops|starts|finishes)\b/gi;
 
   for (const line of lines) {
     const trimmedLine = line.trim();
-    
+
     // Check for dialogue character names
     if (dialoguePattern.test(trimmedLine) && trimmedLine.length < 50) {
       characterNames.add(trimmedLine);
     }
-    
+
     // Check for character names in action
     let match;
     const actionRegex = new RegExp(actionPattern.source, actionPattern.flags);
@@ -57,13 +57,13 @@ export function extractCharacterDescriptions(scriptText: string): Record<string,
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
-    
+
     // Look for lines that mention character names with descriptions
     for (const character of characterNames) {
       // Pattern: "CHARACTER - description" or "CHARACTER is description"
       const descPattern = new RegExp(`\\b${character}\\b[\\s\\-]*(?:is|appears|looks|seems|wears|has)\\s+(.+?)(?:\\.|$)`, 'i');
       const match = line.match(descPattern);
-      
+
       if (match && match[1]) {
         const desc = match[1].trim();
         if (desc.length > 5 && desc.length < 200) {
@@ -80,12 +80,12 @@ export function extractCharacterDescriptions(scriptText: string): Record<string,
  * Extract character appearance details from script
  * Uses LLM to understand character descriptions better
  */
+import { invokeLLM } from "../_core/llm";
+
 export async function extractCharacterAppearances(
   scriptText: string,
   characterNames: string[]
 ): Promise<Record<string, string>> {
-  const { invokeLLM } = await import("../_core/llm");
-
   const prompt = `Analyze this screenplay and extract detailed physical appearance descriptions for each character mentioned. Focus on visual details like age, hair, clothing, build, distinctive features, etc.
 
 Characters to describe: ${characterNames.join(", ")}
@@ -137,7 +137,7 @@ If a character has no clear appearance description in the script, infer a reason
 export async function analyzeScriptForCharacters(scriptText: string): Promise<Record<string, string>> {
   // First, extract basic character names
   const characterNames = extractCharacterNames(scriptText);
-  
+
   if (characterNames.length === 0) {
     return {};
   }
@@ -191,11 +191,11 @@ export function getCharacterStatistics(scriptText: string): Array<{
   const totalAppearances = stats.reduce((sum, s) => sum + s.appearances, 0);
 
   return stats
-    .map((s: {name: string; appearances: number}) => ({
+    .map((s: { name: string; appearances: number }) => ({
       ...s,
       percentage: totalAppearances > 0 ? (s.appearances / totalAppearances) * 100 : 0,
     }))
-    .sort((a: any, b: any) => b.appearances - a.appearances);
+    .sort((a: { appearances: number }, b: { appearances: number }) => b.appearances - a.appearances);
 }
 
 /**

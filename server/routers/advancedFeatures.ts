@@ -3,7 +3,7 @@
  * Timeline Playback, Collaboration, and Cost Analytics
  */
 
-import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
+import { router, protectedProcedure } from '../_core/trpc';
 import { z } from 'zod';
 import * as timelinePlayback from '../services/timelinePlayback';
 import * as collaboration from '../services/collaboration';
@@ -17,7 +17,8 @@ export const advancedFeaturesRouter = router({
      */
     getPlaybackState: protectedProcedure
       .input(z.object({ projectId: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input: _input }) => {
+        void _input;
         // In a real implementation, fetch clips from database
         const clips: timelinePlayback.PlaybackClip[] = [];
         return timelinePlayback.createPlaybackState(clips);
@@ -28,7 +29,8 @@ export const advancedFeaturesRouter = router({
      */
     getSortedClips: protectedProcedure
       .input(z.object({ projectId: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input: _input }) => {
+        void _input;
         // In a real implementation, fetch clips from database
         const clips: timelinePlayback.PlaybackClip[] = [];
         return timelinePlayback.getSortedClips(clips);
@@ -50,7 +52,8 @@ export const advancedFeaturesRouter = router({
      */
     getStats: protectedProcedure
       .input(z.object({ projectId: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input: _input }) => {
+        void _input;
         // In a real implementation, fetch clips from database
         const clips: timelinePlayback.PlaybackClip[] = [];
         return timelinePlayback.getTimelineStats(clips);
@@ -61,7 +64,8 @@ export const advancedFeaturesRouter = router({
      */
     getGaps: protectedProcedure
       .input(z.object({ projectId: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input: _input }) => {
+        void _input;
         // In a real implementation, fetch clips from database
         const clips: timelinePlayback.PlaybackClip[] = [];
         return timelinePlayback.calculateTimelineGaps(clips);
@@ -92,7 +96,8 @@ export const advancedFeaturesRouter = router({
      */
     getShares: protectedProcedure
       .input(z.object({ projectId: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input: _input }) => {
+        void _input;
         // In a real implementation, fetch shares from database
         const shares: collaboration.ProjectShare[] = [];
         return shares;
@@ -106,7 +111,8 @@ export const advancedFeaturesRouter = router({
         projectId: z.number(),
         userId: z.number(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input: _input }) => {
+        void _input;
         // In a real implementation, delete share from database
         return {
           success: true,
@@ -139,7 +145,9 @@ export const advancedFeaturesRouter = router({
         projectId: z.number(),
         content: z.string(),
       }))
-      .mutation(async ({ input, ctx }) => {
+      .mutation(async ({ input: _input, ctx }) => {
+        void _input;
+        void ctx;
         // In a real implementation, create comment in database
         return {
           success: true,
@@ -153,7 +161,8 @@ export const advancedFeaturesRouter = router({
      */
     getComments: protectedProcedure
       .input(z.object({ projectId: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input: _input }) => {
+        void _input;
         // In a real implementation, fetch comments from database
         const comments: collaboration.ProjectComment[] = [];
         return comments;
@@ -166,7 +175,8 @@ export const advancedFeaturesRouter = router({
       .input(z.object({
         commentId: z.number(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input: _input }) => {
+        void _input;
         // In a real implementation, update comment in database
         return {
           success: true,
@@ -179,7 +189,8 @@ export const advancedFeaturesRouter = router({
      */
     getActivityLog: protectedProcedure
       .input(z.object({ projectId: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input: _input }) => {
+        void _input;
         // In a real implementation, fetch activity logs from database
         const logs: collaboration.ActivityLog[] = [];
         return logs;
@@ -190,7 +201,8 @@ export const advancedFeaturesRouter = router({
      */
     getUserPresence: protectedProcedure
       .input(z.object({ projectId: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input: _input }) => {
+        void _input;
         // In a real implementation, fetch presence from database
         const presences: collaboration.UserPresence[] = [];
         return presences;
@@ -205,7 +217,9 @@ export const advancedFeaturesRouter = router({
         isOnline: z.boolean(),
         currentTab: z.string().optional(),
       }))
-      .mutation(async ({ input, ctx }) => {
+      .mutation(async ({ input: _input, ctx }) => {
+        void _input;
+        void ctx;
         // In a real implementation, update presence in database
         return {
           success: true,
@@ -221,10 +235,11 @@ export const advancedFeaturesRouter = router({
      */
     getStats: protectedProcedure
       .input(z.object({ projectId: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input: _input }) => {
+        void _input;
         // In a real implementation, fetch costs from database
         const costs: costAnalytics.GenerationCost[] = [];
-        
+
         return {
           totalCost: costAnalytics.calculateTotalCost(costs),
           averageCost: costAnalytics.calculateAverageCost(costs),
@@ -284,10 +299,11 @@ export const advancedFeaturesRouter = router({
       .input(z.object({
         projectId: z.number(),
       }))
-      .query(async ({ input }) => {
+      .query(async ({ input: _input }) => {
+        void _input;
         // In a real implementation, fetch costs from database
         const costs: costAnalytics.GenerationCost[] = [];
-        
+
         return {
           mostCostEffective: costAnalytics.getMostCostEffectiveProvider(costs),
           mostReliable: costAnalytics.getMostReliableProvider(costs),
@@ -325,7 +341,7 @@ export const advancedFeaturesRouter = router({
         // In a real implementation, fetch costs from database
         const costs: costAnalytics.GenerationCost[] = [];
         const totalCost = costAnalytics.calculateTotalCost(costs);
-        
+
         return {
           totalCost,
           budget: input.budget,
@@ -341,7 +357,8 @@ export const advancedFeaturesRouter = router({
      */
     getHistory: protectedProcedure
       .input(z.object({ projectId: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input: _input }) => {
+        void _input;
         // In a real implementation, fetch costs from database
         const costs: costAnalytics.GenerationCost[] = [];
         return costs;

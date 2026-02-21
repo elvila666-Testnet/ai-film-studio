@@ -12,6 +12,7 @@ import * as characterSuggestion from "../services/characterSuggestion";
 import * as moodboardAnalysis from "../services/moodboardAnalysis";
 import * as elevenLabs from "../services/elevenLabsIntegration";
 import { getBrand } from "../db";
+import { trainCharacterModel, checkActorStatus } from "../services/castingService";
 
 export const castingRouter = router({
   // Character Library Routes
@@ -19,7 +20,7 @@ export const castingRouter = router({
     create: protectedProcedure
       .input(
         z.object({
-          brandId: z.number(),
+          brandId: z.string(),
           name: z.string(),
           description: z.string(),
           imageUrl: z.string(),
@@ -47,7 +48,7 @@ export const castingRouter = router({
       }),
 
     list: protectedProcedure
-      .input(z.object({ brandId: z.number() }))
+      .input(z.object({ brandId: z.string() }))
       .query(async ({ input, ctx }) => {
         const brand = await getBrand(input.brandId);
         if (!brand || brand.userId !== ctx.user.id) {
@@ -108,7 +109,7 @@ export const castingRouter = router({
     suggestForScript: protectedProcedure
       .input(
         z.object({
-          brandId: z.number(),
+          brandId: z.string(),
           script: z.string(),
         })
       )
@@ -134,14 +135,111 @@ export const castingRouter = router({
           library
         );
       }),
+
+    generatePoses: protectedProcedure
+      .input(
+        z.object({
+          characterId: z.number(),
+          poses: z.array(z.enum(["Close-up", "Medium Shot", "Full Body"])),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const character = await characterLibraryDb.getCharacterFromLibrary(input.characterId);
+        if (!character) {
+          throw new Error("Character not found");
+        }
+
+        const brand = await getBrand(character.brandId);
+        if (!brand || brand.userId !== ctx.user.id) {
+          throw new Error("Unauthorized");
+        }
+
+        const { generateCharacterPose } = await import("../services/aiGeneration");
+
+        const results: Record<string, string> = {};
+        const currentPoses = character.poses ? JSON.parse(character.poses) : {};
+
+        // Generate each requested pose in parallel (or serial if we want to be nice to rate limits)
+        await Promise.all(input.poses.map(async (pose) => {
+          try {
+            const url = await generateCharacterPose({ imageUrl: character.imageUrl, traits: character.traits }, pose);
+            results[pose] = url;
+          } catch (err) {
+            console.error(`Failed to generate pose ${pose}:`, err);
+          }
+        }));
+
+        // Merge with existing poses
+        const updatedPoses = { ...currentPoses, ...results };
+
+        await characterLibraryDb.updateCharacterInLibrary(input.characterId, {
+          poses: JSON.stringify(updatedPoses)
+        });
+
+        return { success: true, poses: updatedPoses };
+      }),
+
+    // Generate character options based on brand
+    generateOptions: protectedProcedure
+      .input(
+        z.object({
+          brandId: z.string(),
+          targetDemographic: z.string(),
+          count: z.number().default(4),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const { getBrand } = await import("../db");
+        const brand = await getBrand(input.brandId);
+        if (!brand) throw new Error("Brand not found");
+
+        const { BrandManagementService } = await import(
+          "../services/brandManagement"
+        );
+        const options = await BrandManagementService.generateCharacterOptions(
+          {
+            brandVoice: brand.brandVoice || "Professional",
+            visualIdentity: brand.visualIdentity || "Cinematic",
+            colorPalette: (brand.colorPalette as any) || {},
+            keyVisualElements: [], // Could be expanded
+          },
+          input.targetDemographic,
+          input.count
+        );
+
+        return options;
+      }),
   }),
 
   // Moodboard Routes
   moodboard: router({
+    // ... existing ...
+    generateMoodboard: protectedProcedure
+      .input(z.object({ brandId: z.string(), style: z.string() }))
+      .mutation(async ({ input }) => {
+        const { getBrand } = await import("../db");
+        const brand = await getBrand(input.brandId);
+        if (!brand) throw new Error("Brand not found");
+
+        const { BrandManagementService } = await import(
+          "../services/brandManagement"
+        );
+        const imageUrl = await BrandManagementService.generateMoodboard(
+          {
+            brandVoice: brand.brandVoice || "Professional",
+            visualIdentity: brand.visualIdentity || "Cinematic",
+            colorPalette: (brand.colorPalette as any) || {},
+            keyVisualElements: [],
+          },
+          input.style
+        );
+
+        return { imageUrl };
+      }),
     create: protectedProcedure
       .input(
         z.object({
-          brandId: z.number(),
+          brandId: z.string(),
           name: z.string(),
           description: z.string().optional(),
         })
@@ -161,7 +259,7 @@ export const castingRouter = router({
       }),
 
     list: protectedProcedure
-      .input(z.object({ brandId: z.number() }))
+      .input(z.object({ brandId: z.string() }))
       .query(async ({ input, ctx }) => {
         const brand = await getBrand(input.brandId);
         if (!brand || brand.userId !== ctx.user.id) {
@@ -241,6 +339,68 @@ export const castingRouter = router({
         await moodboardsDb.deleteMoodboard(input.moodboardId);
         return { success: true };
       }),
+
+    autoSynthesize: protectedProcedure
+      .input(
+        z.object({
+          brandId: z.string(),
+          moodboardId: z.number(),
+          concept: z.string(),
+          characterIds: z.array(z.number()).optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const brand = await getBrand(input.brandId);
+        if (!brand || brand.userId !== ctx.user.id) {
+          throw new Error("Unauthorized");
+        }
+
+        let prompt = `Mood board concept: ${input.concept}.`;
+
+        // Add brand context
+        prompt += `\nBrand Aesthetic: ${brand.aesthetic || "Cinematic"}.`;
+        prompt += `\nBrand Mission: ${brand.mission || ""}.`;
+
+        // Add character context if enabled
+        if (input.characterIds && input.characterIds.length > 0) {
+          const characters = await characterLibraryDb.getBrandCharacterLibrary(input.brandId);
+          const selectedChars = characters.filter((c: { id: number }) => input.characterIds?.includes(c.id));
+
+          if (selectedChars.length > 0) {
+            prompt += `\nFeaturing characters:`;
+            selectedChars.forEach((c: { id: number }) => {
+              prompt += `\n- ${c.name}: ${c.description}. ${c.traits || ""}`;
+            });
+          }
+        }
+
+        prompt += `\nHigh quality, 8k, photorealistic, highly detailed, film grain, cinematic lighting.`;
+
+        // Generate Image
+        const { generateStoryboardImage } = await import("../services/aiGeneration");
+        // Using Flux Pro for best quality moodboard synthesis
+        const imageUrl = await generateStoryboardImage(prompt, "black-forest-labs/flux-1.1-pro");
+
+        // Save to DB
+        const imageId = await moodboardsDb.addMoodboardImage(input.moodboardId, {
+          imageUrl,
+          description: `Auto-synthesized: ${input.concept}`,
+        });
+
+        // Trigger Analysis
+        moodboardAnalysis
+          .analyzeMoodboardImage(imageUrl)
+          .then((analysis) => {
+            moodboardsDb.updateMoodboardImage(imageId, {
+              colorPalette: JSON.stringify(analysis.colorPalette),
+              composition: JSON.stringify(analysis.composition),
+              style: analysis.style.mood.join(","),
+            });
+          })
+          .catch((err) => console.error("Failed to analyze autofill image:", err));
+
+        return { success: true, imageId, imageUrl };
+      }),
   }),
 
   // Voice Profile Routes
@@ -248,7 +408,7 @@ export const castingRouter = router({
     create: protectedProcedure
       .input(
         z.object({
-          brandId: z.number(),
+          brandId: z.string(),
           name: z.string(),
           elevenLabsVoiceId: z.string(),
           description: z.string().optional(),
@@ -279,7 +439,7 @@ export const castingRouter = router({
       }),
 
     list: protectedProcedure
-      .input(z.object({ brandId: z.number() }))
+      .input(z.object({ brandId: z.string() }))
       .query(async ({ input, ctx }) => {
         const brand = await getBrand(input.brandId);
         if (!brand || brand.userId !== ctx.user.id) {
@@ -290,7 +450,7 @@ export const castingRouter = router({
       }),
 
     getDefault: protectedProcedure
-      .input(z.object({ brandId: z.number() }))
+      .input(z.object({ brandId: z.string() }))
       .query(async ({ input }) => {
         return voiceProfilesDb.getDefaultVoiceProfile(input.brandId);
       }),
@@ -394,5 +554,27 @@ export const castingRouter = router({
         await voiceProfilesDb.deleteVoiceover(input.voiceoverId);
         return { success: true };
       }),
+  }),
+
+  // Actor / LoRA Routes
+  actor: router({
+    train: protectedProcedure
+      .input(z.object({
+        projectId: z.number(),
+        name: z.string(),
+        triggerWord: z.string(),
+        zipUrl: z.string()
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const userId = ctx.user.id.toString();
+        return trainCharacterModel(userId, input.projectId, input.name, input.triggerWord, input.zipUrl);
+      }),
+
+    status: protectedProcedure
+      .input(z.object({ actorId: z.number() }))
+      .query(async ({ input }) => {
+        const status = await checkActorStatus(input.actorId);
+        return { status: status || 'unknown' };
+      })
   }),
 });

@@ -172,7 +172,7 @@ export const storyboardCharacterRouter = router({
   generateAppearanceRecommendations: protectedProcedure
     .input(
       z.object({
-        brandId: z.number(),
+        brandId: z.string(),
         characterName: z.string(),
         context: z.string().optional(),
       })

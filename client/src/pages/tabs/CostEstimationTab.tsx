@@ -15,15 +15,9 @@ interface CostEstimationTabProps {
   projectId: number;
 }
 
-interface CostEstimate {
-  provider: "veo3" | "sora";
-  duration: number;
-  resolution: "720p" | "1080p" | "4k";
-  totalCost: number;
-  estimatedTime: string;
-}
+// CostEstimate interface reserved for future API integration
 
-export default function CostEstimationTab({ projectId }: CostEstimationTabProps) {
+export default function CostEstimationTab({ projectId: _projectId }: CostEstimationTabProps) {
   const [shotCount, setShotCount] = useState("10");
   const [averageDuration, setAverageDuration] = useState("4");
   const [resolution, setResolution] = useState<"720p" | "1080p" | "4k">("1080p");
@@ -132,7 +126,7 @@ export default function CostEstimationTab({ projectId }: CostEstimationTabProps)
               <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 block">
                 Resolution
               </label>
-              <Select value={resolution} onValueChange={(v: any) => setResolution(v)}>
+              <Select value={resolution} onValueChange={(v: unknown) => setResolution(v)}>
                 <SelectTrigger className="bg-background border-border">
                   <SelectValue />
                 </SelectTrigger>
@@ -154,11 +148,10 @@ export default function CostEstimationTab({ projectId }: CostEstimationTabProps)
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Veo3 Card */}
         <Card
-          className={`border-2 ${
-            cheaperProvider === "veo3"
+          className={`border-2 ${cheaperProvider === "veo3"
               ? "border-accent bg-accent/5"
               : "border-border bg-card"
-          }`}
+            }`}
         >
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -218,11 +211,10 @@ export default function CostEstimationTab({ projectId }: CostEstimationTabProps)
 
         {/* Sora Card */}
         <Card
-          className={`border-2 ${
-            cheaperProvider === "sora"
+          className={`border-2 ${cheaperProvider === "sora"
               ? "border-accent bg-accent/5"
               : "border-border bg-card"
-          }`}
+            }`}
         >
           <CardHeader>
             <div className="flex items-center justify-between">

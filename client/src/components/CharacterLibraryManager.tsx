@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Lock, Unlock, Plus, Edit2 } from "lucide-react";
+import { Trash2, Lock, Unlock, Plus, Edit2, Camera } from "lucide-react";
 import { toast } from "sonner";
 
 interface CharacterLibraryManagerProps {
@@ -104,7 +104,7 @@ export function CharacterLibraryManager({ brandId }: CharacterLibraryManagerProp
     }
   };
 
-  const handleEdit = (character: any) => {
+  const handleEdit = (character: unknown) => {
     setFormData({
       name: character.name,
       description: character.description,
@@ -131,7 +131,7 @@ export function CharacterLibraryManager({ brandId }: CharacterLibraryManagerProp
 
       {characters && characters.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {characters.map((character: any) => (
+          {characters.map((character: unknown) => (
             <Card key={character.id} className="relative">
               <CardHeader>
                 <div className="flex justify-between items-start">
@@ -221,6 +221,10 @@ export function CharacterLibraryManager({ brandId }: CharacterLibraryManagerProp
         </Card>
       )}
 
+      {/* Internal Component for Pose Generation Dialog would be better, but simplified inline for now */}
+      <PoseGeneratorDialog brandId={brandId} characters={characters || []} />
+
+
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -288,5 +292,106 @@ export function CharacterLibraryManager({ brandId }: CharacterLibraryManagerProp
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function PoseGeneratorDialog({ brandId, characters }: { brandId: number; characters: unknown[] }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string>("");
+  const [selectedPoses, setSelectedPoses] = useState<string[]>([]);
+
+  const utils = trpc.useUtils();
+  const generatePosesMutation = trpc.casting.characterLibrary.generatePoses.useMutation({
+    onSuccess: (data) => {
+      toast.success("Poses generated successfully");
+      utils.casting.characterLibrary.list.invalidate({ brandId });
+      setIsOpen(false);
+      setSelectedPoses([]);
+    },
+    onError: (err: unknown) => {
+      toast.error(`Failed to generate poses: ${err.message}`);
+    }
+  });
+
+  const handleGenerate = async () => {
+    if (!selectedCharacterId || selectedPoses.length === 0) return;
+
+    await generatePosesMutation.mutateAsync({
+      characterId: parseInt(selectedCharacterId),
+      poses: selectedPoses as any
+    });
+  };
+
+  const togglePose = (pose: string) => {
+    if (selectedPoses.includes(pose)) {
+      setSelectedPoses(selectedPoses.filter(p => p !== pose));
+    } else {
+      setSelectedPoses([...selectedPoses, pose]);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <div className="fixed bottom-8 right-8">
+          <Button size="lg" className="rounded-full shadow-lg gap-2 h-14 px-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white">
+            <Camera className="w-5 h-5" />
+            Generate Poses
+          </Button>
+        </div>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Generate Character Poses</DialogTitle>
+          <DialogDescription>
+            Create consistent variations of your character in different camera angles.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6 py-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Select Character</label>
+            <select
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              value={selectedCharacterId}
+              onChange={(e) => setSelectedCharacterId(e.target.value)}
+            >
+              <option value="">-- Choose a character --</option>
+              {characters.map((c: unknown) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-sm font-medium">Select Poses</label>
+            <div className="grid grid-cols-3 gap-2">
+              {["Close-up", "Medium Shot", "Full Body"].map((pose) => (
+                <div
+                  key={pose}
+                  onClick={() => togglePose(pose)}
+                  className={`
+                                    cursor-pointer rounded-md border-2 p-4 text-center text-xs font-semibold transition-all
+                                    ${selectedPoses.includes(pose)
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-muted hover:border-primary/50"}
+                                `}
+                >
+                  {pose}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Button
+            onClick={handleGenerate}
+            disabled={!selectedCharacterId || selectedPoses.length === 0 || generatePosesMutation.isPending}
+            className="w-full"
+          >
+            {generatePosesMutation.isPending ? "Generating..." : "Generate Variations"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

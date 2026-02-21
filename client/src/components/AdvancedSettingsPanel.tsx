@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,12 +11,12 @@ interface AdvancedSettingsPanelProps {
   onClose?: () => void;
 }
 
-export function AdvancedSettingsPanel({ projectId, onClose }: AdvancedSettingsPanelProps) {
+export function AdvancedSettingsPanel({ projectId: _projectId, onClose }: AdvancedSettingsPanelProps) {
   const [budget, setBudget] = useState<number>(1000);
   const [budgetPeriod, setBudgetPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const [batchSize, setBatchSize] = useState<number>(5);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1.0);
-  const [autoExport, setAutoExport] = useState<boolean>(false);
+  const [_autoExport, _setAutoExport] = useState<boolean>(false);
 
   return (
     <div className="w-full max-w-2xl mx-auto p-4">

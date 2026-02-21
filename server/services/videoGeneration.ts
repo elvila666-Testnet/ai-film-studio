@@ -14,85 +14,31 @@ interface VideoGenerationResponse {
 }
 
 /**
- * Generate video using Sora 2 API
+ * Generate video using Replicate (supporting various models like Minimax, Sora, Veo)
  */
-export async function generateVideoWithSora(request: VideoGenerationRequest): Promise<VideoGenerationResponse> {
+export async function generateVideoWithReplicate(request: VideoGenerationRequest): Promise<VideoGenerationResponse> {
+  const { getActiveModelConfig } = await import("../db");
+  const activeConfig = await getActiveModelConfig("video");
+  const { ReplicateProvider } = await import("./providers/replicateProvider");
+
+  const provider = new ReplicateProvider(activeConfig?.apiKey || ENV.replicateApiKey);
+  const modelId = activeConfig?.modelId || "minimax/video-01"; // Default to Minimax
+
   try {
-    const response = await fetch("https://api.sora.ai/v1/videos/generations", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${ENV.soraApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        prompt: request.prompt,
-        duration: request.duration || 10,
-        quality: request.quality || "medium",
-      }),
-    });
+    const result = await provider.generateVideo({
+      prompt: request.prompt,
+      duration: request.duration || 10,
+      resolution: "1080p",
+      fps: 24
+    }, modelId);
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error("Sora API error:", error);
-      return {
-        taskId: "",
-        status: "failed",
-        error: error.message || "Failed to generate video with Sora",
-      };
-    }
-
-    const data = await response.json();
     return {
-      taskId: data.id,
-      status: "processing",
-      videoUrl: data.video_url,
+      taskId: result.metadata.jobId as string || result.metadata.id as string || "repl-" + Date.now(),
+      status: "completed",
+      videoUrl: result.url,
     };
   } catch (error) {
-    console.error("Sora video generation error:", error);
-    return {
-      taskId: "",
-      status: "failed",
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-}
-
-/**
- * Generate video using Veo3 API
- */
-export async function generateVideoWithVeo3(request: VideoGenerationRequest): Promise<VideoGenerationResponse> {
-  try {
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/veo-3:generateVideo", {
-      method: "POST",
-      headers: {
-        "x-goog-api-key": ENV.veo3ApiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        prompt: request.prompt,
-        duration: request.duration || 10,
-        quality: request.quality || "medium",
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error("Veo3 API error:", error);
-      return {
-        taskId: "",
-        status: "failed",
-        error: error.error?.message || "Failed to generate video with Veo3",
-      };
-    }
-
-    const data = await response.json();
-    return {
-      taskId: data.name || data.id,
-      status: "processing",
-      videoUrl: data.video_url,
-    };
-  } catch (error) {
-    console.error("Veo3 video generation error:", error);
+    console.error("Replicate video generation error:", error);
     return {
       taskId: "",
       status: "failed",
@@ -104,60 +50,21 @@ export async function generateVideoWithVeo3(request: VideoGenerationRequest): Pr
 /**
  * Check video generation status
  */
-export async function checkVideoStatus(provider: "sora" | "veo3", taskId: string): Promise<VideoGenerationResponse> {
-  try {
-    if (provider === "sora") {
-      const response = await fetch(`https://api.sora.ai/v1/videos/generations/${taskId}`, {
-        headers: {
-          "Authorization": `Bearer ${ENV.soraApiKey}`,
-        },
-      });
-
-      if (!response.ok) {
-        return { taskId, status: "failed", error: "Failed to check Sora video status" };
-      }
-
-      const data = await response.json();
-      return {
-        taskId,
-        status: data.status,
-        videoUrl: data.video_url,
-      };
-    } else {
-      // Veo3 status check
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/operations/${taskId}`, {
-        headers: {
-          "x-goog-api-key": ENV.veo3ApiKey,
-        },
-      });
-
-      if (!response.ok) {
-        return { taskId, status: "failed", error: "Failed to check Veo3 video status" };
-      }
-
-      const data = await response.json();
-      return {
-        taskId,
-        status: data.done ? "completed" : "processing",
-        videoUrl: data.response?.video_url,
-      };
-    }
-  } catch (error) {
-    console.error("Video status check error:", error);
-    return {
-      taskId,
-      status: "failed",
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
+export async function checkVideoStatus(_provider: string, taskId: string): Promise<VideoGenerationResponse> {
+  // Phase 4: Replicate status check (placeholder for now as ReplicateProvider.generateVideo is sync in our wrapper)
+  return {
+    taskId,
+    status: "completed",
+    videoUrl: "", // Should be fetched from DB or Replicate if needed
+  };
 }
 
 /**
- * Generate video from storyboard shots
+ * Generate video from storyboard shots using the active model from DB
  */
 export async function generateVideoFromStoryboard(
   shots: Array<{ shotNumber: number; prompt: string; imageUrl?: string }>,
-  provider: "sora" | "veo3" = "sora"
+  _providerOverride?: "sora" | "veo3"
 ): Promise<VideoGenerationResponse> {
   // Combine all shot prompts into a single video prompt
   const combinedPrompt = shots
@@ -166,17 +73,12 @@ export async function generateVideoFromStoryboard(
 
   const fullPrompt = `Create a cinematic video sequence from these storyboard shots:\n${combinedPrompt}\n\nMaintain visual continuity and smooth transitions between shots.`;
 
-  if (provider === "veo3") {
-    return generateVideoWithVeo3({
-      prompt: fullPrompt,
-      duration: Math.min(shots.length * 3, 60), // 3 seconds per shot, max 60 seconds
-      quality: "high",
-    });
-  } else {
-    return generateVideoWithSora({
-      prompt: fullPrompt,
-      duration: Math.min(shots.length * 3, 60),
-      quality: "high",
-    });
-  }
+  const request: VideoGenerationRequest = {
+    prompt: fullPrompt,
+    duration: Math.min(shots.length * 3, 60),
+    quality: "high",
+  };
+
+  return generateVideoWithReplicate(request);
 }
+

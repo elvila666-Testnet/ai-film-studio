@@ -158,9 +158,11 @@ export async function validateSoraOutput(
     }
 
     // Check video duration is within acceptable range
-    const expectedDuration = frameDescriptor.duration;
-    const toleranceRange = 1; // ±1 second for longer scenes
-    
+    const _expectedDuration = frameDescriptor.duration;
+    const _toleranceRange = 1; // ±1 second for longer scenes
+    void _expectedDuration;
+    void _toleranceRange;
+
     // Note: Would need video analysis to verify actual duration
     // This is a placeholder
 
@@ -218,8 +220,8 @@ export function createSoraReport(
  * Compare Flow and Sora outputs for the same frame
  */
 export function compareFlowAndSora(
-  flowResult: any,
-  soraResult: any,
+  _flowResult: unknown,
+  _soraResult: unknown,
   frameDescriptor: FrameDescriptor
 ): {
   recommendation: "flow" | "sora" | "both" | "neither";

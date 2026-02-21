@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Play, Pause, Volume2, VolumeX, Star, ThumbsUp, Copy, Download } from "lucide-react";
+import { Play, Pause, Star, ThumbsUp, Copy, Download } from "lucide-react";
 
 interface VideoComparisonTabProps {
   projectId: number;
@@ -62,7 +62,7 @@ const mockVideos: VideoOutput[] = [
   },
 ];
 
-export default function VideoComparisonTab({ projectId }: VideoComparisonTabProps) {
+export default function VideoComparisonTab({ projectId: _projectId }: VideoComparisonTabProps) {
   const [videos, setVideos] = useState<VideoOutput[]>(mockVideos);
   const [selectedShot, setSelectedShot] = useState("1");
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -126,7 +126,7 @@ export default function VideoComparisonTab({ projectId }: VideoComparisonTabProp
 
       {/* Sort Options */}
       <div className="flex gap-2">
-        <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+        <Select value={sortBy} onValueChange={(v: unknown) => setSortBy(v)}>
           <SelectTrigger className="w-48 bg-card border-border">
             <SelectValue />
           </SelectTrigger>
@@ -143,11 +143,10 @@ export default function VideoComparisonTab({ projectId }: VideoComparisonTabProp
         {sortedVideos.map((video) => (
           <Card
             key={video.id}
-            className={`border-2 overflow-hidden transition-colors ${
-              video.selected
+            className={`border-2 overflow-hidden transition-colors ${video.selected
                 ? "border-accent bg-accent/5"
                 : "border-border bg-card"
-            }`}
+              }`}
           >
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">

@@ -31,6 +31,7 @@ export function AnimaticPreview({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [isCinematic, setIsCinematic] = useState(true);
 
   const totalDuration = frames.reduce((sum, frame) => sum + frame.duration, 0);
   const currentFrame = frames[currentFrameIndex];
@@ -61,16 +62,33 @@ export function AnimaticPreview({
       <div className="text-sm font-semibold text-foreground">Animatic Preview</div>
 
       {/* Preview Area */}
-      <div className="bg-black rounded aspect-video flex items-center justify-center overflow-hidden border border-border">
-        {currentFrame?.imageUrl ? (
-          <img
-            src={currentFrame.imageUrl}
-            alt={`Frame ${currentFrame.shotNumber}`}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="text-muted-foreground text-sm">No image for this frame</div>
-        )}
+      <div className="relative group">
+        <div className={`bg-black rounded-xl aspect-video flex items-center justify-center overflow-hidden border border-white/10 shadow-2xl transition-all duration-500 ${isCinematic ? 'scale-105 ring-4 ring-primary/20' : ''}`}>
+          {currentFrame?.imageUrl ? (
+            <div className="relative w-full h-full">
+              <img
+                src={currentFrame.imageUrl}
+                alt={`Frame ${currentFrame.shotNumber}`}
+                className="w-full h-full object-cover"
+              />
+              {/* Cinematic Letterboxing */}
+              <div className="absolute top-0 left-0 w-full h-[10%] bg-black/80 backdrop-blur-sm transition-opacity duration-500 opacity-100" />
+              <div className="absolute bottom-0 left-0 w-full h-[10%] bg-black/80 backdrop-blur-sm transition-opacity duration-500 opacity-100" />
+
+              <div className="absolute top-4 left-4 flex gap-2">
+                <div className="px-3 py-1 bg-primary/20 backdrop-blur-md border border-primary/40 rounded-full text-[10px] font-black text-primary uppercase italic tracking-widest">
+                  SHOT {currentFrame.shotNumber}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-3 opacity-20">
+              <div className="w-12 h-px bg-white/20" />
+              <div className="text-[10px] font-black uppercase tracking-[0.3em]">Signal Lost</div>
+              <div className="w-12 h-px bg-white/20" />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Playback Controls */}
@@ -79,15 +97,23 @@ export function AnimaticPreview({
           size="sm"
           variant="outline"
           onClick={handlePlayPause}
-          className="border-border"
+          className="border-border rounded-full hover:bg-primary/10"
         >
-          {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+          {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
         </Button>
-        <div className="text-xs text-muted-foreground">
-          {currentFrameIndex + 1} / {frames.length} frames
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => setIsCinematic(!isCinematic)}
+          className={`text-[10px] font-black uppercase tracking-tighter ${isCinematic ? 'text-primary' : 'text-slate-500'}`}
+        >
+          Cinematic
+        </Button>
+        <div className="text-[10px] font-mono text-slate-500">
+          {currentFrameIndex + 1} / {frames.length}
         </div>
-        <div className="text-xs text-muted-foreground ml-auto">
-          {Math.round(currentTime)}s / {Math.round(totalDuration)}s
+        <div className="text-[10px] font-mono text-slate-500 ml-auto">
+          {currentTime.toFixed(1)}s / {totalDuration.toFixed(1)}s
         </div>
       </div>
 
@@ -103,9 +129,8 @@ export function AnimaticPreview({
             return (
               <div
                 key={index}
-                className={`flex-shrink-0 border-r border-border text-xs flex items-center justify-center transition-colors ${
-                  isActive ? "bg-accent" : "bg-muted hover:bg-muted/80"
-                }`}
+                className={`flex-shrink-0 border-r border-border text-xs flex items-center justify-center transition-colors ${isActive ? "bg-accent" : "bg-muted hover:bg-muted/80"
+                  }`}
                 style={{ width: `${width}%` }}
                 title={`Shot ${frame.shotNumber}: ${frame.duration}s`}
               >

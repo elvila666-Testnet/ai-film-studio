@@ -2,7 +2,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
-import { storagePut, storageGet } from '../storage';
+import { storagePut } from '../storage';
 
 const execAsync = promisify(exec);
 
@@ -178,7 +178,8 @@ export async function generateContactSheet(
     const timestamps = Array.from({ length: frameCount }, (_, i) => (i + 1) * interval);
 
     // Extract frames
-    const frames = await extractMultipleFrames(videoPath, timestamps, options);
+    const _frames = await extractMultipleFrames(videoPath, timestamps, options);
+    void _frames;
 
     // Create contact sheet using FFmpeg
     const tempDir = '/tmp/ai_film_studio_frames';

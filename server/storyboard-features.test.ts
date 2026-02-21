@@ -31,9 +31,9 @@ describe("Storyboard Frame Reordering", () => {
       { id: 1, projectId: 1, shotNumber: 1, displayOrder: 0, createdAt: new Date(), updatedAt: new Date() },
       { id: 2, projectId: 1, shotNumber: 2, displayOrder: 1, createdAt: new Date(), updatedAt: new Date() },
     ];
-    
+
     vi.mocked(getStoryboardFrameOrder).mockResolvedValue(mockOrder);
-    
+
     const result = await getStoryboardFrameOrder(1);
     expect(result).toEqual(mockOrder);
     expect(getStoryboardFrameOrder).toHaveBeenCalledWith(1);
@@ -44,16 +44,16 @@ describe("Storyboard Frame Reordering", () => {
       { shotNumber: 1, displayOrder: 1 },
       { shotNumber: 2, displayOrder: 0 },
     ];
-    
+
     vi.mocked(updateFrameOrder).mockResolvedValue(undefined);
-    
+
     await updateFrameOrder(1, frameOrders);
     expect(updateFrameOrder).toHaveBeenCalledWith(1, frameOrders);
   });
 
   it("should handle empty frame orders", async () => {
     vi.mocked(updateFrameOrder).mockResolvedValue(undefined);
-    
+
     await updateFrameOrder(1, []);
     expect(updateFrameOrder).toHaveBeenCalledWith(1, []);
   });
@@ -89,9 +89,9 @@ describe("Storyboard Frame History", () => {
         createdAt: new Date(),
       },
     ];
-    
+
     vi.mocked(getFrameHistory).mockResolvedValue(mockHistory);
-    
+
     const result = await getFrameHistory(1, 1);
     expect(result).toHaveLength(2);
     expect(result[1].isActive).toBe(true);
@@ -100,7 +100,7 @@ describe("Storyboard Frame History", () => {
 
   it("should create new frame version and mark previous as inactive", async () => {
     vi.mocked(createFrameHistoryVersion).mockResolvedValue(undefined);
-    
+
     await createFrameHistoryVersion(1, 1, "https://example.com/new.jpg", "New prompt", "Updated notes");
     expect(createFrameHistoryVersion).toHaveBeenCalledWith(
       1,
@@ -113,7 +113,7 @@ describe("Storyboard Frame History", () => {
 
   it("should handle frame version creation without notes", async () => {
     vi.mocked(createFrameHistoryVersion).mockResolvedValue(undefined);
-    
+
     await createFrameHistoryVersion(1, 1, "https://example.com/new.jpg", "New prompt");
     expect(createFrameHistoryVersion).toHaveBeenCalled();
   });
@@ -134,9 +134,9 @@ describe("Storyboard Frame Notes", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    
+
     vi.mocked(getFrameNotes).mockResolvedValue(mockNotes);
-    
+
     const result = await getFrameNotes(1, 1);
     expect(result).toEqual(mockNotes);
     expect(getFrameNotes).toHaveBeenCalledWith(1, 1);
@@ -145,28 +145,28 @@ describe("Storyboard Frame Notes", () => {
   it("should save frame notes with metadata", async () => {
     const metadata = { duration: 3, effects: "fade-in", audio: "ambient" };
     vi.mocked(saveFrameNotes).mockResolvedValue(undefined);
-    
+
     await saveFrameNotes(1, 1, "Updated notes", metadata);
     expect(saveFrameNotes).toHaveBeenCalledWith(1, 1, "Updated notes", metadata);
   });
 
   it("should save frame notes without metadata", async () => {
     vi.mocked(saveFrameNotes).mockResolvedValue(undefined);
-    
+
     await saveFrameNotes(1, 1, "Simple notes");
     expect(saveFrameNotes).toHaveBeenCalled();
   });
 
   it("should delete frame notes", async () => {
     vi.mocked(deleteFrameNotes).mockResolvedValue(undefined);
-    
+
     await deleteFrameNotes(1, 1);
     expect(deleteFrameNotes).toHaveBeenCalledWith(1, 1);
   });
 
   it("should return null when frame notes do not exist", async () => {
-    vi.mocked(getFrameNotes).mockResolvedValue(null);
-    
+    vi.mocked(getFrameNotes).mockResolvedValue(null as any);
+
     const result = await getFrameNotes(1, 999);
     expect(result).toBeNull();
   });
@@ -178,9 +178,9 @@ describe("Batch Operations", () => {
       shotNumber: i + 1,
       displayOrder: Math.floor(Math.random() * 10),
     }));
-    
+
     vi.mocked(updateFrameOrder).mockResolvedValue(undefined);
-    
+
     await updateFrameOrder(1, bulkOrders);
     expect(updateFrameOrder).toHaveBeenCalledWith(1, bulkOrders);
   });
@@ -188,11 +188,11 @@ describe("Batch Operations", () => {
   it("should support bulk note updates", async () => {
     const shotNumbers = [1, 2, 3, 4, 5];
     vi.mocked(saveFrameNotes).mockResolvedValue(undefined);
-    
+
     for (const shotNumber of shotNumbers) {
       await saveFrameNotes(1, shotNumber, `Notes for shot ${shotNumber}`);
     }
-    
+
     expect(saveFrameNotes).toHaveBeenCalledTimes(5);
   });
 });

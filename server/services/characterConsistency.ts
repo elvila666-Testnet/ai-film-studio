@@ -59,18 +59,20 @@ export function generateConsistentPrompt(
   shotContext: string
 ): string {
   const characterDescriptions = Object.entries(characterReference)
-    .map(([name, desc]) => `${name}: ${desc}`)
+    .map(([name, desc]) => `[ACTOR: ${name}] - VISUAL PROFILE: ${desc}`)
     .join("\n");
 
   return `${basePrompt}
 
-CHARACTER CONSISTENCY REQUIREMENTS:
+[TECHNICAL CONTINUITY MANDATE]
+The following characters are the VISUAL ANCHORS for this production. Total fidelity to their descriptions is required for narrative coherence:
 ${characterDescriptions}
 
-SHOT CONTEXT: ${shotContext}
+[SCENE CONTEXT]
+${shotContext}
 
-IMPORTANT: Ensure all characters maintain consistent appearance, clothing, and physical characteristics across this shot.
-Use the character descriptions above to maintain visual consistency.`;
+[DIRECTOR'S NOTE ON CONSISTENCY]
+Ensure that hair color, costume details, facial structure, and physical proportions remain UNCHANGED from the visual profile. Lighting and angle may vary as per the base prompt, but the identity of the actor must be unmistakable. 8k resolution, cinematic textures.`;
 }
 
 /**
@@ -82,26 +84,28 @@ export function generateVariationPrompt(
   variationIndex: number
 ): string {
   const variations = [
-    "slightly different angle",
-    "different lighting setup",
-    "closer camera position",
-    "wider shot perspective",
-    "from a different direction",
+    "cinematic low-angle hero shot with anamorphic lens artifacts",
+    "dramatic rim-lit profile shot, high contrast noir style",
+    "tight extreme close-up focusing on eye detail and expression",
+    "wide establishing perspective showing the subject within the environment",
+    "dynamic over-the-shoulder tracking perspective",
   ];
 
   const variation = variations[variationIndex % variations.length];
 
   const characterDescriptions = Object.entries(characterReference)
-    .map(([name, desc]) => `${name}: ${desc}`)
+    .map(([name, desc]) => `[SUBJECT: ${name}] - ${desc}`)
     .join("\n");
 
   return `${basePrompt}
 
-CHARACTER CONSISTENCY REQUIREMENTS:
+[VARIATION PROTOCOL: ${variation.toUpperCase()}]
 ${characterDescriptions}
 
-VARIATION: Generate this shot from a ${variation}, while maintaining all character appearances and consistency.
-Keep all character details identical to previous shots - only change the camera perspective and composition.`;
+[CONTINUITY ENFORCEMENT]
+Generate this specific shot using the ${variation}. 
+MANDATORY: All character facial features, clothing textures, and physical attributes must remain 100% IDENTICAL to the master reference. Only the camera position, lens choice, and lighting setup should shift. 
+Aesthetic: Arri Alexa 65, 8k RAW, hyper-realistic cinematic finish.`;
 }
 
 /**
@@ -241,8 +245,7 @@ export async function analyzeCharacterConsistency(
   const appearanceDescriptions = appearances
     .map(
       (a) =>
-        `Frame ${a.shotNumber}: Clothing: ${a.appearance.clothing}, Expression: ${a.appearance.expression}, Pose: ${a.appearance.pose}${
-          a.appearance.accessories ? `, Accessories: ${a.appearance.accessories}` : ""
+        `Frame ${a.shotNumber}: Clothing: ${a.appearance.clothing}, Expression: ${a.appearance.expression}, Pose: ${a.appearance.pose}${a.appearance.accessories ? `, Accessories: ${a.appearance.accessories}` : ""
         }`
     )
     .join("\n");

@@ -42,7 +42,7 @@ export interface ClipRecommendation {
 /**
  * Detect scenes in video
  */
-export function detectScenes(videoUrl: string, threshold: number = 0.5): SceneDetectionResult[] {
+export function detectScenes(_videoUrl: string, threshold: number = 0.5): SceneDetectionResult[] {
   // Mock scene detection
   const scenes: SceneDetectionResult[] = [
     {
@@ -78,7 +78,7 @@ export function detectScenes(videoUrl: string, threshold: number = 0.5): SceneDe
  * Generate subtitles from video
  */
 export function generateSubtitles(
-  videoUrl: string,
+  _videoUrl: string,
   language: string = 'en'
 ): SubtitleSegment[] {
   // Mock subtitle generation
@@ -115,7 +115,7 @@ export function generateSubtitles(
 /**
  * Suggest color grading profile
  */
-export function suggestColorGradingProfile(videoUrl: string): ColorGradingProfile {
+export function suggestColorGradingProfile(_videoUrl: string): ColorGradingProfile {
   // Mock color grading suggestion
   return {
     name: 'Cinematic Warm',
@@ -133,7 +133,7 @@ export function suggestColorGradingProfile(videoUrl: string): ColorGradingProfil
  */
 export function applyColorGrading(
   videoUrl: string,
-  profile: ColorGradingProfile
+  _profile: ColorGradingProfile
 ): { success: boolean; outputUrl: string } {
   // Mock color grading application
   return {
@@ -145,7 +145,7 @@ export function applyColorGrading(
 /**
  * Get clip recommendations
  */
-export function getClipRecommendations(projectId: number, clipIds: number[]): ClipRecommendation[] {
+export function getClipRecommendations(_projectId: number, clipIds: number[]): ClipRecommendation[] {
   // Mock clip recommendations
   const recommendations: ClipRecommendation[] = [
     {
@@ -198,7 +198,7 @@ export function generateTransitions(
 /**
  * Analyze video quality
  */
-export function analyzeVideoQuality(videoUrl: string): {
+export function analyzeVideoQuality(_videoUrl: string): {
   resolution: string;
   frameRate: number;
   bitrate: number;
@@ -223,7 +223,7 @@ export function analyzeVideoQuality(videoUrl: string): {
 /**
  * Generate video summary
  */
-export function generateVideoSummary(videoUrl: string): {
+export function generateVideoSummary(_videoUrl: string): {
   title: string;
   description: string;
   keyPoints: string[];
@@ -249,7 +249,7 @@ export function generateVideoSummary(videoUrl: string): {
 /**
  * Auto-enhance video
  */
-export function autoEnhanceVideo(videoUrl: string): {
+export function autoEnhanceVideo(_videoUrl: string): {
   success: boolean;
   enhancements: string[];
   outputUrl: string;
@@ -263,14 +263,14 @@ export function autoEnhanceVideo(videoUrl: string): {
       'Color saturation optimized',
       'Noise reduced',
     ],
-    outputUrl: `${videoUrl}?enhanced=true`,
+    outputUrl: `${_videoUrl}?enhanced=true`,
   };
 }
 
 /**
  * Detect faces and emotions
  */
-export function detectFacesAndEmotions(videoUrl: string): Array<{
+export function detectFacesAndEmotions(_videoUrl: string): Array<{
   timestamp: number;
   faceCount: number;
   emotions: Record<string, number>;
@@ -303,7 +303,7 @@ export function detectFacesAndEmotions(videoUrl: string): Array<{
 /**
  * Generate captions (different from subtitles - includes speaker identification)
  */
-export function generateCaptions(videoUrl: string): Array<{
+export function generateCaptions(_videoUrl: string): Array<{
   startTime: number;
   endTime: number;
   speaker: string;
@@ -329,7 +329,7 @@ export function generateCaptions(videoUrl: string): Array<{
 /**
  * Detect music and sound effects
  */
-export function detectAudioElements(videoUrl: string): Array<{
+export function detectAudioElements(_videoUrl: string): Array<{
   startTime: number;
   endTime: number;
   type: 'music' | 'speech' | 'sound_effect' | 'silence';
@@ -365,7 +365,7 @@ export function detectAudioElements(videoUrl: string): Array<{
 /**
  * Get AI automation status
  */
-export function getAutomationStatus(projectId: number): {
+export function getAutomationStatus(_projectId: number): {
   sceneDetection: boolean;
   subtitleGeneration: boolean;
   colorGrading: boolean;

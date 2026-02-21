@@ -21,7 +21,7 @@ export const costAndComparisonRouter = router({
         provider: z.enum(["veo3", "sora"]).optional(),
       })
     )
-    .query(({ input }: any) => {
+    .query(({ input }) => {
       return estimateSingleVideoGeneration(
         input.duration,
         input.resolution,
@@ -38,7 +38,7 @@ export const costAndComparisonRouter = router({
         resolution: z.enum(["720p", "1080p", "4k"]).default("1080p"),
       })
     )
-    .query(({ input }: any) => {
+    .query(({ input }) => {
       return estimateProjectCost(
         input.projectName,
         input.shotCount,
@@ -55,7 +55,7 @@ export const costAndComparisonRouter = router({
         prioritizeSpeed: z.boolean().default(false),
       })
     )
-    .query(({ input }: any) => {
+    .query(({ input }) => {
       return getRecommendedProvider(
         input.duration,
         input.resolution,
@@ -70,7 +70,7 @@ export const costAndComparisonRouter = router({
         provider: z.enum(["veo3", "sora"]),
       })
     )
-    .query(({ input }: any) => {
+    .query(({ input }) => {
       return getCostByResolution(input.duration, input.provider);
     }),
 
@@ -82,7 +82,8 @@ export const costAndComparisonRouter = router({
         shotNumber: z.number().optional(),
       })
     )
-    .query(async ({ input }: any) => {
+    .query(async ({ input: _input }) => {
+      void _input;
       // TODO: Query database for video outputs
       return {
         videos: [],
@@ -100,7 +101,7 @@ export const costAndComparisonRouter = router({
           .default(["quality", "motion", "consistency"]),
       })
     )
-    .query(async ({ input }: any) => {
+    .query(async ({ input }) => {
       // TODO: Fetch videos for shot and compare metrics
       return {
         comparison: {
@@ -131,7 +132,7 @@ export const costAndComparisonRouter = router({
         rating: z.number().min(1).max(5),
       })
     )
-    .mutation(async ({ input }: any) => {
+    .mutation(async ({ input }) => {
       // TODO: Save rating to database
       return {
         success: true,
@@ -148,7 +149,7 @@ export const costAndComparisonRouter = router({
         videoId: z.string(),
       })
     )
-    .mutation(async ({ input }: any) => {
+    .mutation(async ({ input }) => {
       // TODO: Mark video as selected for shot
       return {
         success: true,
@@ -164,7 +165,7 @@ export const costAndComparisonRouter = router({
         videoId: z.string(),
       })
     )
-    .query(async ({ input }: any) => {
+    .query(async ({ input }) => {
       // TODO: Generate download link
       return {
         downloadUrl: `https://example.com/download/${input.videoId}`,
@@ -180,7 +181,7 @@ export const costAndComparisonRouter = router({
         format: z.enum(["pdf", "csv", "json"]).default("pdf"),
       })
     )
-    .mutation(async ({ input }: any) => {
+    .mutation(async ({ input }) => {
       // TODO: Generate comparison report
       return {
         success: true,
@@ -196,7 +197,8 @@ export const costAndComparisonRouter = router({
         videoIds: z.array(z.string()),
       })
     )
-    .query(async ({ input }: any) => {
+    .query(async ({ input: _input }) => {
+      void _input;
       // TODO: Analyze batch of videos
       return {
         totalCost: 6.5,

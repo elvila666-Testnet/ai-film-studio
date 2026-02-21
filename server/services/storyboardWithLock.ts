@@ -115,7 +115,7 @@ export async function generateStoryboardWithLock(
  * Validate that generated image respects locked constraints
  */
 export async function validateLockedConstraints(
-  imageUrl: string,
+  _imageUrl: string,
   projectId: number,
   brandId?: number
 ): Promise<{
@@ -193,7 +193,7 @@ function getVariationModifier(index: number): string {
  * This locks the visual specification for Flow/Sora
  */
 export async function buildFrameDescriptor(
-  imageUrl: string,
+  _imageUrl: string,
   projectId: number,
   brandId?: number
 ): Promise<{

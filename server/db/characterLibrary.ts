@@ -11,7 +11,7 @@ import { eq, and } from "drizzle-orm";
  * Create a new character in the brand library
  */
 export async function createCharacterInLibrary(
-  brandId: number,
+  brandId: string,
   data: Omit<InsertCharacterLibrary, "brandId" | "createdAt" | "updatedAt" | "usageCount">
 ): Promise<number> {
   const db = await getDb();
@@ -29,7 +29,7 @@ export async function createCharacterInLibrary(
 /**
  * Get all characters in a brand library
  */
-export async function getBrandCharacterLibrary(brandId: number): Promise<CharacterLibrary[]> {
+export async function getBrandCharacterLibrary(brandId: string): Promise<CharacterLibrary[]> {
   const db = await getDb();
   if (!db) return [];
 
@@ -122,7 +122,7 @@ export async function incrementCharacterUsage(characterId: number): Promise<void
 /**
  * Get locked characters for a brand (brand enforcement)
  */
-export async function getLockedCharactersForBrand(brandId: number): Promise<CharacterLibrary[]> {
+export async function getLockedCharactersForBrand(brandId: string): Promise<CharacterLibrary[]> {
   const db = await getDb();
   if (!db) return [];
 
@@ -136,7 +136,7 @@ export async function getLockedCharactersForBrand(brandId: number): Promise<Char
  * Get most used characters for a brand (for suggestions)
  */
 export async function getMostUsedCharactersForBrand(
-  brandId: number,
+  brandId: string,
   limit: number = 5
 ): Promise<CharacterLibrary[]> {
   const db = await getDb();

@@ -1,0 +1,14 @@
+
+# Exclude node_modules (we install them in the build)
+node_modules/
+dist/
+.git/
+.github/
+.idea/
+.vscode/
+local-data/
+*.log
+
+# Explicitly include these (just in case)
+!package.json
+!pnpm-lock.yaml

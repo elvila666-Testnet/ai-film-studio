@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from "uuid";
 
 const execAsync = promisify(exec);
 
-class VideoEditorService {
+export class VideoEditorService {
   private tempDir: string;
   private outputDir: string;
 
@@ -26,7 +26,7 @@ class VideoEditorService {
   async downloadFile(url: string, filename: string): Promise<string> {
     // Ensure temp directory exists
     await this.initialize();
-    
+
     const outputPath = path.join(this.tempDir, filename);
     try {
       await execAsync(`curl -L -o "${outputPath}" "${url}"`);
@@ -57,7 +57,8 @@ class VideoEditorService {
 
       // Build filter complex for composition
       for (let i = 0; i < clips.length; i++) {
-        const clip = clips[i];
+        const _clip = clips[i];
+        void _clip;
         filterComplex.push(
           `[${i}:v]scale=${outputResolution}:force_original_aspect_ratio=decrease[v${i}]`
         );
@@ -195,12 +196,12 @@ class VideoEditorService {
 
       // Clean up temp files
       for (const file of localImagePaths) {
-        await unlink(file).catch(() => {});
+        await unlink(file).catch(() => { });
       }
 
       // Clean up audio file if it was downloaded
       if (audioUrl) {
-        await unlink(path.join(this.tempDir, `audio_${sessionId}.mp3`)).catch(() => {});
+        await unlink(path.join(this.tempDir, `audio_${sessionId}.mp3`)).catch(() => { });
       }
 
       return outputPath;

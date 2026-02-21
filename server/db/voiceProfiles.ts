@@ -18,7 +18,7 @@ import { eq, and } from "drizzle-orm";
  * Create a new voice profile for a brand
  */
 export async function createVoiceProfile(
-  brandId: number,
+  brandId: string,
   data: Omit<InsertBrandVoiceProfile, "brandId" | "createdAt" | "updatedAt">
 ): Promise<number> {
   const db = await getDb();
@@ -40,7 +40,7 @@ export async function createVoiceProfile(
 /**
  * Get all voice profiles for a brand
  */
-export async function getBrandVoiceProfiles(brandId: number): Promise<BrandVoiceProfile[]> {
+export async function getBrandVoiceProfiles(brandId: string): Promise<BrandVoiceProfile[]> {
   const db = await getDb();
   if (!db) return [];
 
@@ -50,7 +50,7 @@ export async function getBrandVoiceProfiles(brandId: number): Promise<BrandVoice
 /**
  * Get the default voice profile for a brand
  */
-export async function getDefaultVoiceProfile(brandId: number): Promise<BrandVoiceProfile | null> {
+export async function getDefaultVoiceProfile(brandId: string): Promise<BrandVoiceProfile | null> {
   const db = await getDb();
   if (!db) return null;
 

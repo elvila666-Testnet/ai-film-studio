@@ -1,479 +1,229 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Loader2, RotateCcw } from "lucide-react";
+import { Loader2, Sparkles, Video, Eye, EyeOff } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { AnimaticPreview } from "@/components/AnimaticPreview";
-import { AudioUpload } from "@/components/AudioUpload";
-
-interface StoryboardPrompt {
-  shot: number;
-  prompt: string;
-  notes: string;
-}
-
-interface TechnicalShot {
-  shot: number;
-  tipo_plano: string;
-  accion: string;
-  intencion: string;
-}
+import { Lightbox } from "@/components/ui/Lightbox";
+import { useCostGuard } from "@/components/FinOps/CostGuard";
+import { ShotCard } from "./ShotCard";
+import { Shot, Actor } from "@/features/Project/types";
 
 interface StoryboardTabProps {
   projectId: number;
 }
 
 export default function StoryboardTab({ projectId }: StoryboardTabProps) {
-  const [storyboard, setStoryboard] = useState<StoryboardPrompt[]>([]);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(false);
-  const [generatingImageIndex, setGeneratingImageIndex] = useState<number | null>(null);
+  const { requestApproval } = useCostGuard();
   const [isExportingAnimatic, setIsExportingAnimatic] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string>();
-  const [audioVolume, setAudioVolume] = useState(100);
+  const [audioUrl] = useState<string>();
+  const [audioVolume] = useState(100);
   const [frameDurations, setFrameDurations] = useState<Record<number, number>>({});
+  const [selectedImageId, setSelectedImageId] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 9;
 
-  const projectQuery = trpc.projects.get.useQuery({ id: projectId });
-  const imagesQuery = trpc.storyboard.getImages.useQuery({ projectId });
-  const updateMutation = trpc.projects.updateContent.useMutation();
-  const saveImageMutation = trpc.storyboard.saveImage.useMutation();
-  const generateImageMutation = trpc.ai.generateStoryboardImage.useMutation();
-  const generateImagePromptMutation = trpc.ai.generateImagePrompt.useMutation();
-  const refinePromptMutation = trpc.ai.refineImagePrompt.useMutation();
+  const productionQuery = trpc.director.getFullProductionLayout.useQuery({ projectId });
+  const actorsQuery = trpc.director.listActors.useQuery();
+
+  const generateShotMutation = trpc.storyboard.generateShot.useMutation({ onSuccess: () => productionQuery.refetch() });
+  const generateAllMutation = trpc.storyboard.generateAll.useMutation({ onSuccess: () => productionQuery.refetch() });
+  const approveFrameMutation = trpc.storyboard.approveAndUpscaleFrame.useMutation({ onSuccess: () => productionQuery.refetch() });
+  const regenerateFrameMutation = trpc.storyboard.regenerateSingleFrame.useMutation({ onSuccess: () => productionQuery.refetch() });
+
+  const bindActorMutation = trpc.director.bindActorToShot.useMutation({ onSuccess: () => productionQuery.refetch() });
+  const unbindActorMutation = trpc.director.unbindActorFromShot.useMutation({ onSuccess: () => productionQuery.refetch() });
   const exportAnimaticMutation = trpc.editor.exportAnimatic.useMutation();
-  const getAnimaticConfigQuery = trpc.editor.getAnimaticConfig.useQuery({ projectId });
-  const saveAnimaticConfigMutation = trpc.editor.saveAnimaticConfig.useMutation();
 
-  useEffect(() => {
-    if (projectQuery.data?.content?.storyboardPrompts) {
+  const allFrames = productionQuery.data?.flatMap((s: any) => s.shots || []) as Shot[] || [];
+
+  const handleGenerateShot = async (shotId: number) => {
+    const shot = allFrames.find((s) => s.id === shotId);
+    if (!shot) return;
+    requestApproval(0.04, async () => {
       try {
-        const parsed = JSON.parse(projectQuery.data.content.storyboardPrompts);
-        setStoryboard(Array.isArray(parsed) ? parsed : []);
-      } catch {
-        setStoryboard([]);
-      }
-    }
-  }, [projectQuery.data]);
-
-  useEffect(() => {
-    if (getAnimaticConfigQuery.data) {
-      if (getAnimaticConfigQuery.data.frameDurations) {
-        setFrameDurations(JSON.parse(getAnimaticConfigQuery.data.frameDurations));
-      }
-      if (getAnimaticConfigQuery.data.audioUrl) {
-        setAudioUrl(getAnimaticConfigQuery.data.audioUrl);
-      }
-      if (getAnimaticConfigQuery.data.audioVolume) {
-        setAudioVolume(getAnimaticConfigQuery.data.audioVolume);
-      }
-    }
-  }, [getAnimaticConfigQuery.data]);
-
-  const handleUpdatePrompt = (
-    index: number,
-    field: keyof StoryboardPrompt,
-    value: string
-  ) => {
-    const newStoryboard = [...storyboard];
-    newStoryboard[index] = { ...newStoryboard[index], [field]: value };
-    setStoryboard(newStoryboard);
+        await generateShotMutation.mutateAsync({ projectId, shotNumber: shot.order, prompt: shot.visualDescription || "" });
+        toast.success("Asset materialized");
+      } catch (e) { toast.error("Visual synthesis failed"); }
+    });
   };
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      await updateMutation.mutateAsync({
-        projectId,
-        storyboardPrompts: JSON.stringify(storyboard),
-      });
-      toast.success("Storyboard saved successfully");
-    } catch (error) {
-      console.error("Failed to save storyboard:", error);
-      toast.error("Failed to save storyboard");
-    } finally {
-      setIsSaving(false);
-    }
+  const handleRegenerateShot = async (shotId: number, prompt: string) => {
+    const shot = allFrames.find((s) => s.id === shotId);
+    if (!shot) return;
+    requestApproval(0.04, async () => {
+      try {
+        await regenerateFrameMutation.mutateAsync({ projectId, shotNumber: shot.order, prompt });
+        toast.success("Frame regenerated");
+      } catch (e) { toast.error("Regeneration failed"); }
+    });
   };
 
-  const handleGenerateAllImages = async () => {
-    if (storyboard.length === 0) {
-      toast.error("No storyboard prompts to generate images for");
-      return;
-    }
-
-    for (let i = 0; i < storyboard.length; i++) {
-      await generateSingleImage(i);
-    }
+  const handleApproveShot = async (_shotId: number, imageId: number, imageUrl: string) => {
+    requestApproval(0.02, async () => {
+      try {
+        toast.info("Approving & Upscaling to 4K...");
+        await approveFrameMutation.mutateAsync({ projectId, storyboardImageId: imageId, imageUrl });
+        toast.success("Frame 4K Upscaled!");
+      } catch (e) { toast.error("Upscale failed"); }
+    });
   };
 
-  const generateSingleImage = async (index: number) => {
-    const item = storyboard[index];
-    if (!item?.prompt.trim()) {
-      toast.error(`Please add a prompt for shot ${item?.shot}`);
-      return;
-    }
-
-    setGeneratingImageIndex(index);
-    try {
-      const result = await generateImageMutation.mutateAsync({
-        prompt: item.prompt,
-      });
-      const imageUrl = typeof result === 'string' ? result : result.url;
-      await saveImageMutation.mutateAsync({
-        projectId,
-        shotNumber: item.shot,
-        imageUrl,
-        prompt: item.prompt,
-      });
-      imagesQuery.refetch();
-      toast.success(`Image generated for shot ${item.shot}`);
-    } catch (error) {
-      console.error("Failed to generate image:", error);
-      toast.error("Failed to generate image");
-    } finally {
-      setGeneratingImageIndex(null);
-    }
-  };
-
-  const handleRegenerateImage = async (index: number) => {
-    const item = storyboard[index];
-    if (!item?.notes.trim()) {
-      toast.error("Please add direction notes for refinement");
-      return;
-    }
-
-    setGeneratingImageIndex(index);
-    try {
-      const refinedPrompt = await refinePromptMutation.mutateAsync({
-        prompt: item.prompt,
-        notes: item.notes,
-      });
-
-      handleUpdatePrompt(index, "prompt", refinedPrompt);
-
-      const variationIndex = ((item as any).generationVariant || 0) + 1;
-      const result = await generateImageMutation.mutateAsync({
-        prompt: refinedPrompt,
-        variationIndex,
-      });
-      const imageUrl = typeof result === 'string' ? result : result.url;
-
-      await saveImageMutation.mutateAsync({
-        projectId,
-        shotNumber: item.shot,
-        imageUrl,
-        prompt: refinedPrompt,
-      });
-
-      imagesQuery.refetch();
-      toast.success(`Image regenerated for shot ${item.shot}`);
-    } catch (error) {
-      console.error("Failed to regenerate image:", error);
-      toast.error("Failed to regenerate image");
-    } finally {
-      setGeneratingImageIndex(null);
-    }
-  };
-
-  const getImageForShot = (shotNumber: number) => {
-    return imagesQuery.data?.find((img) => img.shotNumber === shotNumber);
-  };
-
-  const handleInitializeStoryboard = async () => {
-    const technicalShotsContent = projectQuery.data?.content?.technicalShots;
-
-    if (!technicalShotsContent) {
-      toast.error("Please generate technical shots first");
-      return;
-    }
-
-    setIsInitializing(true);
-    try {
-      const shots: TechnicalShot[] = JSON.parse(technicalShotsContent);
-      const newStoryboard: StoryboardPrompt[] = [];
-
-      // Create simple prompts based on shot information without calling AI
-      for (const shot of shots) {
-        const simplePrompt = `${shot.tipo_plano}: ${shot.accion}. ${shot.intencion}`;
-        newStoryboard.push({
-          shot: shot.shot,
-          prompt: simplePrompt,
-          notes: "",
-        });
-      }
-
-      setStoryboard(newStoryboard);
-      await updateMutation.mutateAsync({
-        projectId,
-        storyboardPrompts: JSON.stringify(newStoryboard),
-      });
-      projectQuery.refetch();
-      toast.success("Storyboard initialized successfully");
-    } catch (error) {
-      console.error("Failed to initialize storyboard:", error);
-      toast.error("Failed to initialize storyboard");
-    } finally {
-      setIsInitializing(false);
-    }
+  const handleGenerateAll = async () => {
+    const totalShots = allFrames.length;
+    const cost = totalShots * 0.04;
+    requestApproval(cost, async () => {
+      try {
+        toast.info(`Starting batch synthesis for ${totalShots} shots...`);
+        await generateAllMutation.mutateAsync({ projectId });
+        toast.success("All assets materialized");
+      } catch (e) { toast.error("Batch synthesis failed"); }
+    });
   };
 
   const handleExportAnimatic = async () => {
-    if (storyboard.length === 0) {
-      toast.error("No storyboard to export");
-      return;
-    }
-
-    const images = imagesQuery.data || [];
-    if (images.length === 0) {
-      toast.error("No images generated yet. Please generate images first.");
-      return;
-    }
-
+    if (!productionQuery.data) return;
     setIsExportingAnimatic(true);
     try {
       const result = await exportAnimaticMutation.mutateAsync({
-        projectId,
-        durationPerFrame: 2,
-        fps: 24,
-        resolution: "1920x1080",
+        projectId, durationPerFrame: 2, fps: 24, resolution: "1920x1080",
+        audioUrl, audioVolume, frameDurations
       });
+      if (result.success && result.videoUrl) window.open(result.videoUrl, "_blank");
+    } finally { setIsExportingAnimatic(false); }
+  };
 
-      if (result.success && result.videoUrl) {
-        toast.success("Animatic exported successfully!");
-        // Open the video in a new tab
-        window.open(result.videoUrl, "_blank");
-      } else {
-        toast.error("Failed to export animatic");
+  const totalPages = Math.ceil(allFrames.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const currentShots = allFrames.slice(startIndex, startIndex + itemsPerPage);
+
+  const selectedShotIndex = allFrames.findIndex(s => s.id === selectedImageId);
+  const selectedShot = selectedImageId !== null ? allFrames[selectedShotIndex] : null;
+
+  const handleNext = () => {
+    if (selectedShotIndex < allFrames.length - 1) {
+      const nextShot = allFrames[selectedShotIndex + 1];
+      if (nextShot.masterImageUrl || nextShot.imageUrl) {
+        setSelectedImageId(nextShot.id);
       }
-    } catch (error) {
-      console.error("Failed to export animatic:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to export animatic");
-    } finally {
-      setIsExportingAnimatic(false);
+    }
+  };
+
+  const handlePrev = () => {
+    if (selectedShotIndex > 0) {
+      const prevShot = allFrames[selectedShotIndex - 1];
+      if (prevShot.masterImageUrl || prevShot.imageUrl) {
+        setSelectedImageId(prevShot.id);
+      }
     }
   };
 
   return (
-    <div className="production-node">
-      <div className="production-node-header">
-        <div className="production-node-title">Visual Storyboard</div>
-        <div className="text-xs text-muted-foreground">Stage 5 of 5</div>
-      </div>
-      <div className="p-6 space-y-4">
-        {storyboard.length === 0 ? (
-          <div className="space-y-4">
-            <Button
-              onClick={handleInitializeStoryboard}
-              disabled={isInitializing}
-              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground rounded-sm"
-              size="sm"
-            >
-              {isInitializing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Initialize Storyboard
-            </Button>
-            <div className="text-center py-12 text-muted-foreground">
-              <p className="text-sm">No storyboard initialized yet</p>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleGenerateAllImages}
-                className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground rounded-sm"
-                disabled={generatingImageIndex !== null}
-                size="sm"
-              >
-                {generatingImageIndex !== null && (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                )}
-                Generate All Images
-              </Button>
-              <Button
-                onClick={handleExportAnimatic}
-                disabled={isExportingAnimatic || (imagesQuery.data?.length ?? 0) === 0}
-                className="flex-1 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-sm"
-                size="sm"
-              >
-                {isExportingAnimatic && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Export Animatic
-              </Button>
-            </div>
-
-            {showPreview && (
-              <div className="space-y-4">
-                <AnimaticPreview
-                  frames={(imagesQuery.data || []).map((img, idx) => ({
-                    shotNumber: img.shotNumber,
-                    imageUrl: img.imageUrl,
-                    duration: frameDurations[img.shotNumber] || 2,
-                  }))}
-                  onFrameDurationChange={(shotNumber, duration) => {
-                    setFrameDurations(prev => ({ ...prev, [shotNumber]: duration }));
-                  }}
-                  audioUrl={audioUrl}
-                  audioVolume={audioVolume}
-                  onAudioVolumeChange={setAudioVolume}
-                  onExport={handleExportAnimatic}
-                  isExporting={isExportingAnimatic}
-                />
-                <AudioUpload
-                  onAudioSelected={(url, fileName) => {
-                    setAudioUrl(url);
-                    toast.success(`Audio "${fileName}" added`);
-                  }}
-                  currentAudioUrl={audioUrl}
-                  onRemoveAudio={() => {
-                    setAudioUrl(undefined);
-                    toast.success("Audio removed");
-                  }}
-                />
-                <Button
-                  onClick={() => setShowPreview(false)}
-                  variant="outline"
-                  className="w-full border-border"
-                  size="sm"
-                >
-                  Close Preview
-                </Button>
-              </div>
-            )}
-
-            {!showPreview && (
-              <Button
-                onClick={() => setShowPreview(true)}
-                disabled={(imagesQuery.data?.length ?? 0) === 0}
-                className="w-full bg-accent/50 hover:bg-accent/70 text-accent-foreground rounded-sm"
-                size="sm"
-              >
-                Show Preview & Settings
-              </Button>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
-              {storyboard.map((item, index) => {
-                const image = getImageForShot(item.shot);
-                const isGenerating = generatingImageIndex === index;
-
-                return (
-                  <div key={`shot-${item.shot}`} className="bg-input border border-border rounded-sm p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-accent text-sm">SHOT {item.shot}</h3>
-                    </div>
-
-                    {/* Image Display */}
-                    <div className="bg-card rounded aspect-video flex items-center justify-center overflow-hidden relative border border-border">
-                      {isGenerating && (
-                        <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center">
-                          <Loader2 className="w-6 h-6 animate-spin text-accent" />
-                        </div>
-                      )}
-                      {image?.imageUrl ? (
-                        <img
-                          src={image.imageUrl}
-                          alt={`Shot ${item.shot}`}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="text-center text-muted-foreground">
-                          <p className="text-xs">No image</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Prompt */}
-                    <div>
-                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest block mb-2">
-                        Prompt
-                      </label>
-                      <Textarea
-                        value={item.prompt}
-                        onChange={(e) =>
-                          handleUpdatePrompt(index, "prompt", e.target.value)
-                        }
-                        placeholder="Image generation prompt..."
-                        rows={2}
-                        className="bg-card border-border rounded-sm text-xs"
-                      />
-                    </div>
-
-                    {/* Direction Notes */}
-                    <div>
-                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest block mb-2">
-                        Notes
-                      </label>
-                      <Textarea
-                        value={item.notes}
-                        onChange={(e) =>
-                          handleUpdatePrompt(index, "notes", e.target.value)
-                        }
-                        placeholder="Director notes..."
-                        rows={2}
-                        className="bg-card border-border rounded-sm text-xs"
-                      />
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => generateSingleImage(index)}
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 border-border rounded-sm text-xs"
-                        disabled={isGenerating}
-                      >
-                        {isGenerating ? (
-                          <>
-                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                            Gen...
-                          </>
-                        ) : (
-                          "Generate"
-                        )}
-                      </Button>
-
-                      {image && (
-                        <Button
-                          onClick={() => handleRegenerateImage(index)}
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 border-border rounded-sm text-xs"
-                          disabled={isGenerating}
-                        >
-                          {isGenerating ? (
-                            <>
-                              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                              Regen...
-                            </>
-                          ) : (
-                            <>
-                              <RotateCcw className="w-3 h-3 mr-1" />
-                              Refine
-                            </>
-                          )}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
-
-        <div className="flex gap-2 pt-4 border-t border-border">
-          <Button
-            onClick={handleSave}
-            disabled={isSaving || storyboard.length === 0}
-            className="bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-sm"
-            size="sm"
-          >
-            {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Save
+    <div className="space-y-12 animate-fade-in pb-20">
+      <div className="flex justify-between items-end">
+        <div>
+          <h2 className="production-node-title tracking-tighter text-white">Director's Vision</h2>
+          <p className="production-label text-primary">Stage 4: Visual Storyboarding</p>
+        </div>
+        <div className="flex gap-4">
+          <Button onClick={handleGenerateAll} disabled={generateAllMutation.isPending} className="bg-white text-black hover:bg-primary hover:text-white">
+            {generateAllMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+            Generate All Storyboard Assets
+          </Button>
+          <Button onClick={handleExportAnimatic} disabled={isExportingAnimatic} className="bg-primary text-white font-bold h-10 px-6 rounded-xl">
+            {isExportingAnimatic ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Video className="w-4 h-4 mr-2" />}
+            Export Animatic
           </Button>
         </div>
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
+        <div className="lg:col-span-3 space-y-8">
+          <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <h3 className="text-sm font-black text-white uppercase tracking-widest">Storyboard Grid</h3>
+            <p className="text-[10px] text-slate-500 font-mono uppercase">{allFrames.length} Total Shots</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            {currentShots.map((shot) => (
+              <ShotCard
+                key={shot.id}
+                shot={shot}
+                isGenerating={generateShotMutation.isPending && generateShotMutation.variables?.shotNumber === shot.order}
+                isRegenerating={regenerateFrameMutation.isPending && regenerateFrameMutation.variables?.shotNumber === shot.order}
+                isApproving={approveFrameMutation.isPending && approveFrameMutation.variables?.storyboardImageId === shot.imageId}
+                onGenerate={handleGenerateShot}
+                onRegenerate={handleRegenerateShot}
+                onApprove={handleApproveShot}
+                onBindActor={(s, a) => bindActorMutation.mutate({ shotId: s, actorId: a })}
+                onUnbindActor={(s, a) => unbindActorMutation.mutate({ shotId: s, actorId: a })}
+                availableActors={(actorsQuery.data as Actor[]) || []}
+                onClick={setSelectedImageId}
+              />
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-4 mt-8 pt-6 border-t border-white/5">
+              <Button
+                variant="outline"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="bg-black/40 border-white/10 hover:bg-white/10"
+              >
+                Previous
+              </Button>
+              <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="bg-black/40 border-white/10 hover:bg-white/10"
+              >
+                Next
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <div className="lg:col-span-1 glass-panel p-6 sticky top-24 space-y-6 h-fit">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-black uppercase tracking-widest">Workbench</h3>
+            <Button variant="ghost" size="sm" onClick={() => setShowPreview(!showPreview)} className="text-primary p-0 h-6">
+              {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </Button>
+          </div>
+          {showPreview && (
+            <AnimaticPreview
+              frames={allFrames.filter((s) => s.imageUrl).map((s) => ({ shotNumber: s.order, imageUrl: s.imageUrl!, duration: frameDurations[s.id] || 2 }))}
+              onFrameDurationChange={(num, dur) => {
+                const s = allFrames.find((f) => f.order === num);
+                if (s) setFrameDurations(p => ({ ...p, [s.id]: dur }));
+              }}
+              audioUrl={audioUrl}
+              audioVolume={audioVolume}
+              onExport={handleExportAnimatic}
+              isExporting={isExportingAnimatic}
+            />
+          )}
+        </div>
+      </div>
+
+      {selectedImageId && selectedShot && (
+        <Lightbox
+          isOpen={!!selectedImageId}
+          onClose={() => setSelectedImageId(null)}
+          imageSrc={selectedShot.masterImageUrl || selectedShot.imageUrl || ""}
+          title={`SHOT ${selectedShot.order}`}
+          onNext={handleNext}
+          onPrev={handlePrev}
+          hasNext={selectedShotIndex < allFrames.length - 1}
+          hasPrev={selectedShotIndex > 0}
+        />
+      )}
     </div>
   );
 }

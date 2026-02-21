@@ -249,7 +249,6 @@ export async function getTopMusicSuggestions(
  * Increment usage count for a music track
  */
 export async function incrementMusicUsage(musicId: number): Promise<void> {
-  const db = await getDatabase();
   const track = await getMusicTrack(musicId);
   if (track) {
     await updateMusicTrack(musicId, {

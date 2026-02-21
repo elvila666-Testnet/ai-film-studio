@@ -12,21 +12,21 @@ export interface FrameDescriptor {
   lighting: string;
   colorPalette: string;
   visualStyle: string;
-  
+
   // Character consistency (locked)
   characters: Record<string, string>;
   characterPositions: Record<string, string>;
-  
+
   // Camera instructions (for Flow)
   cameraMovement?: string;
   depth?: string;
   parallax?: string;
-  
+
   // Acting instructions (for Sora)
   actingDirection?: string;
   emotionalBeat?: string;
   temporalContinuity?: string;
-  
+
   // Metadata
   shotNumber: number;
   duration: number;
@@ -86,13 +86,13 @@ Base Frame (LOCKED - do not change):
 
 Characters (LOCKED - maintain exact appearance):
 ${Object.entries(descriptor.characters)
-  .map(([name, desc]) => `- ${name}: ${desc}`)
-  .join("\n")}
+      .map(([name, desc]) => `- ${name}: ${desc}`)
+      .join("\n")}
 
 Character Positions (LOCKED):
 ${Object.entries(descriptor.characterPositions)
-  .map(([name, pos]) => `- ${name}: ${pos}`)
-  .join("\n")}
+      .map(([name, pos]) => `- ${name}: ${pos}`)
+      .join("\n")}
 
 FLOW INSTRUCTIONS (animate only):
 - Apply subtle camera movement
@@ -124,13 +124,13 @@ Keyframe (LOCKED - visual anchor):
 
 Characters (LOCKED - exact appearance and consistency):
 ${Object.entries(descriptor.characters)
-  .map(([name, desc]) => `- ${name}: ${desc}`)
-  .join("\n")}
+      .map(([name, desc]) => `- ${name}: ${desc}`)
+      .join("\n")}
 
 Initial Positions (LOCKED):
 ${Object.entries(descriptor.characterPositions)
-  .map(([name, pos]) => `- ${name}: ${pos}`)
-  .join("\n")}
+      .map(([name, pos]) => `- ${name}: ${pos}`)
+      .join("\n")}
 
 SORA INSTRUCTIONS (animate within frame):
 - Acting Direction: ${descriptor.actingDirection || "Natural, motivated by narrative"}
@@ -181,7 +181,7 @@ export function validateFrameConsistency(
   // Check character consistency
   const expectedCharacters = Object.keys(frameDescriptor.characters);
   const detectedCharacters = generatedVideoMetadata.detectedCharacters;
-  
+
   if (expectedCharacters.length !== detectedCharacters.length) {
     violations.push(`Character count mismatch: expected ${expectedCharacters.length}, got ${detectedCharacters.length}`);
   } else {
@@ -213,7 +213,7 @@ export function validateFrameConsistency(
  * Helper functions to extract visual elements from prompts
  */
 
-function extractComposition(prompt: string, shotType: string): string {
+function extractComposition(_prompt: string, shotType: string): string {
   const compositionPatterns: Record<string, string> = {
     "plano general": "Wide establishing shot with clear spatial relationships",
     "plano medio": "Medium shot framing characters from waist up",
@@ -237,7 +237,7 @@ function extractCameraLanguage(shotType: string): string {
   return cameraLanguage[shotType.toLowerCase()] || "Neutral, observational";
 }
 
-function extractMood(prompt: string, intention: string): string {
+function extractMood(_prompt: string, intention: string): string {
   const moodKeywords: Record<string, string> = {
     dramatic: "Intense, high-stakes emotional atmosphere",
     comedic: "Light, playful, humorous tone",
@@ -269,7 +269,7 @@ function extractLighting(prompt: string): string {
   return "Balanced three-point lighting, naturalistic";
 }
 
-function extractColorPalette(prompt: string, visualStyle: string): string {
+function extractColorPalette(_prompt: string, visualStyle: string): string {
   const colorPatterns: Record<string, string> = {
     noir: "Black, white, deep grays, high contrast",
     cinematic: "Warm oranges, cool blues, desaturated",
@@ -289,7 +289,7 @@ function extractColorPalette(prompt: string, visualStyle: string): string {
 
 function extractCharacterPositions(prompt: string): Record<string, string> {
   const positions: Record<string, string> = {};
-  
+
   // Simple pattern matching for character positions
   const positionPatterns = [
     /(\w+)\s+(?:stands|sits|lies|kneels)\s+(?:at|in|on|near)\s+(?:the\s+)?(\w+)/gi,
@@ -323,12 +323,12 @@ function estimateShotDuration(shotType: string): number {
  */
 export function createConsistencyReport(
   frameDescriptor: FrameDescriptor,
-  flowOutput?: any,
-  soraOutput?: any
+  flowOutput?: unknown,
+  soraOutput?: unknown
 ): {
   frameDescriptor: FrameDescriptor;
-  flowConsistency?: any;
-  soraConsistency?: any;
+  flowConsistency?: unknown;
+  soraConsistency?: unknown;
   recommendation: string;
 } {
   let recommendation = "Both outputs maintain visual consistency with frame descriptor.";

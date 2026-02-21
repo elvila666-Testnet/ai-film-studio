@@ -1,5 +1,4 @@
 import * as ffmpegService from './ffmpegService';
-import { storagePut } from '../storage';
 
 /**
  * Configuration for thumbnail generation
@@ -104,7 +103,7 @@ export function validateVideoFile(
 /**
  * Estimate generation time in minutes
  */
-export function estimateGenerationTime(duration: number, frameCount: number): number {
+export function estimateGenerationTime(_duration: number, frameCount: number): number {
   // Rough estimate: ~0.5 seconds per frame + 1 second overhead
   const estimatedSeconds = frameCount * 0.5 + 1;
   return Math.ceil(estimatedSeconds / 60);

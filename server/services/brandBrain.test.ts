@@ -55,7 +55,7 @@ describe("Brand Brain Service", () => {
         ],
       };
 
-      mockInvokeLLM.mockResolvedValue(mockResponse);
+      mockInvokeLLM.mockResolvedValue(mockResponse as any);
 
       const result = await analyzeContentCompliance(
         mockBrand,
@@ -102,7 +102,7 @@ describe("Brand Brain Service", () => {
         ],
       };
 
-      mockInvokeLLM.mockResolvedValue(mockResponse);
+      mockInvokeLLM.mockResolvedValue(mockResponse as any);
 
       const result = await analyzeContentCompliance(
         mockBrand,
@@ -139,7 +139,7 @@ describe("Brand Brain Service", () => {
         ],
       };
 
-      mockInvokeLLM.mockResolvedValue(mockResponse);
+      mockInvokeLLM.mockResolvedValue(mockResponse as any);
 
       const result = await analyzeContentCompliance(
         mockBrand,
@@ -179,7 +179,7 @@ describe("Brand Brain Service", () => {
         ],
       };
 
-      mockInvokeLLM.mockResolvedValue(mockResponse);
+      mockInvokeLLM.mockResolvedValue(mockResponse as any);
 
       const result = await generateBrandAlignedContent(
         mockBrand,
@@ -208,7 +208,7 @@ describe("Brand Brain Service", () => {
         ],
       };
 
-      mockInvokeLLM.mockResolvedValue(mockResponse);
+      mockInvokeLLM.mockResolvedValue(mockResponse as any);
 
       const result = await generateBrandAlignedContent(
         mockBrand,
@@ -222,8 +222,8 @@ describe("Brand Brain Service", () => {
 
     it("should include content-specific instructions", async () => {
       mockInvokeLLM.mockResolvedValue({
-        choices: [{ message: { content: "Generated content" } }],
-      });
+        choices: [{ message: { role: "assistant", content: "Generated content" } as any }],
+      } as any);
 
       await generateBrandAlignedContent(
         mockBrand,
@@ -264,7 +264,7 @@ describe("Brand Brain Service", () => {
         ],
       };
 
-      mockInvokeLLM.mockResolvedValue(mockResponse);
+      mockInvokeLLM.mockResolvedValue(mockResponse as any);
 
       const metrics = await extractBrandMetrics(
         mockBrand,
@@ -300,7 +300,7 @@ describe("Brand Brain Service", () => {
         ],
       };
 
-      mockInvokeLLM.mockResolvedValue(mockResponse);
+      mockInvokeLLM.mockResolvedValue(mockResponse as any);
 
       const metrics = await extractBrandMetrics(mockBrand, "Content");
 
@@ -337,7 +337,7 @@ describe("Brand Brain Service", () => {
         ],
       };
 
-      mockInvokeLLM.mockResolvedValue(mockResponse);
+      mockInvokeLLM.mockResolvedValue(mockResponse as any);
 
       const result = await validateBrandConsistency(mockBrand, [
         { type: "script", content: "Script content" },
@@ -355,6 +355,7 @@ describe("Brand Brain Service", () => {
         choices: [
           {
             message: {
+              role: "assistant",
               content: JSON.stringify({
                 isCompliant: true,
                 score: {
@@ -369,15 +370,16 @@ describe("Brand Brain Service", () => {
                 summary: "Good",
                 suggestions: [],
               }),
-            },
-          },
+            } as any,
+          } as any,
         ],
-      });
+      } as any);
 
       mockInvokeLLM.mockResolvedValueOnce({
         choices: [
           {
             message: {
+              role: "assistant",
               content: JSON.stringify({
                 isCompliant: false,
                 score: {
@@ -392,10 +394,10 @@ describe("Brand Brain Service", () => {
                 summary: "Poor alignment",
                 suggestions: ["Revise"],
               }),
-            },
-          },
+            } as any,
+          } as any,
         ],
-      });
+      } as any);
 
       const result = await validateBrandConsistency(mockBrand, [
         { type: "script", content: "Good content" },
@@ -412,6 +414,7 @@ describe("Brand Brain Service", () => {
           choices: [
             {
               message: {
+                role: "assistant",
                 content: JSON.stringify({
                   isCompliant: true,
                   score: {
@@ -426,14 +429,15 @@ describe("Brand Brain Service", () => {
                   summary: "Perfect",
                   suggestions: [],
                 }),
-              },
-            },
+              } as any,
+            } as any,
           ],
-        })
+        } as any)
         .mockResolvedValueOnce({
           choices: [
             {
               message: {
+                role: "assistant",
                 content: JSON.stringify({
                   isCompliant: true,
                   score: {
@@ -448,10 +452,10 @@ describe("Brand Brain Service", () => {
                   summary: "Adequate",
                   suggestions: [],
                 }),
-              },
-            },
+              } as any,
+            } as any,
           ],
-        });
+        } as any);
 
       const result = await validateBrandConsistency(mockBrand, [
         { type: "script", content: "Perfect content" },
@@ -465,8 +469,8 @@ describe("Brand Brain Service", () => {
   describe("Brand guidelines enforcement", () => {
     it("should include all brand parameters in system prompt", async () => {
       mockInvokeLLM.mockResolvedValue({
-        choices: [{ message: { content: "Generated" } }],
-      });
+        choices: [{ message: { role: "assistant", content: "Generated" } as any }],
+      } as any);
 
       await generateBrandAlignedContent(mockBrand, "script", "Generate");
 
@@ -489,8 +493,8 @@ describe("Brand Brain Service", () => {
       };
 
       mockInvokeLLM.mockResolvedValue({
-        choices: [{ message: { content: "Generated" } }],
-      });
+        choices: [{ message: { role: "assistant", content: "Generated" } as any }],
+      } as any);
 
       await generateBrandAlignedContent(partialBrand, "script", "Generate");
 
@@ -507,8 +511,8 @@ describe("Brand Brain Service", () => {
   describe("Content type specific instructions", () => {
     it("should include script-specific instructions", async () => {
       mockInvokeLLM.mockResolvedValue({
-        choices: [{ message: { content: "Generated" } }],
-      });
+        choices: [{ message: { role: "assistant", content: "Generated" } as any }],
+      } as any);
 
       await generateBrandAlignedContent(mockBrand, "script", "Generate");
 
@@ -522,8 +526,8 @@ describe("Brand Brain Service", () => {
 
     it("should include visual-specific instructions", async () => {
       mockInvokeLLM.mockResolvedValue({
-        choices: [{ message: { content: "Generated" } }],
-      });
+        choices: [{ message: { role: "assistant", content: "Generated" } as any }],
+      } as any);
 
       await generateBrandAlignedContent(mockBrand, "visual", "Generate");
 
@@ -537,8 +541,8 @@ describe("Brand Brain Service", () => {
 
     it("should include storyboard-specific instructions", async () => {
       mockInvokeLLM.mockResolvedValue({
-        choices: [{ message: { content: "Generated" } }],
-      });
+        choices: [{ message: { role: "assistant", content: "Generated" } as any }],
+      } as any);
 
       await generateBrandAlignedContent(mockBrand, "storyboard", "Generate");
 
@@ -551,8 +555,8 @@ describe("Brand Brain Service", () => {
 
     it("should include voiceover-specific instructions", async () => {
       mockInvokeLLM.mockResolvedValue({
-        choices: [{ message: { content: "Generated" } }],
-      });
+        choices: [{ message: { role: "assistant", content: "Generated" } as any }],
+      } as any);
 
       await generateBrandAlignedContent(mockBrand, "voiceover", "Generate");
 

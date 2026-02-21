@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Upload, Trash2 } from "lucide-react";
+import { Loader2, Sparkles, PenTool, Save, Eye } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { VisualStyleGuidePreview } from "@/components/VisualStyleGuidePreview";
+import { MoodboardGallery } from "@/components/MoodboardGallery";
+import { toast } from "sonner";
+import { Progress } from "@/components/ui/progress";
 
 interface VisualStyleTabProps {
   projectId: number;
@@ -13,15 +16,20 @@ export default function VisualStyleTab({ projectId }: VisualStyleTabProps) {
   const [masterVisual, setMasterVisual] = useState("");
   const [notes, setNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isGeneratingStyleGuide, setIsGeneratingStyleGuide] = useState(false);
+  const [generatedStyleGuide, setGeneratedStyleGuide] = useState<any>(null);
+
+  // Progress states
+  const [visualProgress, setVisualProgress] = useState(0);
+  const [styleGuideProgress, setStyleGuideProgress] = useState(0);
 
   const projectQuery = trpc.projects.get.useQuery({ id: projectId });
-  const referenceImagesQuery = trpc.referenceImages.list.useQuery({ projectId });
+  const utils = trpc.useUtils();
   const updateMutation = trpc.projects.updateContent.useMutation();
   const generateVisualMutation = trpc.ai.generateVisualStyle.useMutation();
   const refineVisualMutation = trpc.ai.refineVisualStyle.useMutation();
-  const uploadReferenceMutation = trpc.referenceImages.upload.useMutation();
-  const deleteReferenceMutation = trpc.referenceImages.delete.useMutation();
+  const generateStyleGuideMutation = trpc.ai.generateStyleGuide.useMutation();
+  const generateStoryboardImageMutation = trpc.ai.generateStoryboardImage.useMutation();
 
   useEffect(() => {
     if (projectQuery.data?.content?.masterVisual) {
@@ -36,8 +44,11 @@ export default function VisualStyleTab({ projectId }: VisualStyleTabProps) {
         projectId,
         masterVisual,
       });
+      utils.projects.get.invalidate({ id: projectId });
+      toast.success("Visual identity stored");
     } catch (error) {
       console.error("Failed to save visual style:", error);
+      toast.error("Sync failed");
     } finally {
       setIsSaving(false);
     }
@@ -46,222 +57,255 @@ export default function VisualStyleTab({ projectId }: VisualStyleTabProps) {
   const handleGenerateVisual = async () => {
     const scriptContent = projectQuery.data?.content?.script;
     if (!scriptContent?.trim()) {
-      alert("Please create a script first");
+      toast.error("Screenplay required for visual analysis");
       return;
     }
+
+    let interval: NodeJS.Timeout | undefined;
     try {
+      setVisualProgress(10);
+      interval = setInterval(() => {
+        setVisualProgress((prev) => Math.min(prev + 5, 90));
+      }, 800);
+
       const visual = await generateVisualMutation.mutateAsync({
+        projectId,
+        brandId: projectQuery.data?.project?.brandId || undefined,
         script: scriptContent,
       });
-      const visualContent = typeof visual === "string" ? visual : visual.content;
+
+      const visualContent = typeof visual === "string" ? visual : (visual as any).content || visual;
+
       setMasterVisual(visualContent);
       await updateMutation.mutateAsync({ projectId, masterVisual: visualContent });
-      projectQuery.refetch();
+      utils.projects.get.invalidate({ id: projectId });
+
+      if (interval) clearInterval(interval);
+      setVisualProgress(100);
+      toast.success("Aesthetic DNA generated");
     } catch (error) {
+      if (interval) clearInterval(interval);
+      setVisualProgress(0);
       console.error("Failed to generate visual style:", error);
-      alert("Failed to generate visual style. Please try again.");
+      toast.error("Visual generation failed");
     }
   };
 
   const handleRefineVisual = async () => {
     if (!masterVisual.trim()) {
-      alert("Please generate or enter a visual style first");
+      toast.error("Establish base style first");
       return;
     }
     if (!notes.trim()) {
-      alert("Please add comments for refinement");
+      toast.error("Clarify refinement intent");
       return;
     }
     try {
       const refined = await refineVisualMutation.mutateAsync({
+        projectId,
+        brandId: projectQuery.data?.project?.brandId || undefined,
         visualStyle: masterVisual,
         notes,
       });
       const refinedContent = typeof refined === "string" ? refined : (refined as any).content || refined;
       setMasterVisual(refinedContent);
       await updateMutation.mutateAsync({ projectId, masterVisual: refinedContent });
+      utils.projects.get.invalidate({ id: projectId });
       setNotes("");
-      projectQuery.refetch();
+      toast.success("Aesthetic refined");
     } catch (error) {
       console.error("Failed to refine visual style:", error);
-      alert("Failed to refine visual style. Please try again.");
+      toast.error("Refinement logic failed");
     }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleGenerateStyleGuide = async () => {
+    if (!masterVisual.trim()) {
+      toast.error("Generate Aesthetic DNA first");
+      return;
+    }
 
-    setIsUploadingImage(true);
+    let interval: NodeJS.Timeout | undefined;
     try {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        try {
-          const imageUrl = event.target?.result as string;
-          await uploadReferenceMutation.mutateAsync({
-            projectId,
-            imageUrl,
-            description: file.name,
-          });
-          referenceImagesQuery.refetch();
-        } catch (error) {
-          console.error("Failed to upload reference image:", error);
-          alert("Failed to upload image. Please try again.");
-        } finally {
-          setIsUploadingImage(false);
-        }
+      setIsGeneratingStyleGuide(true);
+      setStyleGuideProgress(10);
+      interval = setInterval(() => {
+        setStyleGuideProgress((prev) => Math.min(prev + 5, 90));
+      }, 800);
+
+      toast.info("Analyzing script and visual style...");
+
+      const scriptContent = projectQuery.data?.content?.script || "";
+      const styleGuide = await generateStyleGuideMutation.mutateAsync({
+        script: scriptContent,
+        visualStyle: masterVisual,
+        projectId
+      });
+
+      // Initial set without images
+      const initialGuide = {
+        ...styleGuide,
+        visualReferences: [],
+        generatedAt: new Date(),
       };
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error("Failed to read file:", error);
-      alert("Failed to read image file. Please try again.");
-      setIsUploadingImage(false);
-    } finally {
-      if (e.target) e.target.value = "";
-    }
-  };
 
-  const handleDeleteReference = async (imageId: number) => {
-    try {
-      await deleteReferenceMutation.mutateAsync({ imageId });
-      referenceImagesQuery.refetch();
+      if (interval) clearInterval(interval);
+      setStyleGuideProgress(90); // Keep at 90 while generating images
+
+      setGeneratedStyleGuide(initialGuide);
+      toast.success("Style structure generated. Creating mood board...");
+
+      // Generate images for visual references
+      if (styleGuide.visualReferencePrompts && Array.isArray(styleGuide.visualReferencePrompts)) {
+        const generatedImages: string[] = [];
+        const prompts = styleGuide.visualReferencePrompts.slice(0, 4); // Limit to 4 images
+
+        for (let i = 0; i < prompts.length; i++) {
+          try {
+            toast.info(`Generating mood board image ${i + 1}/${prompts.length}...`);
+            const result = await generateStoryboardImageMutation.mutateAsync({
+              prompt: prompts[i]
+            });
+
+            if (result && result.url) {
+              generatedImages.push(result.url);
+              // Progressive update
+              setGeneratedStyleGuide((prev: unknown) => ({
+                ...prev,
+                visualReferences: [...generatedImages]
+              }));
+            }
+            // Increment progress slightly for each image
+            setStyleGuideProgress((prev) => Math.min(prev + 2, 99));
+          } catch (imgError) {
+            console.error(`Failed to generate image ${i}:`, imgError);
+          }
+        }
+        setStyleGuideProgress(100);
+        toast.success("Mood board complete");
+      } else {
+        setStyleGuideProgress(100);
+      }
     } catch (error) {
-      console.error("Failed to delete reference image:", error);
-      alert("Failed to delete image. Please try again.");
+      if (interval) clearInterval(interval);
+      setStyleGuideProgress(0);
+      console.error("Failed to generate style guide:", error);
+      toast.error("Style guide generation failed");
+    } finally {
+      setIsGeneratingStyleGuide(false);
     }
   };
 
   return (
-    <div className="production-node">
-      <div className="production-node-header">
-        <div className="production-node-title">Cinematography & Visual Style</div>
-        <div className="text-xs text-muted-foreground">Stage 3 of 5</div>
-      </div>
-      <div className="p-6 space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2">
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest block mb-3">
-              Visual Style Guide
-            </label>
-            <Textarea
-              placeholder="Color palette, lighting approach, camera movements, composition style..."
-              value={masterVisual}
-              onChange={(e) => setMasterVisual(e.target.value)}
-              rows={12}
-              className="bg-input border-border text-foreground placeholder-muted-foreground rounded-sm text-sm"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest block mb-3">
-              Director Notes
-            </label>
-            <Textarea
-              placeholder="Add feedback to refine the visual style..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={12}
-              className="bg-input border-border text-foreground placeholder-muted-foreground rounded-sm text-sm"
-            />
-          </div>
+    <div className="space-y-12 animate-fade-in">
+      <div className="flex justify-between items-end">
+        <div>
+          <h2 className="production-node-title">Cinematography Design</h2>
+          <p className="production-label text-primary">Stage 4: Aesthetic Framework</p>
         </div>
-
-        <div className="flex gap-2 pt-4 border-t border-border">
-          <Button
-            onClick={handleGenerateVisual}
-            disabled={generateVisualMutation.isPending}
-            className="bg-accent hover:bg-accent/90 text-accent-foreground rounded-sm"
-            size="sm"
-          >
-            {generateVisualMutation.isPending && (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            )}
-            Generate
-          </Button>
-          <Button
-            onClick={handleRefineVisual}
-            disabled={refineVisualMutation.isPending}
-            className="bg-accent hover:bg-accent/90 text-accent-foreground rounded-sm"
-            size="sm"
-          >
-            {refineVisualMutation.isPending && (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            )}
-            Refine
-          </Button>
+        <div className="flex gap-3">
           <Button
             onClick={handleSave}
-            disabled={isSaving}
-            className="bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-sm"
-            size="sm"
+            disabled={isSaving || !masterVisual}
+            variant="outline"
+            className="bg-white/5 border-white/10 hover:bg-white/10 text-white"
           >
-            {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Save
+            {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+            Save Manifest
           </Button>
+          <div className="flex flex-col gap-2">
+            <Button
+              onClick={handleGenerateVisual}
+              disabled={generateVisualMutation.isPending}
+              className="bg-primary hover:bg-primary/90 text-white font-bold"
+            >
+              {generateVisualMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+              {masterVisual ? "Regenerate Style" : "Materialize Style"}
+            </Button>
+            {generateVisualMutation.isPending && (
+              <Progress value={visualProgress} className="h-1 bg-slate-800 w-full" />
+            )}
+          </div>
         </div>
+      </div>
 
-        <div className="border-t border-border pt-6">
-          <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest block mb-4">
-            Moodboard
-          </label>
-          <p className="text-sm text-muted-foreground mb-4">Upload visual references and mood images to establish the aesthetic direction for your production.</p>
-          
-          <div className="mb-4">
-            <label className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-border rounded-sm cursor-pointer hover:bg-input/50 transition">
-              <div className="flex flex-col items-center justify-center">
-                <Upload className="w-5 h-5 text-accent mb-2" />
-                <span className="text-xs text-muted-foreground">Click to add mood images</span>
-              </div>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                disabled={isUploadingImage}
-                className="hidden"
-              />
-            </label>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        <div className="lg:col-span-2 space-y-6">
+          <div className="glass-panel p-1 rounded-3xl overflow-hidden">
+            <Textarea
+              placeholder="Define high-level aesthetic: Lighting, Composition, Color Palette..."
+              value={masterVisual}
+              onChange={(e) => setMasterVisual(e.target.value)}
+              className="min-h-[500px] w-full bg-transparent border-none focus-visible:ring-0 text-slate-200 text-sm leading-relaxed p-8 resize-none"
+            />
           </div>
 
-          {referenceImagesQuery.data && referenceImagesQuery.data.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-              {referenceImagesQuery.data.map((img) => (
-                <div key={img.id} className="relative group">
-                  <img
-                    src={img.imageUrl}
-                    alt={img.description || "Mood"}
-                    className="w-full h-40 object-cover rounded-sm border border-border"
-                  />
-                  <button
-                    onClick={() => handleDeleteReference(img.id)}
-                    className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white p-1 rounded-sm opacity-0 group-hover:opacity-100 transition"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between px-2">
+              <h3 className="production-label">Mood Board & Visual References</h3>
             </div>
-          )}
+
+            {projectQuery.data?.project?.brandId ? (
+              <MoodboardGallery brandId={projectQuery.data.project.brandId} />
+            ) : (
+              <div className="p-4 border border-dashed rounded-lg text-center text-muted-foreground">
+                Project has no associated brand.
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="border-t border-border pt-6">
-          <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest block mb-4">
-            Reference Images for Nanobanana
-          </label>
-          
-          <div className="mb-4">
-            <label className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-border rounded-sm cursor-pointer hover:bg-input/50 transition">
-              <div className="flex flex-col items-center justify-center">
-                <Upload className="w-5 h-5 text-accent mb-2" />
-                <span className="text-xs text-muted-foreground">Click to upload reference images</span>
-              </div>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                disabled={isUploadingImage}
-                className="hidden"
+        <div className="space-y-6">
+          <div className="glass-panel p-8 space-y-6">
+            <div>
+              <h3 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2 mb-4">
+                <PenTool className="w-4 h-4 text-primary" />
+                Stylistic Refinement
+              </h3>
+              <Textarea
+                placeholder="e.g. 'Shift toward a more desaturated look', 'Add anamorphic lens flares'..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="min-h-[150px] bg-white/[0.03] border-white/5 text-sm"
               />
-            </label>
+            </div>
+
+            <Button
+              onClick={handleRefineVisual}
+              disabled={refineVisualMutation.isPending || !notes.trim()}
+              className="w-full h-12 bg-white text-black hover:bg-primary hover:text-white font-bold"
+            >
+              {refineVisualMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : "Evolve Aesthetic"}
+            </Button>
+          </div>
+
+          <div className="glass-panel p-8 space-y-4">
+            <div className="space-y-2">
+              <Button
+                onClick={handleGenerateStyleGuide}
+                disabled={isGeneratingStyleGuide}
+                variant="outline"
+                className="w-full border-primary/20 hover:bg-primary/10 text-primary-foreground"
+              >
+                {isGeneratingStyleGuide ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Eye className="w-4 h-4 mr-2" />}
+                Preview Style Guide
+              </Button>
+              {isGeneratingStyleGuide && (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[10px] text-slate-400 uppercase">
+                    <span>Synthesizing Aesthetic...</span>
+                    <span>{Math.round(styleGuideProgress)}%</span>
+                  </div>
+                  <Progress value={styleGuideProgress} className="h-1 bg-slate-800" />
+                </div>
+              )}
+            </div>
+
+            {generatedStyleGuide && (
+              <div className="pt-4  animate-in fade-in slide-in-from-top-4 duration-500">
+                <VisualStyleGuidePreview styleGuide={generatedStyleGuide} />
+              </div>
+            )}
           </div>
         </div>
       </div>

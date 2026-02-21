@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Antigravity Development Plan | Technical Roadmap</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;600;700;800&family=Inter:wght@300;400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ['Exo 2', 'sans-serif'],
+                        body: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            200: '#bae2fd',
+                            300: '#7cc8fb',
+                            400: '#38a9f8',
+                            500: '#0e8ce4',
+                            600: '#026fc3',
+                            700: '#03589e',
+                            800: '#074b82',
+                            900: '#0c3f6d',
+                            950: '#082849',
+                        },
+                        accent: '#00f2fe',
+                        dark: '#0f172a',
+                        surface: '#1e293b',
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 6s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 3s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glow-text {
+            text-shadow: 0 0 20px rgba(14, 140, 228, 0.5);
+        }
+        .gradient-border {
+            border-image: linear-gradient(to right, #00f2fe, #4facfe) 1;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        .section-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .section-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.3);
+            border-color: rgba(14, 140, 228, 0.4);
+        }
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1.5rem;
+        }
+    </style>
+</head>
+<body class="font-body custom-scrollbar">
+
+    <!-- Background Elements -->
+    <div class="fixed inset-0 z-[-1] pointer-events-none overflow-hidden">
+        <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary-900/20 rounded-full blur-[120px] animate-pulse-slow"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/20 rounded-full blur-[120px] animate-pulse-slow" style="animation-delay: 2s;"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 glass border-b border-white/5 h-20 flex items-center px-6 md:px-12">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-primary-400 to-accent rounded-lg flex items-center justify-center animate-float shadow-lg shadow-primary-500/20">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                </div>
+                <h1 class="font-display font-bold text-xl md:text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-primary-200">
+                    ANTIGRAVITY <span class="text-primary-400 font-light">PLAN</span>
+                </h1>
+            </div>
+            <nav class="hidden lg:flex items-center gap-8 text-sm font-medium text-slate-400">
+                <a href="#vision" class="hover:text-primary-400 transition-colors uppercase tracking-widest">Vision</a>
+                <a href="#stack" class="hover:text-primary-400 transition-colors uppercase tracking-widest">Stack</a>
+                <a href="#architecture" class="hover:text-primary-400 transition-colors uppercase tracking-widest">Architecture</a>
+                <a href="#milestones" class="hover:text-primary-400 transition-colors uppercase tracking-widest">Milestones</a>
+                <a href="#ops" class="hover:text-primary-400 transition-colors uppercase tracking-widest">Operations</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="pt-32 pb-20 container mx-auto px-6 md:px-12">
+        
+        <!-- Hero Section -->
+        <section id="vision" class="mb-24 lg:mb-32">
+            <div class="max-w-4xl">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-400 text-xs font-bold tracking-widest uppercase mb-6">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-primary-500"></span>
+                    </span>
+                    Project Vision
+                </div>
+                <h2 class="font-display text-4xl md:text-6xl font-extrabold mb-8 glow-text leading-tight">
+                    Redefining <span class="text-primary-400 italic">Scale</span> and <span class="text-accent">Precision</span> in Distributed Systems.
+                </h2>
+                <p class="text-lg md:text-xl text-slate-400 leading-relaxed mb-10 max-w-3xl">
+                    Antigravity is an innovative, high-performance software platform designed for large-scale data processing and real-time simulations. We are building a robust, scalable architecture prepared for the next era of computing.
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="glass p-6 rounded-2xl border-l-4 border-l-primary-500">
+                        <div class="text-primary-400 font-display font-bold text-lg mb-2">High Performance</div>
+                        <p class="text-sm text-slate-400">Optimized for low-latency data processing and complex simulations.</p>
+                    </div>
+                    <div class="glass p-6 rounded-2xl border-l-4 border-l-accent">
+                        <div class="text-accent font-display font-bold text-lg mb-2">Scalable Future</div>
+                        <p class="text-sm text-slate-400">Engineered to grow seamlessly with emerging cloud technologies.</p>
+                    </div>
+                    <div class="glass p-6 rounded-2xl border-l-4 border-l-purple-500">
+                        <div class="text-purple-400 font-display font-bold text-lg mb-2">Robust Security</div>
+                        <p class="text-sm text-slate-400">Shift-left security integration for mission-critical operations.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Technology Stack - Bento Grid -->
+        <section id="stack" class="mb-24 lg:mb-32">
+            <div class="flex items-end justify-between mb-12">
+                <div>
+                    <h2 class="font-display text-3xl font-bold mb-4">The Tech Ecosystem</h2>
+                    <p class="text-slate-400">A hand-picked stack for high availability and performance.</p>
+                </div>
+            </div>
+
+            <div class="bento-grid">
+                <!-- Backend Languages -->
+                <div class="col-span-12 lg:col-span-4 glass p-8 rounded-3xl section-card">
+                    <h3 class="font-display font-bold text-xl mb-6 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                        Backend & Logic
+                    </h3>
+                    <ul class="space-y-4">
+                        <li class="flex items-center justify-between">
+                            <span class="text-slate-300">Go (Golang)</span>
+                            <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded border border-slate-700 text-slate-400 font-mono">CONCURRENCY</span>
+                        </li>
+                        <li class="flex items-center justify-between">
+                            <span class="text-slate-300">Rust</span>
+                            <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded border border-slate-700 text-slate-400 font-mono">PERFORMANCE</span>
+                        </li>
+                        <li class="flex items-center justify-between">
+                            <span class="text-slate-300">Python</span>
+                            <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded border border-slate-700 text-slate-400 font-mono">ML / SCRIPTS</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Database Stack -->
+                <div class="col-span-12 lg:col-span-8 glass p-8 rounded-3xl section-card bg-gradient-to-br from-surface to-primary-950/30">
+                    <h3 class="font-display font-bold text-xl mb-6 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1.5 3 3.5 3s3.5-1 3.5-3V7c0-2-1.5-3-3.5-3S4 5 4 7zm10 0v10c0 2 1.5 3 3.5 3s3.5-1 3.5-3V7c0-2-1.5-3-3.5-3S14 5 14 7z"></path></svg>
+                        Data Persistence
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="p-4 bg-white/5 rounded-xl border border-white/5">
+                            <div class="font-bold text-primary-300 mb-1">PostgreSQL</div>
+                            <div class="text-xs text-slate-500 italic">Relational Robustness</div>
+                        </div>
+                        <div class="p-4 bg-white/5 rounded-xl border border-white/5">
+                            <div class="font-bold text-accent mb-1">Cassandra / Mongo</div>
+                            <div class="text-xs text-slate-500 italic">Horizonal Scaling</div>
+                        </div>
+                        <div class="p-4 bg-white/5 rounded-xl border border-white/5">
+                            <div class="font-bold text-orange-400 mb-1">Redis</div>
+                            <div class="text-xs text-slate-500 italic">Ultra-fast Caching</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Infrastructure -->
+                <div class="col-span-12 lg:col-span-7 glass p-8 rounded-3xl section-card">
+                    <h3 class="font-display font-bold text-xl mb-6 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        Infrastructure & Orchestration
+                    </h3>
+                    <div class="flex flex-wrap gap-3">
+                        <span class="px-4 py-2 bg-slate-800 rounded-full text-xs font-mono border border-slate-700">Docker</span>
+                        <span class="px-4 py-2 bg-slate-800 rounded-full text-xs font-mono border border-slate-700">Kubernetes (K8s)</span>
+                        <span class="px-4 py-2 bg-slate-800 rounded-full text-xs font-mono border border-slate-700">GCP / AWS / Azure</span>
+                        <span class="px-4 py-2 bg-slate-800 rounded-full text-xs font-mono border border-slate-700">Terraform (IaC)</span>
+                    </div>
+                </div>
+
+                <!-- Frontend & Observability -->
+                <div class="col-span-12 lg:col-span-5 glass p-8 rounded-3xl section-card flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-display font-bold text-xl mb-4">Frontend & UI</h3>
+                        <div class="text-slate-400 mb-4 text-sm">React / Vue.js with TypeScript for high-fidelity interactive dashboards.</div>
+                    </div>
+                    <div class="pt-6 border-t border-white/5">
+                        <h3 class="font-display font-bold text-lg mb-4">Observability</h3>
+                        <div class="grid grid-cols-2 gap-2 text-[10px] font-mono">
+                            <div class="flex items-center gap-2 text-slate-300"><div class="w-1.5 h-1.5 rounded-full bg-green-500"></div> PROMETHEUS</div>
+                            <div class="flex items-center gap-2 text-slate-300"><div class="w-1.5 h-1.5 rounded-full bg-orange-500"></div> GRAFANA</div>
+                            <div class="flex items-center gap-2 text-slate-300"><div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div> ELK STACK</div>
+                            <div class="flex items-center gap-2 text-slate-300"><div class="w-1.5 h-1.5 rounded-full bg-accent"></div> OPENTELEMETRY</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Architecture Design -->
+        <section id="architecture" class="mb-24 lg:mb-32">
+            <div class="max-w-4xl mx-auto text-center mb-16">
+                <h2 class="font-display text-4xl font-bold mb-6">Core Architecture</h2>
+                <p class="text-slate-400 text-lg">A Hybrid Microservices & Event-Driven approach designed for resilience.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <!-- Principle 1 -->
+                <div class="flex flex-col items-center text-center group">
+                    <div class="w-16 h-16 bg-primary-900/30 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-primary-500 transition-colors">
+                        <svg class="w-8 h-8 text-primary-400 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"></path></svg>
+                    </div>
+                    <h4 class="font-display font-bold text-lg mb-2">Decoupling</h4>
+                    <p class="text-sm text-slate-500 leading-relaxed">Independent microservices communicating via secure APIs or async messages.</p>
+                </div>
+                <!-- Principle 2 -->
+                <div class="flex flex-col items-center text-center group">
+                    <div class="w-16 h-16 bg-primary-900/30 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-accent transition-colors">
+                        <svg class="w-8 h-8 text-accent group-hover:text-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <h4 class="font-display font-bold text-lg mb-2">Autonomy</h4>
+                    <p class="text-sm text-slate-500 leading-relaxed">Service teams can develop, deploy, and scale modules without dependencies.</p>
+                </div>
+                <!-- Principle 3 -->
+                <div class="flex flex-col items-center text-center group">
+                    <div class="w-16 h-16 bg-primary-900/30 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-primary-500 transition-colors">
+                        <svg class="w-8 h-8 text-primary-400 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04 inter-group-hover:text-white7A10.001 10.001 0 003 12c0 5.523 4.477 10 10 10s10-4.477 10-10c0-2.11-.653-4.087-1.77-5.716L17.618 7.984z"></path></svg>
+                    </div>
+                    <h4 class="font-display font-bold text-lg mb-2">Resilience</h4>
+                    <p class="text-sm text-slate-500 leading-relaxed">Single service failure does not impact the entire cluster stability.</p>
+                </div>
+                <!-- Principle 4 -->
+                <div class="flex flex-col items-center text-center group">
+                    <div class="w-16 h-16 bg-primary-900/30 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-accent transition-colors">
+                        <svg class="w-8 h-8 text-accent group-hover:text-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    </div>
+                    <h4 class="font-display font-bold text-lg mb-2">Observability</h4>
+                    <p class="text-sm text-slate-500 leading-relaxed">E2E tracing and logging across all system nodes and operations.</p>
+                </div>
+            </div>
+
+            <!-- Tech Details -->
+            <div class="mt-20 glass p-8 md:p-12 rounded-[40px] border border-primary-500/10">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                    <div>
+                        <h4 class="text-primary-400 font-mono text-sm tracking-widest mb-4 uppercase">System Components</h4>
+                        <ul class="space-y-6">
+                            <li class="flex gap-4">
+                                <span class="flex-shrink-0 w-8 h-8 rounded bg-primary-500/20 text-primary-400 flex items-center justify-center font-bold">01</span>
+                                <div>
+                                    <span class="block font-bold mb-1">API Gateway</span>
+                                    <p class="text-sm text-slate-400">Single entry point for external requests with Auth and routing logic.</p>
+                                </div>
+                            </li>
+                            <li class="flex gap-4">
+                                <span class="flex-shrink-0 w-8 h-8 rounded bg-primary-500/20 text-primary-400 flex items-center justify-center font-bold">02</span>
+                                <div>
+                                    <span class="block font-bold mb-1">Message Broker (EDA)</span>
+                                    <p class="text-sm text-slate-400">Kafka/PubSub layer for asynchronous, high-volume event data flows.</p>
+                                </div>
+                            </li>
+                            <li class="flex gap-4">
+                                <span class="flex-shrink-0 w-8 h-8 rounded bg-primary-500/20 text-primary-400 flex items-center justify-center font-bold">03</span>
+                                <div>
+                                    <span class="block font-bold mb-1">Distributed Cache</span>
+                                    <p class="text-sm text-slate-400">Redis cluster to minimize DB latency for frequent read operations.</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="space-y-6 p-8 bg-dark/50 rounded-3xl border border-white/5">
+                        <h4 class="text-accent font-mono text-sm tracking-widest uppercase mb-2">Applied Patterns</h4>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-3 py-1 bg-white/5 text-[10px] rounded uppercase font-bold text-slate-400">CQRS</span>
+                            <span class="px-3 py-1 bg-white/5 text-[10px] rounded uppercase font-bold text-slate-400">Sharding</span>
+                            <span class="px-3 py-1 bg-white/5 text-[10px] rounded uppercase font-bold text-slate-400">Load Leveling</span>
+                            <span class="px-3 py-1 bg-white/5 text-[10px] rounded uppercase font-bold text-slate-400">Circuit Breaker</span>
+                            <span class="px-3 py-1 bg-white/5 text-[10px] rounded uppercase font-bold text-slate-400">Sidecar</span>
+                        </div>
+                        <div class="pt-6">
+                            <h4 class="text-primary-400 font-mono text-sm tracking-widest uppercase mb-4">Security Strategy</h4>
+                            <p class="text-sm text-slate-400 mb-4 italic">"Shift-Left Security: Centralized IAM via Keycloak/OIDC, mTLS between services, and automated vulnerability scanning."</p>
+                            <div class="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+                                <div class="w-full h-full bg-gradient-to-r from-primary-500 to-accent"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Phased Implementation -->
+        <section id="milestones" class="mb-24 lg:mb-32 relative">
+            <div class="mb-12">
+                <h2 class="font-display text-3xl font-bold mb-2">Implementation Roadmap</h2>
+                <p class="text-slate-400">Incremental phases using Scrum methodology.</p>
+            </div>
+
+            <div class="space-y-8">
+                <!-- Phase 1 -->
+                <div class="relative pl-10 md:pl-16 group">
+                    <div class="absolute left-0 top-0 h-full w-px bg-slate-800 group-last:h-12"></div>
+                    <div class="absolute left-[-8px] top-0 w-4 h-4 rounded-full border-4 border-dark bg-primary-500 group-hover:scale-125 transition-transform shadow-[0_0_10px_#0e8ce4]"></div>
+                    <div class="glass p-8 rounded-3xl group-hover:border-primary-500/30 transition-all">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                            <div>
+                                <h3 class="font-display text-xl font-bold text-white">Phase 1: Planning and MVP</h3>
+                                <p class="text-primary-400 text-sm font-mono">Duration: 2-3 Months</p>
+                            </div>
+                            <span class="px-3 py-1 bg-primary-500/10 text-primary-400 text-[10px] font-bold uppercase rounded-full border border-primary-500/20">Infrastructure Base</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <h4 class="text-xs font-bold uppercase text-slate-500 mb-3 tracking-wider">Objectives</h4>
+                                <ul class="text-sm text-slate-400 space-y-2 list-disc pl-4">
+                                    <li>Establish basic development infrastructure (Git, CI/CD)</li>
+                                    <li>Detailed microservices architecture design</li>
+                                    <li>Develop core Auth/Auth service and main microservice</li>
+                                    <li>Basic UI demonstrating core functional flows</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold uppercase text-slate-500 mb-3 tracking-wider">Deliverables</h4>
+                                <div class="flex gap-2 flex-wrap">
+                                    <span class="bg-dark px-3 py-1 rounded-md text-[11px] border border-white/5">Arch-Design.pdf</span>
+                                    <span class="bg-dark px-3 py-1 rounded-md text-[11px] border border-white/5">Staging-Cluster</span>
+                                    <span class="bg-dark px-3 py-1 rounded-md text-[11px] border border-white/5">Functional-MVP</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phase 2 -->
+                <div class="relative pl-10 md:pl-16 group">
+                    <div class="absolute left-0 top-0 h-full w-px bg-slate-800 group-last:h-12"></div>
+                    <div class="absolute left-[-8px] top-0 w-4 h-4 rounded-full border-4 border-dark bg-accent group-hover:scale-125 transition-transform shadow-[0_0_10px_#00f2fe]"></div>
+                    <div class="glass p-8 rounded-3xl group-hover:border-accent/30 transition-all">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                            <div>
+                                <h3 class="font-display text-xl font-bold text-white">Phase 2: Feature Expansion</h3>
+                                <p class="text-accent text-sm font-mono">Duration: 4-6 Months</p>
+                            </div>
+                            <span class="px-3 py-1 bg-accent/10 text-accent text-[10px] font-bold uppercase rounded-full border border-accent/20">Scaling Features</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <h4 class="text-xs font-bold uppercase text-slate-500 mb-3 tracking-wider">Objectives</h4>
+                                <ul class="text-sm text-slate-400 space-y-2 list-disc pl-4">
+                                    <li>Deploy Simulation Logic and Data Ingestion microservices</li>
+                                    <li>Integrate Message Broker (Kafka) for EDA flows</li>
+                                    <li>Advanced UI Dashboards & Reporting features</li>
+                                    <li>Stress testing and security hardening</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold uppercase text-slate-500 mb-3 tracking-wider">Deliverables</h4>
+                                <div class="flex gap-2 flex-wrap">
+                                    <span class="bg-dark px-3 py-1 rounded-md text-[11px] border border-white/5">Full-Dashboard-v1</span>
+                                    <span class="bg-dark px-3 py-1 rounded-md text-[11px] border border-white/5">Event-Pipeline</span>
+                                    <span class="bg-dark px-3 py-1 rounded-md text-[11px] border border-white/5">Internal-Release</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phase 3 -->
+                <div class="relative pl-10 md:pl-16 group">
+                    <div class="absolute left-0 top-0 h-full w-px bg-slate-800 group-last:h-12"></div>
+                    <div class="absolute left-[-8px] top-0 w-4 h-4 rounded-full border-4 border-dark bg-primary-400 group-hover:scale-125 transition-transform shadow-[0_0_10px_#38a9f8]"></div>
+                    <div class="glass p-8 rounded-3xl group-hover:border-primary-400/30 transition-all">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                            <div>
+                                <h3 class="font-display text-xl font-bold text-white">Phase 3: Production Release</h3>
+                                <p class="text-primary-400 text-sm font-mono">Duration: 2-3 Months</p>
+                            </div>
+                            <span class="px-3 py-1 bg-primary-400/10 text-primary-400 text-[10px] font-bold uppercase rounded-full border border-primary-400/20">Go-Live</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <h4 class="text-xs font-bold uppercase text-slate-500 mb-3 tracking-wider">Objectives</h4>
+                                <ul class="text-sm text-slate-400 space-y-2 list-disc pl-4">
+                                    <li>Production cluster hardening (EKS/GKE)</li>
+                                    <li>Penetration testing and security audits</li>
+                                    <li>Implement Canary release and Blue/Green strategies</li>
+                                    <li>Finalize ops runbooks and support workflows</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold uppercase text-slate-500 mb-3 tracking-wider">Deliverables</h4>
+                                <div class="flex gap-2 flex-wrap">
+                                    <span class="bg-dark px-3 py-1 rounded-md text-[11px] border border-white/5">Prod-Cluster-Final</span>
+                                    <span class="bg-dark px-3 py-1 rounded-md text-[11px] border border-white/5">Security-Audit-Pass</span>
+                                    <span class="bg-dark px-3 py-1 rounded-md text-[11px] border border-white/5">Operational-Antigravity</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Deployment & Ops Strategy -->
+        <section id="ops" class="mb-24 lg:mb-32">
+            <h2 class="font-display text-3xl font-bold mb-12 flex items-center gap-4">
+                <svg class="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+                Operations & DevOps Strategy
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- CI/CD -->
+                <div class="glass p-8 rounded-3xl border border-white/5 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-primary-500/10 rounded-bl-[100px] -z-10 group-hover:bg-primary-500/20 transition-all"></div>
+                    <div class="font-mono text-xs text-primary-400 mb-4 tracking-widest">CONTINUOUS DELIVERY</div>
+                    <h3 class="font-display font-bold text-xl mb-4">CI/CD Pipeline</h3>
+                    <p class="text-sm text-slate-400 leading-relaxed">
+                        Automated testing and deployment via GitLab CI or GitHub Actions. 
+                        Multi-stage validation from Staging to Canary production releases.
+                    </p>
+                </div>
+                <!-- Infrastructure -->
+                <div class="glass p-8 rounded-3xl border border-white/5 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-accent/10 rounded-bl-[100px] -z-10 group-hover:bg-accent/20 transition-all"></div>
+                    <div class="font-mono text-xs text-accent mb-4 tracking-widest">RELIABILITY</div>
+                    <h3 class="font-display font-bold text-xl mb-4">Infrastructure as Code</h3>
+                    <p class="text-sm text-slate-400 leading-relaxed">
+                        Full Terraform orchestration ensures consistency. Managed Kubernetes (GKE/EKS) 
+                        provides self-healing and auto-scaling capabilities.
+                    </p>
+                </div>
+                <!-- Scaling -->
+                <div class="glass p-8 rounded-3xl border border-white/5 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-bl-[100px] -z-10 group-hover:bg-purple-500/20 transition-all"></div>
+                    <div class="font-mono text-xs text-purple-400 mb-4 tracking-widest">SCALABILITY</div>
+                    <h3 class="font-display font-bold text-xl mb-4">Elastic Scaling</h3>
+                    <p class="text-sm text-slate-400 leading-relaxed">
+                        Horizontal Pod Autoscaling (HPA) for compute. Database scaling via read-replicas 
+                        and automated sharding for high-volume data storage.
+                    </p>
+                </div>
+            </div>
+
+            <div class="mt-12 p-8 glass rounded-3xl flex flex-col md:flex-row items-center gap-10">
+                <div class="flex-1">
+                    <h3 class="font-display font-bold text-xl mb-4">Monitoring & Response</h3>
+                    <p class="text-sm text-slate-400 leading-relaxed mb-6">
+                        We maintain 24/7 reliability through comprehensive alerting runbooks, 
+                        automated logging, and a dedicated on-call rotation for incident management.
+                    </p>
+                    <div class="flex items-center gap-6">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-white">99.9%</div>
+                            <div class="text-[10px] text-slate-500 uppercase tracking-widest">Target Uptime</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-white">&lt;50ms</div>
+                            <div class="text-[10px] text-slate-500 uppercase tracking-widest">Core Latency</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="w-full md:w-64 h-40 bg-dark/50 border border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden p-6">
+                    <div class="absolute inset-0 opacity-20 pointer-events-none">
+                        <svg class="w-full h-full" viewBox="0 0 100 100">
+                            <polyline points="0,50 10,40 20,60 30,30 40,70 50,20 60,80 70,10 80,90 90,40 100,50" fill="none" stroke="#00f2fe" stroke-width="2" />
+                        </svg>
+                    </div>
+                    <div class="z-10 flex flex-col items-center">
+                        <div class="text-xs text-slate-500 mb-2 uppercase tracking-tighter">Real-time Traffic</div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                            <span class="text-sm font-mono text-slate-300">SYSTEM OPTIMAL</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Ongoing Phase -->
+        <section class="mb-12">
+            <div class="bg-gradient-to-r from-primary-600/20 to-accent/20 border border-white/10 rounded-[3rem] p-12 text-center">
+                <h2 class="font-display text-2xl font-bold mb-4">Phase 4: Continuous Innovation</h2>
+                <p class="text-slate-400 max-w-2xl mx-auto mb-8">
+                    Post-launch, the focus shifts to AI/ML integration, Edge Computing exploration, and constant performance refactoring based on real-world user feedback.
+                </p>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <span class="px-6 py-2 bg-white/5 rounded-full border border-white/10 text-xs text-white">Advanced AI/ML</span>
+                    <span class="px-6 py-2 bg-white/5 rounded-full border border-white/10 text-xs text-white">Edge Node Support</span>
+                    <span class="px-6 py-2 bg-white/5 rounded-full border border-white/10 text-xs text-white">Iterative Refactoring</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Smooth scrolling for navigation
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Intersection Observer for scroll animations
+        const observerOptions = {
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('opacity-100', 'translate-y-0');
+                    entry.target.classList.remove('opacity-0', 'translate-y-10');
+                }
+            });
+        }, observerOptions);
+
+        // Apply classes for observing sections
+        document.querySelectorAll('section').forEach(section => {
+            section.classList.add('transition-all', 'duration-1000', 'opacity-0', 'translate-y-10');
+            observer.observe(section);
+        });
+    </script>
+</body>
+</html>
+

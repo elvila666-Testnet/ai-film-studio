@@ -18,7 +18,7 @@ import { eq } from "drizzle-orm";
  * Create a new moodboard for a brand
  */
 export async function createMoodboard(
-  brandId: number,
+  brandId: string,
   data: Omit<InsertMoodboard, "brandId" | "createdAt" | "updatedAt">
 ): Promise<number> {
   const db = await getDb();
@@ -35,7 +35,7 @@ export async function createMoodboard(
 /**
  * Get all moodboards for a brand
  */
-export async function getBrandMoodboards(brandId: number): Promise<Moodboard[]> {
+export async function getBrandMoodboards(brandId: string): Promise<Moodboard[]> {
   const db = await getDb();
   if (!db) return [];
 

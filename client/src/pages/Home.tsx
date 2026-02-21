@@ -1,38 +1,60 @@
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Plus, Trash2, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import {
+  Loader2, Film, User, LogOut,
+  Settings, ChevronDown, ChevronUp, Info
+} from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import BriefTab from "./tabs/BriefTab";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { LandingPage } from "./LandingPage";
 import ScriptTab from "./tabs/ScriptTab";
-import VisualStyleTab from "./tabs/VisualStyleTab";
-import TechnicalShotsTab from "./tabs/TechnicalShotsTab";
-import StoryboardTab from "./tabs/StoryboardTab";
-import EditorTab from "./tabs/EditorTab";
-import BrandIntelligenceTab from "./tabs/BrandIntelligenceTab";
 import CharacterCastingTab from "./tabs/CharacterCastingTab";
+import BrandIntelligenceTab from "./tabs/BrandIntelligenceTab";
+import CinematographyTab from "@/features/Project/CinematographyTab";
+import ProductionDesignTab from "@/features/Project/ProductionDesignTab";
+import StoryboardTab from "./tabs/StoryboardTab";
+import VideoTab from "./tabs/VideoTab";
+import EditorTab from "./tabs/EditorTab";
 import ExportTab from "./tabs/ExportTab";
+import { AdminPanel } from "./AdminPanel";
+import { PipelineSidebar } from "@/features/Project/PipelineSidebar";
+import { ProjectVault } from "@/features/Project/ProjectVault";
+import { NewProjectPanel } from "@/features/Project/NewProjectPanel";
+import { PipelineStage, Project } from "@/features/Project/types";
+import { DirectorView } from "@/components/Director/DirectorView";
+import { DirectorConsole } from "@/components/DirectorConsole";
+import { CostTicker } from "@/components/FinOps/CostTicker";
 
-
-export default function Home() {
-  const { user, loading, isAuthenticated } = useAuth();
-  const [newProjectName, setNewProjectName] = useState("");
+export function Home() {
+  const { user, loading, isAuthenticated, logout, refresh } = useAuth();
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [currentStage, setCurrentStage] = useState<PipelineStage>("bible");
+  const [isBriefExpanded, setIsBriefExpanded] = useState(false);
 
-  const projectsQuery = trpc.projects.list.useQuery();
+  const projectsQuery = trpc.projects.list.useQuery(undefined, {
+    enabled: isAuthenticated && !loading,
+  });
+  const brandsQuery = trpc.brand.list.useQuery(undefined, {
+    enabled: isAuthenticated && !loading
+  });
+
   const createProjectMutation = trpc.projects.create.useMutation();
   const deleteProjectMutation = trpc.projects.delete.useMutation();
+  const createBrandMutation = trpc.brand.create.useMutation();
 
-  const handleCreateProject = async () => {
-    if (!newProjectName.trim()) return;
-    
+  const handleCreateProject = async (name: string, brandId: string | null) => {
     try {
-      await createProjectMutation.mutateAsync({ name: newProjectName });
-      setNewProjectName("");
+      const result = await createProjectMutation.mutateAsync({
+        name,
+        brandId: brandId || undefined
+      });
       projectsQuery.refetch();
+      if (result?.id) {
+        setSelectedProjectId(result.id);
+        setCurrentStage("bible");
+      }
     } catch (error) {
       console.error("Failed to create project:", error);
     }
@@ -40,7 +62,6 @@ export default function Home() {
 
   const handleDeleteProject = async (projectId: number) => {
     if (!confirm("Delete this project?")) return;
-    
     try {
       await deleteProjectMutation.mutateAsync({ id: projectId });
       if (selectedProjectId === projectId) {
@@ -54,179 +75,95 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <Loader2 className="animate-spin w-8 h-8 text-accent" />
+      <div className="flex items-center justify-center min-h-screen bg-[#020205]">
+        <Loader2 className="animate-spin w-12 h-12 text-primary" />
       </div>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <Card className="w-full max-w-md bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-accent">AI Film Studio</CardTitle>
-            <CardDescription>Professional Production Tracking</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">Authentication required</p>
-          </CardContent>
-        </Card>
-      </div>
+      <LandingPage
+        onLoginSuccess={() => { refresh(); }}
+        isAuthenticated={false}
+        user={null}
+      />
     );
   }
 
-  const selectedProject = projectsQuery.data?.find(p => p.id === selectedProjectId);
+  const projects = (projectsQuery.data || []) as any as Project[];
+  const selectedProject = projects.find((p) => p.id === selectedProjectId);
+  const briefContent = selectedProject?.content?.brief;
 
   if (!selectedProjectId) {
     return (
-      <div className="min-h-screen bg-background">
-        {/* Header */}
-        <div className="bg-card border-b border-border">
-          <div className="max-w-7xl mx-auto px-6 py-8">
-            <h1 className="text-4xl font-bold text-accent tracking-tight">AI FILM STUDIO</h1>
-            <p className="text-muted-foreground mt-2 text-sm uppercase tracking-widest">Professional Production Tracking System</p>
+      <div className="pipeline-container">
+        <div className="grain-overlay" />
+        <div className="absolute top-1/4 right-0 w-[600px] h-[600px] bg-glow-indigo rounded-full blur-[120px] animate-glow" />
+
+        <header className="pipeline-header">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center shadow-lg shadow-primary/20">
+              <Film className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-black tracking-tight text-white uppercase italic">
+                AI FILM <span className="text-primary">STUDIO</span>
+              </h1>
+              <p className="production-label">Control Room</p>
+            </div>
           </div>
-        </div>
+          <div className="flex items-center gap-6">
+            <div className="flex flex-col items-end">
+              <span className="text-xs font-bold text-white">{user?.email}</span>
+              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">{user?.role} ACCESS</span>
+            </div>
+            <Button
+              onClick={async () => {
+                await logout();
+                window.location.reload();
+              }}
+              variant="ghost"
+              size="sm"
+              className="text-slate-400 hover:text-white"
+            >
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
+        </header>
 
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            {/* Sidebar - Project Management */}
-            <div className="lg:col-span-2">
-              <div className="production-node">
-                <div className="production-node-header">
-                  <div className="production-node-title">Projects</div>
-                </div>
-                <div className="p-4 space-y-4">
-                  {/* Create New Project */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">New Project</label>
-                    <Input
-                      placeholder="Project name"
-                      value={newProjectName}
-                      onChange={(e) => setNewProjectName(e.target.value)}
-                      onKeyPress={(e) => e.key === "Enter" && handleCreateProject()}
-                      className="bg-input border-border text-foreground placeholder-muted-foreground"
-                    />
-                    <Button
-                      onClick={handleCreateProject}
-                      disabled={!newProjectName.trim() || createProjectMutation.isPending}
-                      className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
-                      size="sm"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create
-                    </Button>
-                  </div>
-
-                  {/* Project List */}
-                  <div className="space-y-2 max-h-96 overflow-y-auto">
-                    {projectsQuery.isLoading ? (
-                      <div className="flex justify-center py-4">
-                        <Loader2 className="animate-spin w-4 h-4 text-accent" />
-                      </div>
-                    ) : projectsQuery.data?.length === 0 ? (
-                      <p className="text-xs text-muted-foreground py-4">No projects</p>
-                    ) : (
-                      projectsQuery.data?.map((project) => (
-                        <div
-                          key={project.id}
-                          className={`p-3 rounded-sm border transition-all cursor-pointer ${
-                            selectedProjectId === project.id
-                              ? "bg-muted border-accent shadow-lg"
-                              : "bg-card border-border hover:border-accent/50"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div
-                              className="flex-1 min-w-0"
-                              onClick={() => setSelectedProjectId(project.id)}
-                            >
-                              <p className="font-semibold text-sm text-foreground truncate">{project.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(project.createdAt).toLocaleDateString()}
-                              </p>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteProject(project.id)}
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
+        <div className="max-w-6xl mx-auto px-6 py-16 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            <div className="lg:col-span-1">
+              <NewProjectPanel
+                brands={brandsQuery.data || []}
+                onCreateProject={handleCreateProject}
+                onCreateBrand={async (name: string) => {
+                  try {
+                    const result = await createBrandMutation.mutateAsync({ name });
+                    toast.success("Brand DNA registered.");
+                    brandsQuery.refetch();
+                    return result as { id: string };
+                  } catch (e) {
+                    toast.error("Handshake failed.");
+                    return undefined;
+                  }
+                }}
+                createProjectPending={createProjectMutation.isPending}
+                createBrandPending={createBrandMutation.isPending}
+              />
             </div>
 
-            {/* Main Content - Welcome */}
-            <div className="lg:col-span-3">
-              <div className="production-node">
-                <div className="production-node-header">
-                  <div className="production-node-title">Getting Started</div>
-                </div>
-                <div className="p-6 space-y-6">
-                  <div>
-                    <h2 className="text-lg font-semibold text-foreground mb-3">Production Workflow</h2>
-                    <div className="space-y-3">
-                      <div className="flex gap-3 items-start">
-                        <div className="w-8 h-8 rounded-sm bg-accent/20 flex items-center justify-center flex-shrink-0 mt-1">
-                          <span className="text-xs font-bold text-accent">1</span>
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm text-foreground">Brief</p>
-                          <p className="text-xs text-muted-foreground">Define your project concept</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-3 items-start">
-                        <div className="w-8 h-8 rounded-sm bg-accent/20 flex items-center justify-center flex-shrink-0 mt-1">
-                          <span className="text-xs font-bold text-accent">2</span>
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm text-foreground">Script</p>
-                          <p className="text-xs text-muted-foreground">Generate and refine screenplay</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-3 items-start">
-                        <div className="w-8 h-8 rounded-sm bg-accent/20 flex items-center justify-center flex-shrink-0 mt-1">
-                          <span className="text-xs font-bold text-accent">3</span>
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm text-foreground">Visual Style</p>
-                          <p className="text-xs text-muted-foreground">Establish cinematography palette</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-3 items-start">
-                        <div className="w-8 h-8 rounded-sm bg-accent/20 flex items-center justify-center flex-shrink-0 mt-1">
-                          <span className="text-xs font-bold text-accent">4</span>
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm text-foreground">Technical Shots</p>
-                          <p className="text-xs text-muted-foreground">Break down into individual shots</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-3 items-start">
-                        <div className="w-8 h-8 rounded-sm bg-accent/20 flex items-center justify-center flex-shrink-0 mt-1">
-                          <span className="text-xs font-bold text-accent">5</span>
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm text-foreground">Storyboard</p>
-                          <p className="text-xs text-muted-foreground">Generate visual storyboard</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-border">
-                    <p className="text-xs text-muted-foreground">Create or select a project to begin</p>
-                  </div>
-                </div>
-              </div>
+            <div className="lg:col-span-2">
+              <ProjectVault
+                isLoading={projectsQuery.isLoading}
+                projects={projects}
+                onSelectProject={(id: number) => {
+                  setSelectedProjectId(id);
+                  setCurrentStage("bible");
+                }}
+                onDeleteProject={handleDeleteProject}
+              />
             </div>
           </div>
         </div>
@@ -235,93 +172,139 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="bg-card border-b border-border">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-accent tracking-tight">AI FILM STUDIO</h1>
-              <p className="text-muted-foreground text-sm mt-1">{selectedProject?.name}</p>
+    <div className="pipeline-container flex flex-col">
+      <div className="grain-overlay" />
+
+      <header className="pipeline-header px-8">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSelectedProjectId(null)}
+            className="text-slate-400 hover:text-white"
+          >
+            ← Workspace
+          </Button>
+          <div className="h-6 w-px bg-white/10" />
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-primary/20 rounded flex items-center justify-center border border-primary/30">
+              <Film className="w-4 h-4 text-primary" />
             </div>
-            <Button
-              onClick={() => setSelectedProjectId(null)}
-              variant="outline"
-              size="sm"
-              className="border-border text-muted-foreground hover:text-foreground"
-            >
-              Back to Projects
-            </Button>
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-sm font-black text-white uppercase tracking-tight italic">
+                  {selectedProjectId === -1 ? "SYSTEM" : selectedProject?.name}
+                </h1>
+                {selectedProjectId !== -1 && selectedProject && (
+                  <div className="flex gap-2">
+                    {selectedProject.scriptComplianceScore != null && (
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white/5 rounded border border-white/10">
+                        <span className="text-[7px] text-slate-500 font-bold uppercase tracking-tighter">Script</span>
+                        <span className={cn(
+                          "text-[9px] font-black font-mono",
+                          selectedProject.scriptComplianceScore >= 80 ? "text-green-400" :
+                            selectedProject.scriptComplianceScore >= 60 ? "text-yellow-400" : "text-red-400"
+                        )}>
+                          {selectedProject.scriptComplianceScore}%
+                        </span>
+                      </div>
+                    )}
+                    {selectedProject.visualComplianceScore != null && (
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white/5 rounded border border-white/10">
+                        <span className="text-[7px] text-slate-500 font-bold uppercase tracking-tighter">Visual</span>
+                        <span className={cn(
+                          "text-[9px] font-black font-mono",
+                          selectedProject.visualComplianceScore >= 80 ? "text-green-400" :
+                            selectedProject.visualComplianceScore >= 60 ? "text-yellow-400" : "text-red-400"
+                        )}>
+                          {selectedProject.visualComplianceScore}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              <p className="production-label !text-[8px]">
+                {currentStage.replace("-", " ")} PHASE
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <Tabs defaultValue="brand" className="w-full">
-          <TabsList className="grid w-full grid-cols-9 bg-card border border-border p-1 rounded-sm">
-            <TabsTrigger value="brand" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm text-xs">
-              Brand
-            </TabsTrigger>
-            <TabsTrigger value="brief" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm text-xs">
-              Brief
-            </TabsTrigger>
-            <TabsTrigger value="script" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm text-xs">
-              Script
-            </TabsTrigger>
-            <TabsTrigger value="casting" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm text-xs">
-              Casting
-            </TabsTrigger>
-            <TabsTrigger value="visual" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm text-xs">
-              Visual
-            </TabsTrigger>
-            <TabsTrigger value="technical" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm text-xs">
-              Technical
-            </TabsTrigger>
-            <TabsTrigger value="storyboard" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm text-xs">
-              Storyboard
-            </TabsTrigger>
-            <TabsTrigger value="editor" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm text-xs">
-              Editor
-            </TabsTrigger>
-            <TabsTrigger value="export" className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm text-xs">
-              Export
-            </TabsTrigger>
-          </TabsList>
-
-          <div className="mt-6">
-            <TabsContent value="brand">
-              <BrandIntelligenceTab projectId={selectedProjectId!} />
-            </TabsContent>
-
-            <TabsContent value="brief">
-              <BriefTab projectId={selectedProjectId!} />
-            </TabsContent>
-
-            <TabsContent value="script">
-              <ScriptTab projectId={selectedProjectId!} />
-            </TabsContent>
-
-            <TabsContent value="visual">
-              <VisualStyleTab projectId={selectedProjectId!} />
-            </TabsContent>
-
-            <TabsContent value="technical">
-              <TechnicalShotsTab projectId={selectedProjectId!} />
-            </TabsContent>
-
-            <TabsContent value="storyboard">
-              <StoryboardTab projectId={selectedProjectId!} />
-            </TabsContent>
-
-            <TabsContent value="editor">
-              <EditorTab projectId={selectedProjectId!} />
-            </TabsContent>
-
-            <TabsContent value="export">
-              <ExportTab projectId={selectedProjectId!} />
-            </TabsContent>
+        {selectedProjectId !== -1 && briefContent && (
+          <div className="hidden md:flex flex-1 max-w-xl mx-8">
+            <div
+              className={`w-full glass-panel rounded-xl px-4 py-2 flex items-center justify-between cursor-pointer group hover:bg-white/5 transition-all ${isBriefExpanded ? "h-auto" : "h-10"}`}
+              onClick={() => setIsBriefExpanded(!isBriefExpanded)}
+            >
+              <div className="flex items-center gap-3 overflow-hidden">
+                <Info className="w-3 h-3 text-primary flex-shrink-0" />
+                <span className={`text-[10px] font-medium text-slate-400 uppercase tracking-wider truncate ${isBriefExpanded ? "" : "max-w-[300px]"}`}>
+                  {isBriefExpanded ? "Full Brief" : briefContent}
+                </span>
+              </div>
+              {isBriefExpanded ? <ChevronUp className="w-3 h-3 text-slate-500" /> : <ChevronDown className="w-3 h-3 text-slate-500" />}
+            </div>
           </div>
-        </Tabs>
+        )}
+
+        <div className="flex items-center gap-4">
+          <div className="text-[10px] font-mono text-slate-500 uppercase tracking-[0.2em]">
+            SN: {selectedProjectId}
+          </div>
+          <div className="h-6 w-px bg-white/10" />
+          <div className="w-8 h-8 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center">
+            <User className="w-4 h-4 text-slate-400" />
+          </div>
+        </div>
+      </header>
+
+      {isBriefExpanded && (
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-start justify-center pt-24 px-4" onClick={() => setIsBriefExpanded(false)}>
+          <div className="max-w-3xl w-full glass-panel rounded-3xl p-8 shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="production-node-title">Project Brief Reference</h2>
+              <Button variant="ghost" size="sm" onClick={() => setIsBriefExpanded(false)}>✕</Button>
+            </div>
+            <div className="p-6 bg-white/[0.03] border border-white/5 rounded-2xl text-slate-300 leading-relaxed max-h-[60vh] overflow-y-auto">
+              {briefContent}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-1 h-[calc(100vh-73px)] overflow-hidden">
+        <PipelineSidebar
+          currentStage={currentStage}
+          onStageChange={setCurrentStage}
+          selectedProjectId={selectedProjectId}
+          userRole={user?.role}
+        />
+
+        <main className="flex-1 overflow-y-auto bg-studio-gradient relative">
+          <div className="p-10 max-w-7xl mx-auto">
+            <div className="animate-fade-in">
+              {currentStage === "bible" && <BrandIntelligenceTab projectId={selectedProjectId!} />}
+              {currentStage === "script" && <ScriptTab projectId={selectedProjectId!} />}
+              {currentStage === "breakdown" && <DirectorView projectId={selectedProjectId!} />}
+              {currentStage === "characters" && <CharacterCastingTab projectId={selectedProjectId!} />}
+              {currentStage === "production-design" && <ProductionDesignTab projectId={selectedProjectId!} />}
+              {currentStage === "cinematography" && <CinematographyTab projectId={selectedProjectId!} />}
+              {currentStage === "storyboard" && <StoryboardTab projectId={selectedProjectId!} />}
+              {currentStage === "video" && <VideoTab projectId={selectedProjectId!} />}
+              {currentStage === "editor" && <EditorTab projectId={selectedProjectId!} />}
+              {currentStage === "export" && <ExportTab projectId={selectedProjectId!} />}
+              {currentStage === "admin" && <AdminPanel />}
+            </div>
+          </div>
+        </main>
+
+        {selectedProjectId && selectedProjectId !== -1 && (
+          <>
+            <DirectorConsole projectId={selectedProjectId} />
+            <CostTicker projectId={selectedProjectId} />
+          </>
+        )}
       </div>
     </div>
   );

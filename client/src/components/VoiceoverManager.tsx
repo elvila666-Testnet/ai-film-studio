@@ -180,7 +180,7 @@ export function VoiceoverManager({ brandId, projectId }: VoiceoverManagerProps) 
 
           {voiceProfiles && voiceProfiles.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {voiceProfiles.map((profile: any) => (
+              {voiceProfiles.map((profile: unknown) => (
                 <Card key={profile.id}>
                   <CardHeader>
                     <div className="flex justify-between items-start">
@@ -260,7 +260,7 @@ export function VoiceoverManager({ brandId, projectId }: VoiceoverManagerProps) 
 
             {projectVoiceovers && projectVoiceovers.length > 0 ? (
               <div className="space-y-3">
-                {projectVoiceovers.map((voiceover: any) => (
+                {projectVoiceovers.map((voiceover: unknown) => (
                   <Card key={voiceover.id}>
                     <CardContent className="pt-4">
                       <div className="flex items-center justify-between">
@@ -338,7 +338,7 @@ export function VoiceoverManager({ brandId, projectId }: VoiceoverManagerProps) 
                   <SelectValue placeholder="Select a voice" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableVoices?.map((voice: any) => (
+                  {availableVoices?.map((voice: unknown) => (
                     <SelectItem key={voice.id} value={voice.id}>
                       {voice.name} - {voice.description}
                     </SelectItem>

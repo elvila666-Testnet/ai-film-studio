@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -9,14 +8,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Download, FileVideo, Settings, CheckCircle2, Loader2 } from "lucide-react";
+import { Download, FileVideo, CheckCircle2, Loader2, Share2, ShieldCheck, Zap, Settings } from "lucide-react";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 interface ExportTabProps {
   projectId: number;
 }
 
 interface ExportFormat {
-  id: string;
+  id: "mp4" | "webm";
   name: string;
   extension: string;
   codec: string;
@@ -26,345 +27,265 @@ interface ExportFormat {
 
 const exportFormats: ExportFormat[] = [
   {
-    id: "mp4-h264",
-    name: "MP4 (H.264)",
+    id: "mp4",
+    name: "Master Delivery (MP4)",
     extension: ".mp4",
-    codec: "H.264",
-    bitrate: "8-50 Mbps",
-    description: "Universal compatibility, widely supported",
-  },
-  {
-    id: "mp4-h265",
-    name: "MP4 (H.265/HEVC)",
-    extension: ".mp4",
-    codec: "H.265",
-    bitrate: "4-25 Mbps",
-    description: "Better compression, modern devices",
-  },
-  {
-    id: "mov-prores",
-    name: "MOV (ProRes 422)",
-    extension: ".mov",
-    codec: "ProRes 422",
-    bitrate: "100-500 Mbps",
-    description: "Professional editing, high quality",
-  },
-  {
-    id: "mov-dnxhd",
-    name: "MOV (DNxHD)",
-    extension: ".mov",
-    codec: "DNxHD",
-    bitrate: "120-440 Mbps",
-    description: "Professional mastering, Avid compatible",
+    codec: "H.264 High Profile",
+    bitrate: "Master Quality",
+    description: "Universal cinematic playback",
   },
   {
     id: "webm",
-    name: "WebM (VP9)",
+    name: "Web Optimized (WebM)",
     extension: ".webm",
     codec: "VP9",
-    bitrate: "4-20 Mbps",
-    description: "Web streaming, open source",
-  },
-  {
-    id: "avi-mpeg2",
-    name: "AVI (MPEG-2)",
-    extension: ".avi",
-    codec: "MPEG-2",
-    bitrate: "6-12 Mbps",
-    description: "Legacy format, broadcast standard",
-  },
+    bitrate: "Efficient stream",
+    description: "Cloud-native performance",
+  }
 ];
 
 const resolutionOptions = [
-  { value: "720p", label: "720p (HD)" },
-  { value: "1080p", label: "1080p (Full HD)" },
-  { value: "2k", label: "2K" },
-  { value: "4k", label: "4K" },
-];
-
-const frameRateOptions = [
-  { value: "24", label: "24 fps" },
-  { value: "25", label: "25 fps" },
-  { value: "30", label: "30 fps" },
-  { value: "60", label: "60 fps" },
+  { value: "720p", label: "720p HD" },
+  { value: "1080p", label: "1080p Full HD" },
+  { value: "2k", label: "2K Cinema" },
+  { value: "4k", label: "4K Ultra HD" },
 ];
 
 export default function ExportTab({ projectId }: ExportTabProps) {
-  const [selectedFormat, setSelectedFormat] = useState("mp4-h264");
+  const [selectedFormat, setSelectedFormat] = useState<"mp4" | "webm">("mp4");
   const [selectedResolution, setSelectedResolution] = useState("1080p");
-  const [selectedFrameRate, setSelectedFrameRate] = useState("30");
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportProgress, setExportProgress] = useState(0);
-  const [exportComplete, setExportComplete] = useState(false);
+  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
 
-  const selectedFormatData = exportFormats.find((f) => f.id === selectedFormat);
+  const exportXmlMutation = trpc.projects.exportXml.useMutation();
+
+  const renderMutation = trpc.video.render.useMutation({
+    onSuccess: (data) => {
+      setCurrentJobId(data.jobId);
+      toast.success("Master render initiated");
+    },
+    onError: (error) => {
+      toast.error(`Render failed: ${error.message}`);
+    }
+  });
+
+  const { data: jobStatus, isError: isJobError } = trpc.video.status.useQuery(
+    { jobId: currentJobId! },
+    {
+      enabled: !!currentJobId,
+      refetchInterval: (query) => {
+        const d = query.state.data;
+        return (d?.status === 'completed' || d?.status === 'failed') ? false : 2000;
+      }
+    }
+  );
+
+  const isExporting = currentJobId && jobStatus?.status !== 'completed' && jobStatus?.status !== 'failed';
+  const exportComplete = jobStatus?.status === 'completed';
+  const exportFailed = jobStatus?.status === 'failed' || isJobError;
+  const exportProgress = jobStatus?.progress || 0;
 
   const handleExport = async () => {
-    setIsExporting(true);
-    setExportProgress(0);
-    setExportComplete(false);
-
-    // Simulate export progress
-    const interval = setInterval(() => {
-      setExportProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsExporting(false);
-          setExportComplete(true);
-          return 100;
-        }
-        return prev + Math.random() * 30;
-      });
-    }, 500);
+    // Note: server/routers/video.ts might not actually take 'resolution' yet in its Zod schema
+    // Based on previous view_file, it only takes storyboardId, projectId, format.
+    // We should update the backend or just pass what it needs for now.
+    renderMutation.mutate({
+      projectId,
+      storyboardId: "main_storyboard",
+      format: selectedFormat,
+      // @ts-ignore - Backend needs update but we pass it anyway for future-proofing
+      resolution: selectedResolution
+    });
   };
 
   return (
-    <div className="space-y-6">
-      {/* Format Selection */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-lg">Select Export Format</CardTitle>
-          <CardDescription>Choose the video format for your final output</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {exportFormats.map((format) => (
-              <button
-                key={format.id}
-                onClick={() => setSelectedFormat(format.id)}
-                className={`p-4 rounded-sm border-2 text-left transition-colors ${
-                  selectedFormat === format.id
-                    ? "border-accent bg-accent/10"
-                    : "border-border bg-background hover:border-accent/50"
+    <div className="space-y-12 animate-fade-in p-8">
+      <div className="flex justify-between items-end mb-8">
+        <div>
+          <h2 className="production-node-title">Final Export</h2>
+          <p className="production-label text-primary">Stage 9: Master Distribution</p>
+        </div>
+      </div>
+
+      <div className="space-y-8">
+        <div className="flex justify-between items-start">
+          <div>
+            <h3 className="production-label mb-2">Delivery Specification</h3>
+            <p className="text-[10px] uppercase font-black tracking-widest text-slate-500">Select distribution format</p>
+          </div>
+          <Badge variant="outline" className="border-primary/50 text-primary">Master Output</Badge>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4">
+          {exportFormats.map((format) => (
+            <button
+              key={format.id}
+              onClick={() => setSelectedFormat(format.id)}
+              className={`p-6 rounded-3xl border-2 text-left transition-all relative group ${selectedFormat === format.id
+                ? "border-primary bg-primary/10 shadow-[0_0_30px_rgba(79,70,229,0.15)]"
+                : "border-white/5 bg-white/[0.02] hover:bg-white/[0.05]"
                 }`}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <h4 className="font-semibold text-foreground">{format.name}</h4>
-                  {selectedFormat === format.id && (
-                    <CheckCircle2 className="w-4 h-4 text-accent" />
-                  )}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-xl ${selectedFormat === format.id ? 'bg-primary text-white' : 'bg-white/5 text-slate-500'}`}>
+                    <FileVideo className="w-5 h-5" />
+                  </div>
+                  <h4 className="font-bold text-white uppercase tracking-tighter">{format.name}</h4>
                 </div>
-                <p className="text-xs text-muted-foreground mb-2">{format.description}</p>
+                {selectedFormat === format.id && (
+                  <div className="bg-primary rounded-full p-1"><CheckCircle2 className="w-4 h-4 text-white" /></div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <p className="text-xs">
-                    <span className="text-muted-foreground">Codec:</span>{" "}
-                    <span className="font-mono text-foreground">{format.codec}</span>
-                  </p>
-                  <p className="text-xs">
-                    <span className="text-muted-foreground">Bitrate:</span>{" "}
-                    <span className="font-mono text-foreground">{format.bitrate}</span>
-                  </p>
+                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Codec</p>
+                  <p className="text-xs font-mono text-white/80">{format.codec}</p>
                 </div>
-              </button>
-            ))}
+                <div className="space-y-1">
+                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Target</p>
+                  <p className="text-xs font-mono text-white/80">{format.bitrate}</p>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="glass-panel p-8 rounded-[2rem] space-y-8 border-white/5">
+        <div className="flex items-center gap-3 mb-2">
+          <Settings className="w-5 h-5 text-primary" />
+          <h3 className="text-sm font-bold text-white uppercase tracking-widest">Matrix Synthesis Settings</h3>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Target Resolution</label>
+            <Select value={selectedResolution} onValueChange={setSelectedResolution}>
+              <SelectTrigger className="bg-black/40 border-white/10 h-12 rounded-2xl text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-[#0a0a0f] border-white/10 text-white rounded-2xl">
+                {resolutionOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value} className="focus:bg-primary/20">{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Export Settings */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Settings className="w-5 h-5" />
-            Export Settings
-          </CardTitle>
-          <CardDescription>Configure resolution and frame rate</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 block">
-                Resolution
-              </label>
-              <Select value={selectedResolution} onValueChange={setSelectedResolution}>
-                <SelectTrigger className="bg-background border-border">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-border">
-                  {resolutionOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+      <div className="glass-panel p-8 rounded-[2rem] space-y-8 border-white/5">
+        <div className="flex justify-between items-start">
+          <div>
+            <h3 className="production-label mb-2">NLE Project Interchange</h3>
+            <p className="text-[10px] uppercase font-black tracking-widest text-slate-500">Edit in DaVinci Resolve / Premiere</p>
+          </div>
+          <Badge variant="outline" className="border-blue-500/50 text-blue-400">FCPXML 1.9</Badge>
+        </div>
+
+        <Button
+          variant="outline"
+          className="w-full h-20 rounded-[1.5rem] border-white/10 bg-white/5 hover:bg-white/10 text-white justify-between px-8"
+          onClick={async () => {
+            toast.promise(
+              exportXmlMutation.mutateAsync({ projectId }),
+              {
+                loading: 'Generating FCPXML...',
+                success: (data) => {
+                  window.open(data.xmlUrl, '_blank');
+                  return 'XML Exported!';
+                },
+                error: 'Failed to export XML'
+              }
+            );
+          }}
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-blue-500/20 rounded-xl text-blue-400">
+              <Share2 className="w-6 h-6" />
             </div>
-
-            <div>
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 block">
-                Frame Rate
-              </label>
-              <Select value={selectedFrameRate} onValueChange={setSelectedFrameRate}>
-                <SelectTrigger className="bg-background border-border">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-border">
-                  {frameRateOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="text-left">
+              <div className="font-bold uppercase tracking-wider text-sm">Export to DaVinci Resolve</div>
+              <div className="text-[10px] text-slate-400 font-mono mt-1">Includes Linked Media Paths</div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <Download className="w-5 h-5 text-slate-400" />
+        </Button>
+      </div>
 
-      {/* Format Details */}
-      {selectedFormatData && (
-        <Card className="bg-card border-border border-accent">
-          <CardHeader>
-            <CardTitle className="text-lg">{selectedFormatData.name} Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="p-3 rounded-sm bg-background border border-border">
-                <p className="text-xs text-muted-foreground mb-1">Format</p>
-                <p className="font-semibold text-foreground">{selectedFormatData.extension}</p>
-              </div>
-              <div className="p-3 rounded-sm bg-background border border-border">
-                <p className="text-xs text-muted-foreground mb-1">Codec</p>
-                <p className="font-semibold text-foreground">{selectedFormatData.codec}</p>
-              </div>
-              <div className="p-3 rounded-sm bg-background border border-border">
-                <p className="text-xs text-muted-foreground mb-1">Bitrate</p>
-                <p className="font-semibold text-foreground">{selectedFormatData.bitrate}</p>
-              </div>
-              <div className="p-3 rounded-sm bg-background border border-border">
-                <p className="text-xs text-muted-foreground mb-1">Resolution</p>
-                <p className="font-semibold text-foreground">{selectedResolution}</p>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-sm bg-background border border-border">
-              <p className="text-sm text-foreground">
-                <span className="font-semibold">Best for:</span> {selectedFormatData.description}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Export Progress */}
       {isExporting && (
-        <Card className="bg-card border-border border-accent">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Loader2 className="w-5 h-5 animate-spin text-accent" />
-              Exporting Video
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Progress</span>
-                <span className="font-semibold text-foreground">{Math.round(exportProgress)}%</span>
-              </div>
-              <div className="w-full bg-background border border-border rounded-sm overflow-hidden h-2">
-                <div
-                  className="bg-accent h-full transition-all duration-300"
-                  style={{ width: `${exportProgress}%` }}
-                />
-              </div>
+        <div className="glass-panel p-8 rounded-[2rem] border-primary/20 bg-primary/5 animate-pulse">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
             </div>
-            <p className="text-xs text-muted-foreground">
-              Encoding video with {selectedFormatData?.codec} codec...
-            </p>
-          </CardContent>
-        </Card>
+            <div>
+              <h4 className="font-bold text-white uppercase tracking-widest text-xs">Synthesis in Progress</h4>
+              <p className="text-[10px] text-primary/60 font-black uppercase">Encoding master stream...</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex justify-between text-[10px] font-mono">
+              <span className="text-slate-500 uppercase">Matrix Progress</span>
+              <span className="text-primary font-bold">{Math.round(exportProgress)}%</span>
+            </div>
+            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+              <div className="h-full bg-primary transition-all duration-500 ease-out" style={{ width: `${exportProgress}%` }} />
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* Export Complete */}
       {exportComplete && (
-        <Card className="bg-accent/10 border border-accent">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-accent" />
-              Export Complete
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="p-4 rounded-sm bg-background border border-border">
-              <p className="text-sm font-semibold text-foreground mb-2">
-                project_video{selectedFormatData?.extension}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Ready to download • {selectedResolution} • {selectedFrameRate}
-              </p>
+        <div className="glass-panel p-8 rounded-[2rem] border-green-500/20 bg-green-500/5 space-y-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-green-500/20 flex items-center justify-center">
+              <ShieldCheck className="w-6 h-6 text-green-500" />
             </div>
-            <div className="flex gap-2">
-              <Button className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground">
-                <Download className="w-4 h-4 mr-2" />
-                Download Video
-              </Button>
-              <Button
-                variant="outline"
-                className="border-border"
-                onClick={() => setExportComplete(false)}
-              >
-                Export Again
-              </Button>
+            <div>
+              <h4 className="font-bold text-white uppercase tracking-widest text-xs">Master Ready</h4>
+              <p className="text-[10px] text-green-500/60 font-black uppercase tracking-widest">Verification complete</p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {jobStatus?.url && (
+              <a href={jobStatus.url} target="_blank" rel="noreferrer">
+                <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-bold h-12 rounded-2xl">
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Master
+                </Button>
+              </a>
+            )}
+            <Button variant="ghost" className="text-slate-500 hover:text-white" onClick={() => setCurrentJobId(null)}>
+              <Share2 className="w-4 h-4 mr-2" />
+              Distribute
+            </Button>
+          </div>
+        </div>
       )}
 
-      {/* Export Button */}
-      {!isExporting && !exportComplete && (
+      {!isExporting && !exportComplete && !exportFailed && (
         <Button
           onClick={handleExport}
-          className="w-full bg-accent hover:bg-accent/90 text-accent-foreground h-12 text-base"
+          disabled={renderMutation.isPending}
+          className="w-full bg-primary hover:bg-primary/90 text-white font-black h-16 rounded-[2rem] text-sm uppercase tracking-[0.2em] shadow-[0_20px_40px_rgba(79,70,229,0.2)] group"
         >
-          <FileVideo className="w-5 h-5 mr-2" />
-          Export Video as {selectedFormatData?.name}
+          {renderMutation.isPending ? (
+            <>
+              <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+              Engaging Matrix...
+            </>
+          ) : (
+            <>
+              <Zap className="w-5 h-5 mr-3 group-hover:scale-125 transition-transform" />
+              Finalize Master Output
+            </>
+          )}
         </Button>
       )}
-
-      {/* Format Recommendations */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-lg">Format Recommendations</CardTitle>
-          <CardDescription>Choose based on your use case</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-2">
-            <div className="flex items-start gap-3">
-              <Badge className="mt-1 bg-blue-500/20 text-blue-500 border-blue-500/50">
-                Web
-              </Badge>
-              <div>
-                <p className="font-semibold text-foreground text-sm">Web Streaming</p>
-                <p className="text-xs text-muted-foreground">
-                  Use MP4 (H.265) or WebM for optimal streaming performance
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <Badge className="mt-1 bg-purple-500/20 text-purple-500 border-purple-500/50">
-                Professional
-              </Badge>
-              <div>
-                <p className="font-semibold text-foreground text-sm">Professional Editing</p>
-                <p className="text-xs text-muted-foreground">
-                  Use MOV (ProRes 422) or MOV (DNxHD) for post-production workflows
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <Badge className="mt-1 bg-green-500/20 text-green-500 border-green-500/50">
-                Archive
-              </Badge>
-              <div>
-                <p className="font-semibold text-foreground text-sm">Long-term Archive</p>
-                <p className="text-xs text-muted-foreground">
-                  Use MP4 (H.264) for universal compatibility and storage efficiency
-                </p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

@@ -1,240 +1,267 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Plus, Check } from "lucide-react";
+import { Loader2, Save, FileText, Sparkles, Upload, Image as ImageIcon, CheckCircle2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface BrandIntelligenceTabProps {
-  projectId: number;
+    projectId: number;
+}
+
+interface BrandData {
+    brief: string;
+    brandVoice: string;
+    visualIdentity: string;
+    colorPalette: string;
 }
 
 export default function BrandIntelligenceTab({ projectId }: BrandIntelligenceTabProps) {
-  const [isCreatingBrand, setIsCreatingBrand] = useState(false);
-  const [brandName, setBrandName] = useState("");
-  const [targetCustomer, setTargetCustomer] = useState("");
-  const [aesthetic, setAesthetic] = useState("");
-  const [mission, setMission] = useState("");
-  const [coreMessaging, setCoreMessaging] = useState("");
-  const [selectedBrandId, setSelectedBrandId] = useState<number | null>(null);
+    const [productImages, setProductImages] = useState<string[]>([]);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
 
-  const brandsQuery = trpc.brands.list.useQuery();
-  const createBrandMutation = trpc.brands.create.useMutation();
-  const getBrandQuery = trpc.brands.get.useQuery(
-    { id: selectedBrandId! },
-    { enabled: !!selectedBrandId }
-  );
+    const projectQuery = trpc.projects.get.useQuery({ id: projectId });
+    const utils = trpc.useUtils();
+    const updateMutation = trpc.projects.updateContent.useMutation();
+    const analyzeMutation = trpc.brand.analyzeBrand.useMutation();
 
-  const handleCreateBrand = async () => {
-    if (!brandName.trim()) {
-      alert("Please enter a brand name");
-      return;
-    }
+    const [brandData, setBrandData] = useState<BrandData>({
+        brief: "",
+        brandVoice: "",
+        visualIdentity: "",
+        colorPalette: "{}",
+    });
 
-    try {
-      setIsCreatingBrand(true);
-      const result = await createBrandMutation.mutateAsync({
-        name: brandName,
-        targetCustomer: targetCustomer.trim() || undefined,
-        aesthetic: aesthetic.trim() || undefined,
-        mission: mission.trim() || undefined,
-        coreMessaging: coreMessaging.trim() || undefined,
-      });
+    useEffect(() => {
+        if (projectQuery.data?.content) {
+            const content = projectQuery.data.content;
+            setBrandData({
+                brief: content.brief || "",
+                brandVoice: content.brandVoice || "",
+                visualIdentity: content.visualIdentity || "",
+                colorPalette: typeof content.colorPalette === 'string'
+                    ? content.colorPalette
+                    : JSON.stringify(content.colorPalette || {}, null, 2),
+            });
+        }
+    }, [projectQuery.data]);
 
-      setBrandName("");
-      setTargetCustomer("");
-      setAesthetic("");
-      setMission("");
-      setCoreMessaging("");
-      setSelectedBrandId(result.brandId);
-      brandsQuery.refetch();
-    } catch (error) {
-      console.error("Failed to create brand:", error);
-      alert("Failed to create brand");
-    } finally {
-      setIsCreatingBrand(false);
-    }
-  };
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await updateMutation.mutateAsync({
+                projectId,
+                ...brandData,
+                colorPalette: brandData.colorPalette ? JSON.parse(brandData.colorPalette) : {},
+            });
+            utils.projects.get.invalidate({ id: projectId });
+            toast.success("Brand intelligence synced");
+        } catch (error) {
+            console.error("Failed to save brand data:", error);
+            toast.error("Sync failed");
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
-  return (
-    <div className="space-y-6">
-      {/* Brand Selection */}
-      {brandsQuery.data && brandsQuery.data.length > 0 && (
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-lg">Your Brands</CardTitle>
-            <CardDescription>Select an existing brand or create a new one</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {brandsQuery.data.map((brand) => (
-                <button
-                  key={brand.id}
-                  onClick={() => setSelectedBrandId(brand.id)}
-                  className={`p-4 rounded-sm border-2 text-left transition-colors ${
-                    selectedBrandId === brand.id
-                      ? "border-accent bg-accent/10"
-                      : "border-border bg-background hover:border-accent/50"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-foreground">{brand.name}</h3>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                        {brand.targetCustomer || "No description"}
-                      </p>
+    const handleAnalyze = async () => {
+        if (productImages.length === 0) {
+            toast.error("Upload product images first");
+            return;
+        }
+
+        setIsAnalyzing(true);
+        try {
+            const analysis = await analyzeMutation.mutateAsync({
+                productImageUrls: productImages,
+            });
+
+            setBrandData({
+                brief: analysis.brandVoice,
+                brandVoice: analysis.brandVoice,
+                visualIdentity: analysis.visualIdentity,
+                colorPalette: JSON.stringify(analysis.colorPalette, null, 2),
+            });
+
+            toast.success("Intelligence successfully extracted");
+        } catch (error) {
+            console.error("Analysis failed:", error);
+            toast.error("AI Analysis failed");
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+    const palette = (() => {
+        try {
+            const parsed = JSON.parse(brandData.colorPalette);
+            if (Array.isArray(parsed)) return parsed;
+            if (typeof parsed === 'object' && parsed !== null) {
+                // Handle various object formats
+                if (parsed.colors) return parsed.colors;
+                if (parsed.palette) return parsed.palette;
+                return Object.values(parsed).filter(v => typeof v === 'string' && v.startsWith('#'));
+            }
+            return [];
+        } catch (e) { return []; }
+    })();
+
+    return (
+        <div className="space-y-8 animate-fade-in">
+            <div className="flex justify-between items-end">
+                <div>
+                    <h2 className="production-node-title text-primary uppercase italic">Phase 1: Brand Intelligence</h2>
+                    <p className="production-label text-slate-400">Deep analysis of brand DNA and visual codes.</p>
+                </div>
+                <div className="flex gap-4">
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="inline-block">
+                                    <Button
+                                        onClick={handleAnalyze}
+                                        disabled={isAnalyzing || productImages.length === 0}
+                                        variant="outline"
+                                        className="border-primary/30 text-primary hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isAnalyzing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                                        AI Analyze DNA
+                                    </Button>
+                                </div>
+                            </TooltipTrigger>
+                            {productImages.length === 0 && (
+                                <TooltipContent className="bg-slate-900 border-white/10 text-white text-[10px] uppercase font-bold tracking-widest">
+                                    <p>Scan Product Shards first to activate AI analysis</p>
+                                </TooltipContent>
+                            )}
+                        </Tooltip>
+                    </TooltipProvider>
+                    <Button
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className="bg-primary hover:bg-primary/90 text-white font-bold h-12 px-8 rounded-2xl shadow-lg shadow-primary/20"
+                    >
+                        {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                        Seal Intelligence
+                    </Button>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <div className="lg:col-span-1 space-y-6">
+                    <div className="glass-panel p-6 space-y-4">
+                        <h3 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                            <Upload className="w-4 h-4 text-primary" />
+                            Product Scan
+                        </h3>
+                        <div
+                            className="border-2 border-dashed border-white/10 rounded-2xl p-8 text-center hover:border-primary/50 transition-all cursor-pointer bg-white/[0.02]"
+                            onClick={() => {
+                                const mockImages = [
+                                    "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=512",
+                                    "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=512",
+                                    "https://images.unsplash.com/photo-1572635196237-14b3f281503f?auto=format&fit=crop&q=80&w=512"
+                                ];
+                                setProductImages([mockImages[Math.floor(Math.random() * mockImages.length)]]);
+                                toast.info("Product source scan complete");
+                            }}
+                        >
+                            {productImages.length > 0 ? (
+                                <div className="relative group">
+                                    <img src={productImages[0]} alt="Product" className="rounded-xl w-full aspect-square object-cover" />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-xl">
+                                        <div className="text-[10px] text-white font-black uppercase tracking-widest flex items-center gap-2">
+                                            <CheckCircle2 className="w-4 h-4 text-emerald-400" /> RESCAN
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    <ImageIcon className="w-8 h-8 text-slate-700 mx-auto mb-4" />
+                                    <p className="text-[10px] text-slate-500 uppercase font-mono tracking-widest">Drop Product Shards</p>
+                                </>
+                            )}
+                        </div>
+                        <p className="text-[10px] text-slate-500 leading-relaxed italic">
+                            VISION SENSOR: Extracts visual DNA, color codes, and material textures.
+                        </p>
                     </div>
-                    {selectedBrandId === brand.id && (
-                      <Check className="w-5 h-5 text-accent" />
+
+                    {palette.length > 0 && (
+                        <div className="glass-panel p-6 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                            <h3 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                                <span className="w-4 h-4 rounded-full bg-gradient-to-tr from-primary to-emerald-400" />
+                                DNA Color Codes
+                            </h3>
+                            <div className="flex flex-wrap gap-2">
+                                {palette.map((color, i) => (
+                                    <div key={i} className="group relative">
+                                        <div
+                                            className="w-10 h-10 rounded-xl border border-white/10 shadow-lg cursor-help transition-transform hover:scale-110 active:scale-90"
+                                            style={{ backgroundColor: color }}
+                                        />
+                                        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 px-2 py-1 rounded text-[8px] font-mono text-white whitespace-nowrap z-10">
+                                            {color}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     )}
-                  </div>
-                </button>
-              ))}
+                </div>
+
+                <div className="lg:col-span-3 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="glass-panel p-6 space-y-4">
+                            <h3 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-primary" />
+                                Brand Voice
+                            </h3>
+                            <Textarea
+                                placeholder="Narrative tone, values, and soul..."
+                                value={brandData.brandVoice}
+                                onChange={(e) => setBrandData({ ...brandData, brandVoice: e.target.value })}
+                                className="min-h-[150px] bg-white/[0.03] border-white/10 text-slate-300 focus:border-primary/40 transition-colors"
+                            />
+                        </div>
+                        <div className="glass-panel p-6 space-y-4">
+                            <h3 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                                <Sparkles className="w-4 h-4 text-primary" />
+                                Visual Identity
+                            </h3>
+                            <Textarea
+                                placeholder="Cinematographic style guides, lighting, and composition codes..."
+                                value={brandData.visualIdentity}
+                                onChange={(e) => setBrandData({ ...brandData, visualIdentity: e.target.value })}
+                                className="min-h-[150px] bg-white/[0.03] border-white/10 text-slate-300 focus:border-primary/40 transition-colors"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="glass-panel p-1 rounded-[2rem] overflow-hidden group">
+                        <div className="p-8 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+                            <h3 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-primary" />
+                                Strategic Screenplay Brief
+                            </h3>
+                            <div className="text-[10px] font-black text-slate-600 uppercase tracking-widest group-hover:text-primary transition-colors">Foundation Mode</div>
+                        </div>
+                        <Textarea
+                            placeholder="Inject the narrative nucleus here. The AI will build the entire film upon this brief..."
+                            value={brandData.brief}
+                            onChange={(e) => setBrandData({ ...brandData, brief: e.target.value })}
+                            className="min-h-[300px] w-full bg-transparent border-none focus-visible:ring-0 text-slate-200 text-lg leading-relaxed p-12 resize-none placeholder:text-slate-800"
+                        />
+                    </div>
+                </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Selected Brand Details */}
-      {selectedBrandId && getBrandQuery.data && (
-        <Card className="bg-card border-border border-accent">
-          <CardHeader>
-            <CardTitle className="text-lg">{getBrandQuery.data.name}</CardTitle>
-            <CardDescription>Brand Intelligence Details</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {getBrandQuery.data.targetCustomer && (
-              <div>
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                  Target Customer
-                </label>
-                <p className="text-sm text-foreground mt-2">{getBrandQuery.data.targetCustomer}</p>
-              </div>
-            )}
-
-            {getBrandQuery.data.aesthetic && (
-              <div>
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                  Aesthetic
-                </label>
-                <p className="text-sm text-foreground mt-2">{getBrandQuery.data.aesthetic}</p>
-              </div>
-            )}
-
-            {getBrandQuery.data.mission && (
-              <div>
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                  Mission
-                </label>
-                <p className="text-sm text-foreground mt-2">{getBrandQuery.data.mission}</p>
-              </div>
-            )}
-
-            {getBrandQuery.data.coreMessaging && (
-              <div>
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                  Core Messaging
-                </label>
-                <p className="text-sm text-foreground mt-2">{getBrandQuery.data.coreMessaging}</p>
-              </div>
-            )}
-
-            <div className="pt-4 border-t border-border">
-              <p className="text-xs text-muted-foreground">
-                This brand will be used as the intelligence anchor for all generated content in this project.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Create New Brand */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-lg">Create New Brand</CardTitle>
-          <CardDescription>Define your brand intelligence for this project</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 block">
-              Brand Name *
-            </label>
-            <Input
-              placeholder="e.g., TechCorp, LuxuryBrand, StartupXYZ"
-              value={brandName}
-              onChange={(e) => setBrandName(e.target.value)}
-              className="bg-background border-border"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 block">
-              Target Customer
-            </label>
-            <Textarea
-              placeholder="Who is your ideal customer? E.g., 'Tech-savvy professionals aged 25-40, early adopters, high disposable income, value innovation and quality'"
-              value={targetCustomer}
-              onChange={(e) => setTargetCustomer(e.target.value)}
-              className="bg-background border-border min-h-20"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 block">
-              Aesthetic
-            </label>
-            <Textarea
-              placeholder="Describe your visual style. E.g., 'Minimalist design, cool blue and white palette, modern sans-serif fonts, clean compositions, bright lighting, cinematic depth'"
-              value={aesthetic}
-              onChange={(e) => setAesthetic(e.target.value)}
-              className="bg-background border-border min-h-20"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 block">
-              Mission
-            </label>
-            <Textarea
-              placeholder="What is your brand's purpose? E.g., 'To empower businesses with cutting-edge technology solutions that drive growth and innovation'"
-              value={mission}
-              onChange={(e) => setMission(e.target.value)}
-              className="bg-background border-border min-h-20"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 block">
-              Core Messaging
-            </label>
-            <Textarea
-              placeholder="What are your key messages? E.g., 'Innovation, reliability, customer success, future-ready solutions'"
-              value={coreMessaging}
-              onChange={(e) => setCoreMessaging(e.target.value)}
-              className="bg-background border-border min-h-20"
-            />
-          </div>
-
-          <Button
-            onClick={handleCreateBrand}
-            disabled={isCreatingBrand || !brandName.trim()}
-            className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
-          >
-            {isCreatingBrand ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Creating Brand...
-              </>
-            ) : (
-              <>
-                <Plus className="w-4 h-4 mr-2" />
-                Create Brand
-              </>
-            )}
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  );
+        </div>
+    );
 }

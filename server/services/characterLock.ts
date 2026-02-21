@@ -82,8 +82,8 @@ GENERATION RULES:
  * Validate that generated image matches character lock requirements
  */
 export function validateCharacterLock(
-  generatedImageUrl: string,
-  lockConfig: CharacterLockConfig
+  _generatedImageUrl: string,
+  _lockConfig: CharacterLockConfig
 ): {
   isValid: boolean;
   issues: string[];
@@ -101,7 +101,7 @@ export function validateCharacterLock(
  */
 export function buildMotionPrompt(
   baseMotionDescription: string,
-  lockConfig: CharacterLockConfig
+  _lockConfig: CharacterLockConfig
 ): string {
   return `
 START FRAME: Reference the locked character image exactly as provided

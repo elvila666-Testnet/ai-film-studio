@@ -1,5 +1,4 @@
 import { invokeLLM } from "../_core/llm";
-import { storagePut } from "../storage";
 
 export interface BrandAnalysis {
   brandVoice: string;
@@ -167,19 +166,35 @@ Format as JSON array with objects containing: description, demographic, compatib
       // Parse the response and generate images for each character
       const characterDescriptions = JSON.parse(content);
       const characters: CharacterOption[] = [];
+      const { generateStoryboardImage } = await import("./aiGeneration");
 
       for (const desc of characterDescriptions) {
         // Generate image for this character using NanoBanana Pro
-        const imagePrompt = `${desc.description}. Style: ${brandAnalysis.visualIdentity}. Professional headshot, studio lighting, clean background.`;
+        const imagePrompt = `Ultra realistic 8k character portrait of ${desc.description}. Style: ${brandAnalysis.visualIdentity}. Professional headshot, studio lighting, clean background, Cinematic lighting, high detail.`;
 
-        // Note: This would call the image generation service
-        // For now, we'll return the structure
-        characters.push({
-          imageUrl: "", // Would be populated by image generation
-          description: desc.description,
-          demographic: desc.demographic,
-          compatibility: desc.compatibility || 75,
-        });
+        try {
+          const imageUrl = await generateStoryboardImage(
+            imagePrompt,
+            "nanobanana-pro",
+            undefined, // projectId is optional here
+            "system"
+          );
+
+          characters.push({
+            imageUrl,
+            description: desc.description,
+            demographic: desc.demographic,
+            compatibility: desc.compatibility || 75,
+          });
+        } catch (err) {
+          console.error(`Failed to generate character image: ${err}`);
+          characters.push({
+            imageUrl: "https://via.placeholder.com/512?text=Error+Generating+Image",
+            description: desc.description,
+            demographic: desc.demographic,
+            compatibility: desc.compatibility || 75,
+          });
+        }
       }
 
       return characters;
@@ -207,9 +222,15 @@ Style: ${style}
 
 Generate a cohesive mood board image that captures the essence of this brand. Include color swatches, textures, typography examples, and lifestyle imagery that reflects the brand's identity.`;
 
-      // This would call the image generation service
-      // Returning placeholder for now
-      return "moodboard-url";
+      const { generateStoryboardImage } = await import("./aiGeneration");
+      const imageUrl = await generateStoryboardImage(
+        prompt,
+        "flux-pro", // Flux Pro is great for moodboards
+        undefined,
+        "system"
+      );
+
+      return imageUrl;
     } catch (error) {
       throw new Error(
         `Failed to generate moodboard: ${error instanceof Error ? error.message : String(error)}`

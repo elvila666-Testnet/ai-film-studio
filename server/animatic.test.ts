@@ -1,7 +1,6 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { VideoEditorService } from "./services/videoEditor";
 import * as fs from "fs/promises";
-import * as path from "path";
 
 describe("Animatic Export", () => {
   let videoEditorService: VideoEditorService;
@@ -47,7 +46,7 @@ describe("Animatic Export", () => {
       expect(stats.size).toBeGreaterThan(0);
 
       // Clean up the test file
-      await fs.unlink(videoPath).catch(() => {});
+      await fs.unlink(videoPath).catch(() => { });
     } catch (error) {
       // This test might fail in CI environment without proper FFmpeg setup
       // but it validates the function signature and error handling
@@ -75,7 +74,7 @@ describe("Animatic Export", () => {
         expect(stats.isFile()).toBe(true);
 
         // Clean up
-        await fs.unlink(videoPath).catch(() => {});
+        await fs.unlink(videoPath).catch(() => { });
       } catch (error) {
         console.log(`Duration ${duration}s test skipped:`, error);
       }
@@ -102,7 +101,7 @@ describe("Animatic Export", () => {
         expect(stats.isFile()).toBe(true);
 
         // Clean up
-        await fs.unlink(videoPath).catch(() => {});
+        await fs.unlink(videoPath).catch(() => { });
       } catch (error) {
         console.log(`Resolution ${resolution} test skipped:`, error);
       }

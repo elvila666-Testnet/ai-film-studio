@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { trpc } from '@/lib/trpc';
-import { AlertTriangle, TrendingDown, TrendingUp, DollarSign, BarChart3, PieChart } from 'lucide-react';
+import { AlertTriangle, TrendingDown, TrendingUp } from 'lucide-react';
 
 interface CostAnalyticsDashboardProps {
   projectId: number;
@@ -52,21 +51,20 @@ export default function CostAnalyticsDashboard({ projectId }: CostAnalyticsDashb
       {/* Budget Alert */}
       {budgetStatus && (
         <Alert
-          className={`border-l-4 ${
-            budgetStatus.warningLevel === 'critical'
+          className={`border-l-4 ${budgetStatus.warningLevel === 'critical'
               ? 'border-red-500 bg-red-50'
               : budgetStatus.warningLevel === 'warning'
-              ? 'border-yellow-500 bg-yellow-50'
-              : 'border-green-500 bg-green-50'
-          }`}
+                ? 'border-yellow-500 bg-yellow-50'
+                : 'border-green-500 bg-green-50'
+            }`}
         >
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
             {budgetStatus.warningLevel === 'critical'
               ? `Budget exceeded! Used ${budgetStatus.totalCost} of ${budgetStatus.budget} credits`
               : budgetStatus.warningLevel === 'warning'
-              ? `Budget warning: ${budgetStatus.utilization.toFixed(1)}% used`
-              : `Budget healthy: ${budgetStatus.remaining} credits remaining`}
+                ? `Budget warning: ${budgetStatus.utilization.toFixed(1)}% used`
+                : `Budget healthy: ${budgetStatus.remaining} credits remaining`}
           </AlertDescription>
         </Alert>
       )}
@@ -329,7 +327,7 @@ export default function CostAnalyticsDashboard({ projectId }: CostAnalyticsDashb
             <CardContent>
               {trendsQuery.data && trendsQuery.data.length > 0 ? (
                 <div className="space-y-3">
-                  {trendsQuery.data.slice(-7).map((trend: any) => (
+                  {trendsQuery.data.slice(-7).map((trend: unknown) => (
                     <div key={trend.date.toString()} className="flex items-center justify-between">
                       <span className="text-sm text-gray-400">
                         {new Date(trend.date).toLocaleDateString()}

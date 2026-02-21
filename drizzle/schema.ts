@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean, json, decimal } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -28,10 +28,11 @@ export type InsertUser = typeof users.$inferInsert;
 export const projects = mysqlTable("projects", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull().references(() => users.id),
-  brandId: int("brandId").references(() => brands.id, { onDelete: "set null" }),
+  brandId: varchar("brandId", { length: 36 }).references(() => brands.id, { onDelete: "set null" }),
   name: varchar("name", { length: 255 }).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  bible: json("bible"), // The "Project Bible"
 });
 
 export type Project = typeof projects.$inferSelect;
@@ -41,6 +42,7 @@ export const projectContent = mysqlTable("projectContent", {
   id: int("id").autoincrement().primaryKey(),
   projectId: int("projectId").notNull().references(() => projects.id, { onDelete: "cascade" }),
   brief: text("brief"),
+  synopsis: text("synopsis"),
   script: text("script"),
   masterVisual: text("masterVisual"),
   technicalShots: text("technicalShots"), // JSON stored as text
@@ -50,6 +52,10 @@ export const projectContent = mysqlTable("projectContent", {
   storyboardComplianceScore: int("storyboardComplianceScore"),
   voiceoverComplianceScore: int("voiceoverComplianceScore"),
   complianceMetadata: text("complianceMetadata"), // JSON with detailed compliance info
+  globalDirectorNotes: text("globalDirectorNotes"), // Global notes influencing all AI generations
+  brandVoice: text("brandVoice"),
+  visualIdentity: text("visualIdentity"),
+  colorPalette: json("colorPalette"),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
@@ -68,6 +74,10 @@ export const storyboardImages = mysqlTable("storyboardImages", {
   characterReference: text("characterReference"),
   seed: int("seed"),
   generationVariant: int("generationVariant").default(0),
+  qualityTier: mysqlEnum("qualityTier", ["fast", "quality"]).default("fast").notNull(), // FinOps Control
+  // 3x3 Grid Redesign Data
+  status: mysqlEnum("status", ["draft", "approved"]).default("draft").notNull(),
+  masterImageUrl: text("masterImageUrl"), // The 4k Upscaled Version
   // Character consistency tracking
   characterLibraryId: int("characterLibraryId").references(() => characterLibrary.id, { onDelete: "set null" }),
   characterAppearance: text("characterAppearance"), // JSON: clothing, expression, pose
@@ -110,6 +120,7 @@ export const generatedVideos = mysqlTable("generatedVideos", {
   status: varchar("status", { length: 50 }).default("pending").notNull(),
   provider: varchar("provider", { length: 50 }).notNull(),
   taskId: varchar("taskId", { length: 255 }),
+  modelId: varchar("modelId", { length: 255 }),
   error: text("error"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -253,30 +264,45 @@ export type InsertStoryboardFrameNotes = typeof storyboardFrameNotes.$inferInser
 
 // Brand Brain Tables
 export const brands = mysqlTable("brands", {
-  id: int("id").autoincrement().primaryKey(),
+  id: varchar("id", { length: 36 }).primaryKey(), // UUID
   userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
-  logoUrl: text("logoUrl"),
+  logoUrl: text("logoUrl"), // GCS Path
   description: text("description"),
-  
+
   // Brand Brain AI Parameters
-  targetCustomer: text("targetCustomer"), // Who is the ideal customer?
+  targetAudience: text("targetAudience"), // New column for audience
   aesthetic: text("aesthetic"), // Visual style preferences
   mission: text("mission"), // Brand purpose and values
   coreMessaging: text("coreMessaging"), // Key messages and positioning
-  
-  // Legacy fields (kept for backward compatibility)
+  brandVoice: text("brandVoice"), // Tone, communication style
+  negativeConstraints: text("negativeConstraints"), // Brand taboos and strict off-brand elements
+
+  // Technical fields
+  colorPalette: json("colorPalette"), // Stores hex codes and usage rules
+
+  // Legacy fields (kept for backward compatibility where possible)
   productReferenceImages: text("productReferenceImages"), // JSON array of image URLs
-  brandVoice: text("brandVoice"), // Description of brand tone/personality
   visualIdentity: text("visualIdentity"), // Description of visual style
-  colorPalette: text("colorPalette"), // JSON: { primary, secondary, accent, etc }
-  
+
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
 export type Brand = typeof brands.$inferSelect;
 export type InsertBrand = typeof brands.$inferInsert;
+
+export const brandAssets = mysqlTable("brandAssets", {
+  id: int("id").autoincrement().primaryKey(),
+  brandId: varchar("brandId", { length: 36 }).notNull().references(() => brands.id, { onDelete: "cascade" }),
+  assetType: mysqlEnum("assetType", ["PDF", "URL", "IMG"]).notNull(),
+  gcsPath: text("gcsPath").notNull(),
+  description: text("description"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type BrandAsset = typeof brandAssets.$inferSelect;
+export type InsertBrandAsset = typeof brandAssets.$inferInsert;
 
 // Character Casting Tables
 export const characters = mysqlTable("characters", {
@@ -297,11 +323,12 @@ export type InsertCharacter = typeof characters.$inferInsert;
 // Character Library per Brand
 export const characterLibrary = mysqlTable("characterLibrary", {
   id: int("id").autoincrement().primaryKey(),
-  brandId: int("brandId").notNull().references(() => brands.id, { onDelete: "cascade" }),
+  brandId: varchar("brandId", { length: 36 }).notNull().references(() => brands.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"), // Character archetype/personality
   imageUrl: text("imageUrl").notNull(), // Reference image
   traits: text("traits"), // JSON: personality traits, appearance, etc
+  poses: text("poses"), // JSON: { "close-up": url, "medium": url, "full": url }
   isLocked: boolean("isLocked").default(false).notNull(), // Brand enforcement
   usageCount: int("usageCount").default(0), // Track usage across projects
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -311,10 +338,52 @@ export const characterLibrary = mysqlTable("characterLibrary", {
 export type CharacterLibrary = typeof characterLibrary.$inferSelect;
 export type InsertCharacterLibrary = typeof characterLibrary.$inferInsert;
 
+// Actors / LoRA Models
+export const actors = mysqlTable("actors", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  triggerWord: varchar("triggerWord", { length: 255 }).notNull(), // The token used in prompts (e.g. "TOK")
+  loraId: varchar("loraId", { length: 255 }), // Replicate model ID (e.g. "owner/model:version")
+  status: varchar("status", { length: 50 }).default("pending"), // pending, training, ready, failed
+  trainingId: varchar("trainingId", { length: 255 }), // Replicate training ID
+  zipUrl: text("zipUrl"), // URL to the training images zip
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Actor = typeof actors.$inferSelect;
+export type InsertActor = typeof actors.$inferInsert;
+
+export const shotActors = mysqlTable("shotActors", {
+  id: int("id").autoincrement().primaryKey(),
+  shotId: int("shotId").notNull().references(() => shots.id, { onDelete: "cascade" }),
+  actorId: int("actorId").notNull().references(() => actors.id, { onDelete: "cascade" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ShotActor = typeof shotActors.$inferSelect;
+export type InsertShotActor = typeof shotActors.$inferInsert;
+
+
+export const audioAssets = mysqlTable("audioAssets", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  sceneId: int("sceneId").references(() => scenes.id, { onDelete: "set null" }),
+  type: varchar("type", { length: 50 }).notNull(), // DIALOGUE, SFX, MUSIC
+  url: text("url").notNull(),
+  duration: int("duration"), // in seconds
+  label: varchar("label", { length: 255 }), // e.g., "Character Line 1" or "Explosion"
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AudioAsset = typeof audioAssets.$inferSelect;
+export type InsertAudioAsset = typeof audioAssets.$inferInsert;
+
 // Moodboard per Brand
 export const moodboards = mysqlTable("moodboards", {
   id: int("id").autoincrement().primaryKey(),
-  brandId: int("brandId").notNull().references(() => brands.id, { onDelete: "cascade" }),
+  brandId: varchar("brandId", { length: 36 }).notNull().references(() => brands.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -342,7 +411,7 @@ export type InsertMoodboardImage = typeof moodboardImages.$inferInsert;
 // Brand Voice Profiles for ElevenLabs
 export const brandVoiceProfiles = mysqlTable("brandVoiceProfiles", {
   id: int("id").autoincrement().primaryKey(),
-  brandId: int("brandId").notNull().references(() => brands.id, { onDelete: "cascade" }),
+  brandId: varchar("brandId", { length: 36 }).notNull().references(() => brands.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
   elevenLabsVoiceId: varchar("elevenLabsVoiceId", { length: 255 }), // ElevenLabs voice ID
   description: text("description"), // Voice characteristics
@@ -378,7 +447,7 @@ export type InsertGeneratedVoiceover = typeof generatedVoiceovers.$inferInsert;
 // Music Library per Brand
 export const musicLibrary = mysqlTable("musicLibrary", {
   id: int("id").autoincrement().primaryKey(),
-  brandId: int("brandId").notNull().references(() => brands.id, { onDelete: "cascade" }),
+  brandId: varchar("brandId", { length: 36 }).notNull().references(() => brands.id, { onDelete: "cascade" }),
   title: varchar("title", { length: 255 }).notNull(),
   artist: varchar("artist", { length: 255 }),
   description: text("description"),
@@ -401,7 +470,7 @@ export type InsertMusicLibrary = typeof musicLibrary.$inferInsert;
 // Brand Music Preferences
 export const brandMusicPreferences = mysqlTable("brandMusicPreferences", {
   id: int("id").autoincrement().primaryKey(),
-  brandId: int("brandId").notNull().references(() => brands.id, { onDelete: "cascade" }),
+  brandId: varchar("brandId", { length: 36 }).notNull().references(() => brands.id, { onDelete: "cascade" }),
   preferredGenres: text("preferredGenres"), // JSON: array of genres
   preferredMoods: text("preferredMoods"), // JSON: array of moods
   tempoRange: varchar("tempoRange", { length: 50 }), // e.g., "80-120"
@@ -447,3 +516,100 @@ export const musicSuggestions = mysqlTable("musicSuggestions", {
 
 export type MusicSuggestion = typeof musicSuggestions.$inferSelect;
 export type InsertMusicSuggestion = typeof musicSuggestions.$inferInsert;
+
+export const modelConfigs = mysqlTable("modelConfigs", {
+  id: int("id").autoincrement().primaryKey(),
+  category: mysqlEnum("category", ["text", "image", "video"]).notNull(),
+  provider: varchar("provider", { length: 255 }).notNull(),
+  modelId: varchar("modelId", { length: 255 }).notNull(),
+  name: varchar("name", { length: 255 }), // Display name
+  description: text("description"), // Short description
+  costPerUnit: decimal("costPerUnit", { precision: 10, scale: 4 }).default("0.0000"), // Cost per generation
+  apiKey: text("apiKey"),
+  apiEndpoint: text("apiEndpoint"), // Optional custom endpoint
+  isActive: boolean("isActive").default(false).notNull(),
+  isBuiltIn: boolean("isBuiltIn").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ModelConfig = typeof modelConfigs.$inferSelect;
+export type InsertModelConfig = typeof modelConfigs.$inferInsert;
+
+export const userModelFavorites = mysqlTable("userModelFavorites", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  modelConfigId: int("modelConfigId").notNull().references(() => modelConfigs.id, { onDelete: "cascade" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type UserModelFavorite = typeof userModelFavorites.$inferSelect;
+export type InsertUserModelFavorite = typeof userModelFavorites.$inferInsert;
+
+// --- ANTIGRAVITY AGENT TABLES ---
+
+export const scenes = mysqlTable("scenes", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  order: int("order").notNull(),
+  title: varchar("title", { length: 255 }),
+  description: text("description"),
+  // Production Design Fields
+  locationDetails: text("locationDetails"), // Description of the location
+  setDesign: text("setDesign"), // Details on props, set dressing
+  status: varchar("status", { length: 50 }).default("draft"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Scene = typeof scenes.$inferSelect;
+export type InsertScene = typeof scenes.$inferInsert;
+
+export const shots = mysqlTable("shots", {
+  id: int("id").autoincrement().primaryKey(),
+  sceneId: int("sceneId").notNull().references(() => scenes.id, { onDelete: "cascade" }),
+  order: int("order").notNull(),
+  visualDescription: text("visualDescription"),
+  audioDescription: text("audioDescription"),
+  cameraAngle: varchar("cameraAngle", { length: 100 }),
+  movement: varchar("movement", { length: 100 }),
+  // Cinematography Fields
+  lighting: varchar("lighting", { length: 255 }), // e.g., "Golden Hour", "High Key"
+  lens: varchar("lens", { length: 100 }), // e.g., "35mm", "Anamorphic"
+  filmStock: varchar("filmStock", { length: 100 }), // e.g., "Kodak Vision3"
+  status: varchar("status", { length: 50 }).default("planned"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Shot = typeof shots.$inferSelect;
+export type InsertShot = typeof shots.$inferInsert;
+
+export const generations = mysqlTable("generations", {
+  id: int("id").autoincrement().primaryKey(),
+  shotId: int("shotId").references(() => shots.id, { onDelete: "set null" }),
+  projectId: int("projectId").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  imageUrl: text("imageUrl").notNull(),
+  prompt: text("prompt").notNull(),
+  model: varchar("model", { length: 100 }).notNull(),
+  qualityTier: mysqlEnum("qualityTier", ["fast", "quality"]).default("fast").notNull(), // FinOps Control
+  cost: decimal("cost", { precision: 10, scale: 4 }).notNull(),
+  status: mysqlEnum("status", ["draft", "approved"]).default("draft").notNull(),
+  masterImageUrl: text("masterImageUrl"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Generation = typeof generations.$inferSelect;
+export type InsertGeneration = typeof generations.$inferInsert;
+
+export const usageLedger = mysqlTable("usage_ledger", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  userId: varchar("userId", { length: 255 }).notNull(), // Using varchar to support potential external IDs, though project links to internal user
+  actionType: varchar("actionType", { length: 50 }).notNull(),
+  modelId: varchar("modelId", { length: 100 }).notNull(),
+  quantity: int("quantity").default(1),
+  cost: decimal("cost", { precision: 10, scale: 4 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type UsageLedger = typeof usageLedger.$inferSelect;
+export type InsertUsageLedger = typeof usageLedger.$inferInsert;

@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Plus, Trash2, Volume2, Eye, Lock, Copy } from "lucide-react";
+import { Plus, Trash2, Volume2, Eye, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 
@@ -37,7 +36,7 @@ export default function Timeline({
   editorProjectId,
   currentTime,
   onTimeChange,
-  isPlaying,
+  isPlaying: _isPlaying,
   duration,
 }: TimelineProps) {
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -99,7 +98,7 @@ export default function Timeline({
   useEffect(() => {
     if (tracksQuery.data) {
       setTracks(
-        tracksQuery.data.map((track: any) => ({
+        tracksQuery.data.map((track: unknown) => ({
           id: track.id,
           name: track.name || `Track ${track.id}`,
           type: track.type || "video",
@@ -116,7 +115,7 @@ export default function Timeline({
   useEffect(() => {
     if (clipsQuery.data) {
       setClips(
-        clipsQuery.data.map((clip: any) => {
+        clipsQuery.data.map((clip: unknown) => {
           // Convert duration from milliseconds to seconds if needed
           const durationSeconds = clip.duration > 1000 ? clip.duration / 1000 : clip.duration || 5;
           return {
@@ -141,7 +140,7 @@ export default function Timeline({
     });
   };
 
-  const handleDeleteTrack = (trackId: number) => {
+  const handleDeleteTrack = (_trackId: number) => {
     // Delete track functionality to be implemented
     toast.info("Delete track feature coming soon");
   };
@@ -245,7 +244,7 @@ export default function Timeline({
     const deltaX = (e as any).clientX - dragStartX;
     const deltaTime = deltaX / pixelsPerSecond;
     let newStartTime = Math.max(0, dragStartTime + deltaTime);
-    
+
     // Apply snap to grid
     newStartTime = snapTime(newStartTime);
 
@@ -256,7 +255,8 @@ export default function Timeline({
     );
   };
 
-  const updateClipPositionMutation = trpc.editor.clips.updatePosition.useMutation();
+  const _updateClipPositionMutation = trpc.editor.clips.updatePosition.useMutation();
+  void _updateClipPositionMutation;
   const batchUpdateClipsMutation = trpc.editor.clips.batchUpdatePositions.useMutation();
 
   // Snap to grid helper
@@ -335,10 +335,10 @@ export default function Timeline({
         const newPending = new Map(pendingUpdates);
         newPending.set(draggedClipId, draggedClip.startTime);
         setPendingUpdates(newPending);
-        
+
         // Add to history
         addToHistory(clips);
-        
+
         // Schedule batch save
         scheduleBatchSave();
       }
@@ -370,7 +370,8 @@ export default function Timeline({
     );
   };
 
-  const handleToggleSolo = (trackId: number) => {
+  const _handleToggleSolo = (trackId: number) => {
+    void _handleToggleSolo;
     setTracks(
       tracks.map((track) =>
         track.id === trackId
@@ -429,7 +430,7 @@ export default function Timeline({
     try {
       let clipData = null;
       const jsonData = e.dataTransfer?.getData("application/json");
-      
+
       if (jsonData) {
         try {
           clipData = JSON.parse(jsonData);
@@ -477,6 +478,7 @@ export default function Timeline({
           fileType: "video",
           duration: clipData.duration,
           order: clips.filter((c) => c.trackId === trackId).length + 1,
+          startTime,
         },
         {
           onSuccess: () => {
@@ -691,11 +693,10 @@ export default function Timeline({
               tracks.map((track) => (
                 <div
                   key={track.id}
-                  className={`border-b border-slate-600 p-2 cursor-pointer transition-colors ${
-                    selectedTrackId === track.id
-                      ? "bg-slate-600"
-                      : "hover:bg-slate-600"
-                  }`}
+                  className={`border-b border-slate-600 p-2 cursor-pointer transition-colors ${selectedTrackId === track.id
+                    ? "bg-slate-600"
+                    : "hover:bg-slate-600"
+                    }`}
                   onClick={() => setSelectedTrackId(track.id)}
                   style={{ height: `${track.height}px` }}
                 >
@@ -714,11 +715,10 @@ export default function Timeline({
                           e.stopPropagation();
                           handleToggleMute(track.id);
                         }}
-                        className={`p-1 rounded text-xs ${
-                          track.isMuted
-                            ? "bg-red-600 text-white"
-                            : "bg-slate-600 text-slate-300"
-                        }`}
+                        className={`p-1 rounded text-xs ${track.isMuted
+                          ? "bg-red-600 text-white"
+                          : "bg-slate-600 text-slate-300"
+                          }`}
                         title="Mute"
                       >
                         <Volume2 className="w-3 h-3" />
@@ -728,11 +728,10 @@ export default function Timeline({
                           e.stopPropagation();
                           handleToggleVisibility(track.id);
                         }}
-                        className={`p-1 rounded text-xs ${
-                          track.isVisible
-                            ? "bg-slate-600 text-slate-300"
-                            : "bg-slate-500 text-slate-400"
-                        }`}
+                        className={`p-1 rounded text-xs ${track.isVisible
+                          ? "bg-slate-600 text-slate-300"
+                          : "bg-slate-500 text-slate-400"
+                          }`}
                         title="Toggle Visibility"
                       >
                         <Eye className="w-3 h-3" />
@@ -742,11 +741,10 @@ export default function Timeline({
                           e.stopPropagation();
                           handleToggleLock(track.id);
                         }}
-                        className={`p-1 rounded text-xs ${
-                          track.isLocked
-                            ? "bg-yellow-600 text-white"
-                            : "bg-slate-600 text-slate-300"
-                        }`}
+                        className={`p-1 rounded text-xs ${track.isLocked
+                          ? "bg-yellow-600 text-white"
+                          : "bg-slate-600 text-slate-300"
+                          }`}
                         title="Lock"
                       >
                         <Lock className="w-3 h-3" />
@@ -774,11 +772,10 @@ export default function Timeline({
               {tracks.map((track) => (
                 <div
                   key={track.id}
-                  className={`border-b border-slate-600 relative transition-colors ${
-                    dragOverTrackId === track.id
-                      ? "bg-slate-700 border-accent"
-                      : "bg-slate-800"
-                  }`}
+                  className={`border-b border-slate-600 relative transition-colors ${dragOverTrackId === track.id
+                    ? "bg-slate-700 border-accent"
+                    : "bg-slate-800"
+                    }`}
                   style={{ height: `${track.height}px` }}
                   ref={track.id === tracks[0]?.id ? timelineRef : null}
                   onClick={handleTimelineClick}
@@ -797,11 +794,10 @@ export default function Timeline({
                           draggable
                           onDragStart={(e) => handleClipDragStart(e, clip.id)}
                           onDragEnd={handleClipDragEnd}
-                          className={`absolute top-1 bottom-1 rounded bg-opacity-80 border cursor-move hover:border-white transition-colors overflow-hidden group ${
-                            draggedClipId === clip.id
-                              ? "border-yellow-400 opacity-75 shadow-lg shadow-yellow-400"
-                              : "border-slate-400"
-                          }`}
+                          className={`absolute top-1 bottom-1 rounded bg-opacity-80 border cursor-move hover:border-white transition-colors overflow-hidden group ${draggedClipId === clip.id
+                            ? "border-yellow-400 opacity-75 shadow-lg shadow-yellow-400"
+                            : "border-slate-400"
+                            }`}
                           style={{
                             left: `${clip.startTime * pixelsPerSecond}px`,
                             width: `${clipWidth}px`,

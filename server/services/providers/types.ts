@@ -5,8 +5,8 @@
 
 // ============ PROVIDER TYPES ============
 
-export type ImageProvider = "nanobanana" | "dalle" | "midjourney";
-export type VideoProvider = "flow" | "sora" | "kling" | "whan";
+export type ImageProvider = "nanobanana" | "dalle" | "midjourney" | "replicate" | "apiyi";
+export type VideoProvider = "flow" | "sora" | "kling" | "whan" | "replicate";
 
 export interface ProviderConfig {
   enabled: boolean;
@@ -67,6 +67,9 @@ export interface ImageGenerationParams {
   negativePrompt?: string;
   seed?: number;
   count?: number;
+  projectId?: number;
+  userId?: string;
+  imageInputs?: string[];
 }
 
 export interface ImageGenerationResult extends GenerationResult {
@@ -81,12 +84,15 @@ export interface ImageGenerationResult extends GenerationResult {
 export interface VideoGenerationParams {
   prompt: string;
   keyframeUrl?: string;
+  input_image_url?: string;
   duration: number; // seconds
   resolution: "720p" | "1080p" | "4k";
   fps: 24 | 30 | 60;
   style?: string;
   negativePrompt?: string;
   seed?: number;
+  projectId?: number;
+  userId?: string;
 }
 
 export interface VideoGenerationResult extends GenerationResult {
@@ -117,6 +123,14 @@ export const IMAGE_PROVIDER_PRICING: Record<ImageProvider, Record<string, number
     "standard": 0.01, // per image (approximate)
     "premium": 0.02,
   },
+  replicate: {
+    "standard": 0.005, // Flux Schnell (approximate)
+    "premium": 0.01, // Flux Dev
+  },
+  apiyi: {
+    "standard": 0.04, // Estimated
+    "premium": 0.08,
+  },
 };
 
 export const VIDEO_PROVIDER_PRICING: Record<VideoProvider, Record<string, number>> = {
@@ -139,6 +153,11 @@ export const VIDEO_PROVIDER_PRICING: Record<VideoProvider, Record<string, number
     "720p_per_minute": 0.06,
     "1080p_per_minute": 0.11,
     "4k_per_minute": 0.22,
+  },
+  replicate: {
+    "720p_per_minute": 0.04,
+    "1080p_per_minute": 0.08,
+    "4k_per_minute": 0.15,
   },
 };
 
@@ -228,5 +247,25 @@ export const PROVIDER_CAPABILITIES: Record<
     supportsSeed: true,
     maxConcurrentRequests: 5,
     averageProcessingTime: 50000,
+  },
+  replicate: {
+    imageResolutions: ["1024x1024", "1024x1792", "1792x1024", "512x512", "768x768"],
+    videoResolutions: ["720p", "1080p", "4k"],
+    maxDuration: 120,
+    supportsKeyframe: true,
+    supportsNegativePrompt: true,
+    supportsSeed: true,
+    maxConcurrentRequests: 10,
+    averageProcessingTime: 40000,
+  },
+  apiyi: {
+    imageResolutions: ["1024x1024", "1024x1792", "1792x1024"],
+    videoResolutions: [],
+    maxDuration: 0,
+    supportsKeyframe: false,
+    supportsNegativePrompt: false, // Standard OpenAI format doesn't explicitly support negative prompt in top-level usually, depends on model implementation behind proxy
+    supportsSeed: false,
+    maxConcurrentRequests: 5,
+    averageProcessingTime: 20000,
   },
 };
