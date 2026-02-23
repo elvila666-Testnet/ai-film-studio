@@ -3,12 +3,10 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json ./
-
 # Install pnpm and dependencies
 RUN npm install -g pnpm@9.15.0
-RUN pnpm install --no-frozen-lockfile
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY . .
@@ -25,10 +23,10 @@ WORKDIR /app
 RUN npm install -g pnpm@9.15.0
 
 # Copy package files
-COPY package.json ./
+COPY package.json pnpm-lock.yaml ./
 
 # Install production dependencies only
-RUN pnpm install --prod --no-frozen-lockfile
+RUN pnpm install --prod --frozen-lockfile
 
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist

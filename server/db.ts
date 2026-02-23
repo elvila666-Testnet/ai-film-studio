@@ -1,9 +1,6 @@
-import { eq, and, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
-import { InsertUser, users, projects, projectContent, storyboardImages, referenceImages, generatedVideos, editorProjects, editorClips, editorTracks, editorExports, editorComments, InsertProjectContent, InsertEditorProject, InsertEditorClip, InsertEditorTrack, InsertEditorExport, InsertEditorComment, animaticConfigs, InsertAnimaticConfig, storyboardFrameOrder, storyboardFrameHistory, storyboardFrameNotes, modelConfigs, InsertModelConfig, userModelFavorites, InsertUserModelFavorite } from "../drizzle/schema";
 import { ENV } from './_core/env';
-import { randomUUID } from "node:crypto";
 
 
 let _db: any = null;
@@ -18,7 +15,7 @@ export async function getDb() {
         console.log("[Database] Initializing connection pool...");
 
         // Handle Cloud Run Unix Sockets
-        if (dbUrl.includes('unix_socket=')) {
+        if (dbUrl.includes('unix_socket=') || dbUrl.includes('socketPath=')) {
           // Use http scheme and dummy host for easier parsing of the URI
           const url = new URL(dbUrl.replace('mysql://', 'http://').replace('@/', '@localhost/'));
           const socketPath = url.searchParams.get('unix_socket') || url.searchParams.get('socketPath');
@@ -173,11 +170,7 @@ export async function getDb() {
 // BRAND MANAGEMENT FUNCTIONS
 // ============================================================================
 
-import { brands, characters } from "../drizzle/schema";
-
-/**
- * Create a new brand for a user
- */
+// BRAND MANAGEMENT FUNCTIONS
 
 
 /**
@@ -264,8 +257,6 @@ import { brands, characters } from "../drizzle/schema";
 
 
 
-
-import { repairSchema } from "./db/repair";
 
 // ... existing code ...
 

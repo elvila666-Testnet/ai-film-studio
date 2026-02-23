@@ -56,7 +56,7 @@ export async function repairSchema() {
                 console.log(`[Repair] Added column ${col.name} to projectContent`);
             } catch (err: any) {
                 if (!err.message.includes("Duplicate column name")) {
-                    console.warn(`[Repair] Error adding ${col.name} to projectContent:`, err.message);
+                    console.warn(`[Repair] Error adding ${col.name} to projectContent:`, err.message, err.cause || "");
                 }
             }
         }
@@ -70,11 +70,12 @@ export async function repairSchema() {
 
         for (const col of modelConfigsColumns) {
             try {
+                // First check if column exists to be extra safe
                 await db.execute(sql.raw(`ALTER TABLE \`modelConfigs\` ADD COLUMN \`${col.name}\` ${col.type}`));
                 console.log(`[Repair] Added column ${col.name} to modelConfigs`);
             } catch (err: any) {
                 if (!err.message.includes("Duplicate column name")) {
-                    console.warn(`[Repair] Error adding ${col.name} to modelConfigs:`, err.message);
+                    console.warn(`[Repair] Error adding ${col.name} to modelConfigs:`, err.message, err.cause || "");
                 }
             }
         }

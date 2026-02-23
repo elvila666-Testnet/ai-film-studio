@@ -1,10 +1,8 @@
-import { users, projects, projectContent, storyboardImages, referenceImages, generatedVideos, editorProjects, editorClips, editorTracks, editorExports, editorComments, animaticConfigs, storyboardFrameOrder, storyboardFrameHistory, storyboardFrameNotes, modelConfigs, userModelFavorites, brands, characters, InsertUser, InsertProjectContent, InsertEditorProject, InsertEditorClip, InsertEditorTrack, InsertEditorExport, InsertEditorComment, InsertAnimaticConfig, InsertModelConfig, InsertUserModelFavorite } from "../../drizzle/schema";
+import { modelConfigs, InsertModelConfig } from "../../drizzle/schema";
 import { eq, and, sql } from "drizzle-orm";
 
 import { getDb } from "../db";
 import { repairSchema } from "./repair";
-
-import * as schema from "../../drizzle/schema";
 
 export * from "../../drizzle/schema";
 
@@ -95,9 +93,6 @@ export async function setActiveModel(id: number) {
 export async function initializeModels() {
   const db = await getDb();
   if (!db) return;
-
-  // Run schema repairs before seeding models
-  await repairSchema();
 
   console.log("[Database] Checking modelConfigs table...");
   try {
