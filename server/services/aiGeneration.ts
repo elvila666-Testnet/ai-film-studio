@@ -521,17 +521,22 @@ export async function generateStoryboardImage(prompt: string, modelId?: string, 
  * Generate a storyboard GRID image (3×4 layout) using landscape aspect ratio
  * Uses 1792x1024 → maps to 16:9 landscape in provider
  */
-export async function generateGridImage(prompt: string, projectId?: number, userId?: string, characterReferenceUrl?: string): Promise<string> {
+export async function generateGridImage(prompt: string, projectId?: number, userId?: string, characterReferenceUrl?: string, setReferenceUrl?: string): Promise<string> {
   const geminiModelId = "imagen-4.0-generate-001"; // Always Nanobanana Pro
 
   try {
+    // Assemble all reference images (character + set)
+    const imageInputs: string[] = [];
+    if (characterReferenceUrl) imageInputs.push(characterReferenceUrl);
+    if (setReferenceUrl) imageInputs.push(setReferenceUrl);
+
     const result = await geminiProvider.generateImage({
       prompt,
       resolution: "1792x1024", // Standardize to 16:9 Landscape for cinematic 16:9 panels (3 cols x 4 rows)
       quality: "hd",
       projectId,
       userId,
-      ...(characterReferenceUrl ? { imageInputs: [characterReferenceUrl] } : {}),
+      ...(imageInputs.length > 0 ? { imageInputs } : {}),
     }, geminiModelId);
     const rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
     const url = await ensurePermanentUrl(rawUrl, "grids");

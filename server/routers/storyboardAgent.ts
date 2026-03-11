@@ -23,6 +23,10 @@ export const storyboardAgentRouter = router({
             const lockedChar = await getLockedCharacter(input.projectId);
             const characterReferenceUrl = lockedChar ? lockedChar.imageUrl : undefined;
 
+            // TODO: Retrieve set reference image from Art Department
+            // This will be populated once the Art Department generates the primary set
+            let setReferenceUrl: string | undefined = undefined;
+
             // Stage 1: Parse the scene text into exactly 12 panels
             const prompt = `You are a professional storyboard artist. Take the following narrative scene and break it down into exactly 12 consecutive visual shots to form a 3x4 storyboard grid.
 
@@ -91,17 +95,19 @@ The grid MUST consist of EXACTLY 12 IDENTICAL RECTANGULAR PANELS arranged in 3 r
 
             masterPrompt += `
 [VISUAL CONSISTENCY & STYLE]
-- Character: Maintain 100% identity lock for all characters across all 12 panels.
-- Lighting/Color: Apply a consistent ${visualStyle} grade and lighting scheme to the entire sheet.
+- Character: Maintain 100% identity lock for all characters across all 12 panels. Use provided character reference as definitive visual identity.
+- Environment: Ground all compositions in provided set reference. Respect architectural, material, and atmospheric qualities.
+- Lighting/Color: Apply consistent ${visualStyle} grade and lighting scheme to entire sheet.
 - Composition: Center-weighted compositions for each cell.
-- FINAL OUTPUT: A single, professionally organized 1792×1024 technical storyboard sheet.`
+- REFERENCE IMAGES: Use character and set reference images as foundational visual anchors for all 12 panels.
+- FINAL OUTPUT: A single, professionally organized 1792x1024 technical storyboard sheet.`
 
             // We offload generation so we don't block the UI
             (async () => {
                 const uniqueShotNumber = 1000 + Math.floor(Math.random() * 10000); // 1000+ maps to grid paginated pages
                 try {
                     console.log(`[StoryboardAgent] Triggering 3x4 Grid Generation...`);
-                    const imageUrl = await generateGridImage(masterPrompt, input.projectId, ctx.user.id.toString(), characterReferenceUrl);
+                    const imageUrl = await generateGridImage(masterPrompt, input.projectId, ctx.user.id.toString(), characterReferenceUrl, setReferenceUrl);
                     await saveStoryboardImage(input.projectId, uniqueShotNumber, imageUrl, masterPrompt);
                     console.log(`[StoryboardAgent] Grid Materialized -> ${imageUrl}`);
                 } catch (err) {
