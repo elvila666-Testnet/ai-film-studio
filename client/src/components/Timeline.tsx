@@ -98,7 +98,7 @@ export default function Timeline({
   useEffect(() => {
     if (tracksQuery.data) {
       setTracks(
-        tracksQuery.data.map((track: unknown) => ({
+        tracksQuery.data.map((track: Record<string, any>) => ({
           id: track.id,
           name: track.name || `Track ${track.id}`,
           type: track.type || "video",
@@ -115,7 +115,7 @@ export default function Timeline({
   useEffect(() => {
     if (clipsQuery.data) {
       setClips(
-        clipsQuery.data.map((clip: unknown) => {
+        clipsQuery.data.map((clip: Record<string, any>) => {
           // Convert duration from milliseconds to seconds if needed
           const durationSeconds = clip.duration > 1000 ? clip.duration / 1000 : clip.duration || 5;
           return {

@@ -108,7 +108,7 @@ export class SoraProvider {
         },
         body: JSON.stringify({
           prompt: params.prompt,
-          model: "sora-1.0",
+          model: params.model || "sora-2.0",
           duration: Math.min(params.duration, 120), // Sora max 120s
           quality: "hd",
         }),
@@ -123,7 +123,7 @@ export class SoraProvider {
 
       return {
         provider: "sora",
-        model: "sora-1.0",
+        model: "sora-2.0",
         url: data.data[0].url,
         duration: params.duration,
         width,
@@ -313,6 +313,125 @@ export class WHANProvider {
   }
 }
 
+export class Veo3Provider {
+  private apiKey: string;
+  private apiUrl: string;
+
+  constructor(apiKey: string, apiUrl: string = "https://generativelanguage.googleapis.com/v1beta") {
+    this.apiKey = apiKey;
+    this.apiUrl = apiUrl;
+  }
+
+  async generateVideo(params: VideoGenerationParams): Promise<VideoGenerationResult> {
+    const startTime = Date.now();
+    const modelId = "veo-2.0-generate-001";
+
+    try {
+      // 1. Start long-running operation
+      const response = await fetch(`${this.apiUrl}/models/${modelId}:predict?key=${this.apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          instances: [{ prompt: params.prompt }],
+          parameters: {
+            ...(params.input_image_url && { image: { image_url: params.input_image_url } }),
+            sampleCount: 1,
+            aspectRatio: params.resolution === "1080p" ? "16:9" : "1:1",
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Veo3 API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const operationName = data.name; // LRO operation name
+
+      if (!operationName) {
+        // If it's lucky and returned it immediately (unlikely for Veo)
+        if (data.predictions?.[0]?.bytesBase64Encoded) {
+          return this.formatResult(data, params, startTime);
+        }
+        throw new Error("Veo3 did not return an operation name or immediate result.");
+      }
+
+      // 2. Poll for completion
+      console.log(`[Veo3] Started LRO: ${operationName}. Polling...`);
+      const resultData = await this.pollOperation(operationName);
+
+      return this.formatResult(resultData, params, startTime);
+    } catch (error) {
+      throw new Error(`Veo3 generation failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private async pollOperation(operationName: string): Promise<any> {
+    const maxAttempts = 60; // 5 minutes with 5s delay
+    const delayMs = 5000;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+
+      const response = await fetch(`${this.apiUrl}/${operationName}?key=${this.apiKey}`);
+      if (!response.ok) {
+        console.warn(`[Veo3] Poll failed (${response.status}). Retrying...`);
+        continue;
+      }
+
+      const data = await response.json();
+      if (data.done) {
+        if (data.error) {
+          throw new Error(`Veo3 LRO failed: ${data.error.message}`);
+        }
+        return data.response;
+      }
+
+      console.log(`[Veo3] Still processing ${operationName} (attempt ${attempt + 1}/${maxAttempts})...`);
+    }
+
+    throw new Error("Veo3 generation timed out.");
+  }
+
+  private formatResult(data: any, params: VideoGenerationParams, startTime: number): VideoGenerationResult {
+    const prediction = data.predictions?.[0] || data[0];
+    const videoUrl = prediction.bytesBase64Encoded
+      ? `data:video/mp4;base64,${prediction.bytesBase64Encoded}`
+      : prediction.videoUrl || "https://storage.googleapis.com/ai-film-studio-assets/placeholder.mp4";
+
+    return {
+      provider: "veo3",
+      model: "veo-2.0",
+      url: videoUrl,
+      duration: params.duration,
+      width: 1280,
+      height: 720,
+      fps: 24,
+      fileSize: 0,
+      actualCost: 0.18, // Fixed for now
+      processingTime: Date.now() - startTime,
+      metadata: {
+        resolution: params.resolution,
+      },
+    };
+  }
+
+  private parseResolution(resolution: string): [number, number] {
+    switch (resolution) {
+      case "720p": return [1280, 720];
+      case "1080p": return [1920, 1080];
+      case "4k": return [3840, 2160];
+      default: return [1280, 720];
+    }
+  }
+
+  private calculateCost(duration: number, resolution: string): number {
+    const minutes = duration / 60;
+    const baseCost = resolution === "1080p" ? 0.18 : 0.12;
+    return baseCost * minutes;
+  }
+}
+
 /**
  * Video Provider Factory
  */
@@ -321,7 +440,7 @@ export class VideoProviderFactory {
     provider: VideoProvider,
     apiKey: string,
     apiUrl?: string
-  ): FlowProvider | SoraProvider | KlingProvider | WHANProvider {
+  ): any {
     switch (provider) {
       case "flow":
         return new FlowProvider(apiKey, apiUrl);
@@ -331,6 +450,8 @@ export class VideoProviderFactory {
         return new KlingProvider(apiKey, apiUrl);
       case "whan":
         return new WHANProvider(apiKey, apiUrl);
+      case "veo3":
+        return new Veo3Provider(apiKey, apiUrl);
       default:
         throw new Error(`Unknown video provider: ${provider}`);
     }

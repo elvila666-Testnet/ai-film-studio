@@ -1,9 +1,12 @@
-import { users, projects, projectContent, storyboardImages, referenceImages, generatedVideos, editorProjects, editorClips, editorTracks, editorExports, editorComments, animaticConfigs, storyboardFrameOrder, storyboardFrameHistory, storyboardFrameNotes, modelConfigs, userModelFavorites, brands, characters, InsertUser, InsertProjectContent, InsertEditorProject, InsertEditorClip, InsertEditorTrack, InsertEditorExport, InsertEditorComment, InsertAnimaticConfig, InsertModelConfig, InsertUserModelFavorite } from "../../drizzle/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import {
+  storyboardImages,
+  storyboardFrameOrder,
+  storyboardFrameHistory,
+  storyboardFrameNotes,
+} from "../../drizzle/schema";
 
 import { getDb } from "../db";
-
-import * as schema from "../../drizzle/schema";
 
 export * from "../../drizzle/schema";
 
@@ -144,7 +147,7 @@ export async function getStoryboardFrameOrder(projectId: number) {
   if (!db) throw new Error("Database not available");
 
   const result = await db.select().from(storyboardFrameOrder).where(eq(storyboardFrameOrder.projectId, projectId));
-  return result.sort((a: any, b: any) => a.displayOrder - b.displayOrder);
+  return result.sort((a: typeof storyboardFrameOrder.$inferSelect, b: typeof storyboardFrameOrder.$inferSelect) => a.displayOrder - b.displayOrder);
 }
 
 export async function updateFrameOrder(projectId: number, frameOrders: Array<{ shotNumber: number; displayOrder: number }>) {
@@ -182,7 +185,7 @@ export async function createFrameHistoryVersion(projectId: number, shotNumber: n
   const existing = await db.select().from(storyboardFrameHistory)
     .where(and(eq(storyboardFrameHistory.projectId, projectId), eq(storyboardFrameHistory.shotNumber, shotNumber)));
 
-  const maxVersion = Math.max(...existing.map((e: any) => e.versionNumber), 0);
+  const maxVersion = Math.max(...existing.map((e: typeof storyboardFrameHistory.$inferSelect) => e.versionNumber), 0);
   const newVersion = maxVersion + 1;
 
   // Mark previous active as inactive

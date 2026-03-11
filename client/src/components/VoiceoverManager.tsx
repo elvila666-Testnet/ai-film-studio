@@ -6,7 +6,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -314,6 +314,7 @@ export function VoiceoverManager({ brandId, projectId }: VoiceoverManagerProps) 
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create Voice Profile</DialogTitle>
+            <DialogDescription className="sr-only">Configure a new voice profile for voiceover generation</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -388,6 +389,7 @@ export function VoiceoverManager({ brandId, projectId }: VoiceoverManagerProps) 
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Generate Voiceover</DialogTitle>
+            <DialogDescription className="sr-only">Enter script text and settings to generate a voiceover</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">

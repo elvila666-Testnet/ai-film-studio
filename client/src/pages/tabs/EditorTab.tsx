@@ -162,7 +162,7 @@ export default function EditorTab({ projectId }: EditorTabProps) {
           </div>
 
           <div className="flex flex-1 overflow-hidden p-4 gap-4">
-            <ManifestSidebar clips={clips} onUpload={handleFileUpload} onSelect={setSelectedClipId} selectedId={selectedClipId} />
+            <ManifestSidebar projectId={projectId} clips={clips} onUpload={handleFileUpload} onSelect={setSelectedClipId} selectedId={selectedClipId} />
             <div className="flex-1 glass-panel rounded-[2rem] flex flex-col overflow-hidden relative group">
               <div className="absolute top-6 left-6 z-10 flex gap-2">
                 <div className="production-label bg-black/40 backdrop-blur px-3 py-1 rounded-full border border-white/10">Reference Monitor</div>

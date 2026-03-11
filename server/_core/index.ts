@@ -1,4 +1,3 @@
-import "dotenv/config";
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -59,6 +58,7 @@ function getClientPath() {
 }
 
 const clientPath = getClientPath();
+console.log(`[Server] Client static files path: ${clientPath || "NOT FOUND"}`);
 
 // Serve static
 if (clientPath) {

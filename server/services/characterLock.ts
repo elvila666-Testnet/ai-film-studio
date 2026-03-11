@@ -31,11 +31,33 @@ export function buildLockedPrompt(
   lockConfig: CharacterLockConfig
 ): LockedGenerationPrompt {
   const characterReference = `
-CRITICAL - CHARACTER LOCK:
-- Use this exact character appearance: ${lockConfig.characterDescription}
-- Reference image: ${lockConfig.characterImageUrl}
-- Maintain identical facial features, clothing style, and appearance across all shots
-- DO NOT vary the character's appearance, expression, or styling
+CRITICAL - HARD CHARACTER LOCK (MANDATORY):
+- Use exact face reconstruction from the locked character reference image: ${lockConfig.characterImageUrl}
+- Character Identity: ${lockConfig.characterDescription}
+- Do not alter facial structure.
+- Identity weight priority over: Lighting, Cinematic style, Dramatic composition, Lens distortion.
+- If conflict occurs → preserve face accuracy.
+
+MANDATORY CHARACTER SPECS:
+- Reconstruct exact facial geometry from the reference:
+  - Same eye distance
+  - Same nose width
+  - Same mustache density and length (if applicable)
+  - Same hairline
+  - Same ear shape
+  - Same jawline
+  - Same skin tone
+  - Same eyebrow thickness
+  - Same cheekbone structure
+- Same clothing/uniform proportions as reference
+- Same accessories layout
+- Same collar structure
+- Same shoulder width
+- No stylization. No beautification. No reinterpretation.
+- No character reinterpretation
+- No facial variation
+- No hairstyle change
+- No body proportion shift
 `;
 
   const productReference = lockConfig.productReferenceUrl
@@ -62,9 +84,9 @@ ${productReference}
 ${styleGuidelines}
 
 GENERATION RULES:
-1. Character must be IDENTICAL to reference image
+1. Character must be IDENTICAL to reference image (HARD IDENTITY LOCK)
 2. Product must be IDENTICAL to reference image
-3. Do not create variations or alternative interpretations
+3. Do not create variations or alternative interpretations of facial features
 4. Maintain exact consistency with previous shots
 5. Use reference images as strict visual anchors
 `;

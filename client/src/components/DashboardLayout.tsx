@@ -1,5 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { BrandBrainOverlay } from "./BrandBrain/BrandBrainOverlay";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,7 +30,7 @@ import { Button } from "./ui/button";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Projects", path: "/" },
-  { icon: Palette, label: "Brand Intelligence", path: "/brand" },
+  { icon: Palette, label: "Brand Studio", path: "/brand" },
   { icon: Users, label: "Users", path: "/users" },
 ];
 
@@ -244,21 +245,23 @@ function DashboardLayoutContent({
       </div>
 
       <SidebarInset>
-        {isMobile && (
-          <div className="flex border-b h-14 items-center justify-between bg-background/95 px-2 backdrop-blur supports-[backdrop-filter]:backdrop-blur sticky top-0 z-40">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="h-9 w-9 rounded-lg bg-background" />
-              <div className="flex items-center gap-3">
-                <div className="flex flex-col gap-1">
-                  <span className="tracking-tight text-foreground">
-                    {activeMenuItem?.label ?? "Menu"}
-                  </span>
-                </div>
-              </div>
-            </div>
+        <header className="flex h-16 shrink-0 items-center justify-between px-4 border-b border-white/5 bg-black/20 backdrop-blur-md sticky top-0 z-40">
+          <div className="flex items-center gap-4">
+            {isMobile && <SidebarTrigger className="h-9 w-9" />}
+            {!isMobile && (
+              <h1 className="text-sm font-bold uppercase tracking-widest text-slate-400">
+                {activeMenuItem?.label ?? "Dashboard"}
+              </h1>
+            )}
           </div>
-        )}
-        <main className="flex-1 p-4">{children}</main>
+
+          <div className="flex items-center gap-4">
+            {/* BRAND BRAIN GLOBAL TRIGGER */}
+            <BrandBrainOverlay />
+          </div>
+        </header>
+
+        <main className="flex-1 p-6 overflow-y-auto">{children}</main>
       </SidebarInset>
     </>
   );

@@ -22,7 +22,7 @@ if (-not $PROJECT_ID) {
 $REGION = "us-central1"
 $SERVICE_NAME = "ai-film-studio"
 $DB_INSTANCE = "ai-film-studio-db"
-$STORAGE_BUCKET = "ai-film-studio-media"
+$STORAGE_BUCKET = "ai-film-studio-assets"
 
 Write-Host "=== AI Film Studio Deployment Script ===" -ForegroundColor Yellow
 Write-Host "Project ID: $PROJECT_ID"

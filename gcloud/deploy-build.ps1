@@ -22,11 +22,8 @@ Write-Host "=== AI Film Studio Deployment (Cloud Build) ==="
 Write-Host "Project ID: $PROJECT_ID"
 
 # Get git commit info
-
-$COMMIT_SHA = git rev-parse HEAD
-
 # Submit build
 Write-Host "INFO: Submitting Cloud Build job..."
-gcloud builds submit --config gcloud/cloudbuild.yaml --project $PROJECT_ID --substitutions COMMIT_SHA=$COMMIT_SHA
+gcloud builds submit --config gcloud/cloudbuild.yaml --project $PROJECT_ID
 
 Write-Host "INFO: Build submitted. Check Cloud Console for progress."

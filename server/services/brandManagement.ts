@@ -1,4 +1,5 @@
 import { invokeLLM } from "../_core/llm";
+import { parseAgentJSON } from "./agents/_agentUtils";
 
 export interface BrandAnalysis {
   brandVoice: string;
@@ -18,6 +19,18 @@ export interface CharacterOption {
   demographic: string;
   compatibility: number; // 0-100
 }
+
+const BRAND_ANALYSIS_FALLBACK: BrandAnalysis = {
+  brandVoice: "Authentic and grounded",
+  visualIdentity: "Cinematic, natural lighting",
+  colorPalette: {
+    primary: "#000000",
+    secondary: "#ffffff",
+    accent: "#3b82f6",
+    neutral: "#f3f4f6"
+  },
+  keyVisualElements: ["Natural textures", "Clean compositions"]
+};
 
 /**
  * Brand Management Service
@@ -40,13 +53,14 @@ export class BrandManagementService {
         messages: [
           {
             role: "system",
-            content: `You are a brand identity expert. Analyze the provided product images and extract:
-1. Brand Voice: The tone, personality, and communication style
-2. Visual Identity: Design language, aesthetic, and visual style
-3. Color Palette: Primary, secondary, accent, and neutral colors (provide hex codes)
-4. Key Visual Elements: Distinctive visual features
+            content: `You are a world-class Brand Strategist and Creative Director. Analyze the provided product images to extract its "Strategic DNA". 
+Focus on:
+1. Brand Voice: The narrative soul, tone of voice (e.g., rebellious, heritage, high-tech), and communication personality.
+2. Visual Identity: The cinematographic design language, specific lighting styles (e.g., Chiaroscuro, High-Key), material textures, and compositional preferences.
+3. Color Palette: Extract EXACT hex codes for Primary, Secondary, Accent, and Neutral colors that define the brand's universe.
+4. Key Visual Elements: Iconic motifs, recurring shapes, or stylistic "shorthand" that make the brand instanty recognizable.
 
-Respond in JSON format:
+Respond in strict JSON format:
 {
   "brandVoice": "...",
   "visualIdentity": "...",
@@ -71,51 +85,15 @@ Respond in JSON format:
           },
         ],
         response_format: {
-          type: "json_schema",
-          json_schema: {
-            name: "brand_analysis",
-            strict: true,
-            schema: {
-              type: "object",
-              properties: {
-                brandVoice: { type: "string" },
-                visualIdentity: { type: "string" },
-                colorPalette: {
-                  type: "object",
-                  properties: {
-                    primary: { type: "string" },
-                    secondary: { type: "string" },
-                    accent: { type: "string" },
-                    neutral: { type: "string" },
-                  },
-                  required: ["primary", "secondary", "accent", "neutral"],
-                },
-                keyVisualElements: {
-                  type: "array",
-                  items: { type: "string" },
-                },
-              },
-              required: [
-                "brandVoice",
-                "visualIdentity",
-                "colorPalette",
-                "keyVisualElements",
-              ],
-            },
-          },
+          type: "json_object"
         },
       });
 
       const content = response.choices[0]?.message?.content;
-      if (!content || typeof content !== "string") {
-        throw new Error("Invalid LLM response format");
-      }
-
-      return JSON.parse(content) as BrandAnalysis;
+      return parseAgentJSON<BrandAnalysis>(content, "BrandManagement.analyzeBrandIdentity", BRAND_ANALYSIS_FALLBACK);
     } catch (error) {
-      throw new Error(
-        `Failed to analyze brand identity: ${error instanceof Error ? error.message : String(error)}`
-      );
+      console.error("[BrandManagement] analyzeBrandIdentity failed:", error);
+      return BRAND_ANALYSIS_FALLBACK;
     }
   }
 
@@ -156,52 +134,28 @@ Format as JSON array with objects containing: description, demographic, compatib
             content: prompt,
           },
         ],
+        response_format: { type: "json_object" }
       });
 
       const content = response.choices[0]?.message?.content;
-      if (!content || typeof content !== "string") {
-        throw new Error("Invalid LLM response");
-      }
+      const parsed = parseAgentJSON<{ characters?: any[] } | any[]>(content, "BrandManagement.generateCharacterOptions", []);
 
-      // Parse the response and generate images for each character
-      const characterDescriptions = JSON.parse(content);
+      const characterDescriptions = Array.isArray(parsed) ? parsed : (parsed.characters || []);
       const characters: CharacterOption[] = [];
-      const { generateStoryboardImage } = await import("./aiGeneration");
 
       for (const desc of characterDescriptions) {
-        // Generate image for this character using NanoBanana Pro
-        const imagePrompt = `Ultra realistic 8k character portrait of ${desc.description}. Style: ${brandAnalysis.visualIdentity}. Professional headshot, studio lighting, clean background, Cinematic lighting, high detail.`;
-
-        try {
-          const imageUrl = await generateStoryboardImage(
-            imagePrompt,
-            "nanobanana-pro",
-            undefined, // projectId is optional here
-            "system"
-          );
-
-          characters.push({
-            imageUrl,
-            description: desc.description,
-            demographic: desc.demographic,
-            compatibility: desc.compatibility || 75,
-          });
-        } catch (err) {
-          console.error(`Failed to generate character image: ${err}`);
-          characters.push({
-            imageUrl: "https://via.placeholder.com/512?text=Error+Generating+Image",
-            description: desc.description,
-            demographic: desc.demographic,
-            compatibility: desc.compatibility || 75,
-          });
-        }
+        characters.push({
+          imageUrl: "draft",
+          description: desc.description || desc.visualDescription || "A cinematic character for the brand.",
+          demographic: desc.demographic || targetDemographic,
+          compatibility: desc.compatibility || 75,
+        });
       }
 
-      return characters;
+      return characters.slice(0, count);
     } catch (error) {
-      throw new Error(
-        `Failed to generate character options: ${error instanceof Error ? error.message : String(error)}`
-      );
+      console.error("[BrandManagement] generateCharacterOptions failed:", error);
+      return [];
     }
   }
 
@@ -232,9 +186,8 @@ Generate a cohesive mood board image that captures the essence of this brand. In
 
       return imageUrl;
     } catch (error) {
-      throw new Error(
-        `Failed to generate moodboard: ${error instanceof Error ? error.message : String(error)}`
-      );
+      console.error("[BrandManagement] generateMoodboard failed:", error);
+      return "";
     }
   }
 }

@@ -282,27 +282,27 @@ async function generateVisualReferences(
 /**
  * Parse color palette from LLM response
  */
-function parseColorPalette(data: Record<string, unknown>): ColorPalette {
+function parseColorPalette(data: Record<string, any>): ColorPalette {
   return {
     primary: parseColor(data.primary || { hex: "#0066CC", name: "Primary Blue" }),
     secondary: parseColor(data.secondary || { hex: "#FF6B35", name: "Secondary Orange" }),
     accent: parseColor(data.accent || { hex: "#FFD700", name: "Accent Gold" }),
-    neutral: (data.neutrals || []).map(parseColor),
-    backgroundColors: (data.backgroundColors || []).map(parseColor),
-    psychology: data.psychology || "Professional and trustworthy",
+    neutral: Array.isArray(data.neutrals) ? data.neutrals.map(parseColor) : [],
+    backgroundColors: Array.isArray(data.backgroundColors) ? data.backgroundColors.map(parseColor) : [],
+    psychology: String(data.psychology || "Professional and trustworthy"),
   };
 }
 
 /**
  * Parse individual color
  */
-function parseColor(data: Record<string, unknown>): Color {
+function parseColor(data: Record<string, any>): Color {
   return {
-    hex: data.hex || "#000000",
-    rgb: hexToRgb(data.hex || "#000000"),
-    name: data.name || "Color",
-    usage: data.usage || "Primary use",
-    psychology: data.psychology || "Neutral",
+    hex: String(data.hex || "#000000"),
+    rgb: String(hexToRgb(data.hex || "#000000")),
+    name: String(data.name || "Color"),
+    usage: String(data.usage || "Primary use"),
+    psychology: String(data.psychology || "Neutral"),
   };
 }
 
@@ -318,39 +318,39 @@ function hexToRgb(hex: string): string {
 /**
  * Parse typography from LLM response
  */
-function parseTypography(data: Record<string, unknown>): Typography {
+function parseTypography(data: Record<string, any>): Typography {
   return {
     headingFont: parseFont(data.headingFont || { name: "Montserrat", weight: "Bold" }),
     bodyFont: parseFont(data.bodyFont || { name: "Open Sans", weight: "Regular" }),
     accentFont: parseFont(data.accentFont || { name: "Playfair Display", weight: "Bold" }),
-    hierarchy: data.hierarchy || [],
-    spacing: data.spacing || "1.5rem",
-    lineHeight: data.lineHeight || "1.6",
+    hierarchy: Array.isArray(data.hierarchy) ? data.hierarchy : [],
+    spacing: String(data.spacing || "1.5rem"),
+    lineHeight: String(data.lineHeight || "1.6"),
   };
 }
 
 /**
  * Parse font specification
  */
-function parseFont(data: Record<string, unknown>): Font {
+function parseFont(data: Record<string, any>): Font {
   return {
-    name: data.name || "Arial",
-    weight: data.weight || "Regular",
-    style: data.style || "Normal",
-    characteristics: data.characteristics || "Clean and readable",
-    usage: data.usage || "General use",
+    name: String(data.name || "Arial"),
+    weight: String(data.weight || "Regular"),
+    style: String(data.style || "Normal"),
+    characteristics: String(data.characteristics || "Clean and readable"),
+    usage: String(data.usage || "General use"),
   };
 }
 
 /**
  * Parse composition guidelines
  */
-function parseComposition(data: Record<string, unknown>): CompositionGuidelines {
+function parseComposition(data: Record<string, any>): CompositionGuidelines {
   return {
-    aspectRatios: data.aspectRatios || ["16:9", "1:1", "9:16"],
+    aspectRatios: Array.isArray(data.aspectRatios) ? data.aspectRatios : ["16:9", "1:1", "9:16"],
     gridSystem: String(data.gridSystem || "12-column grid"),
     whitespace: String(data.whitespace || "Generous and intentional"),
-    depthTechniques: data.depthTechniques || ["Layering", "Perspective", "Lighting"],
+    depthTechniques: Array.isArray(data.depthTechniques) ? data.depthTechniques : ["Layering", "Perspective", "Lighting"],
     focusPoints: String(data.focusPoints || "Center and rule of thirds"),
     balanceStyle: (data.balanceStyle || "asymmetrical") as "symmetrical" | "asymmetrical" | "radial",
   };
@@ -359,7 +359,7 @@ function parseComposition(data: Record<string, unknown>): CompositionGuidelines 
 /**
  * Parse textures from LLM response
  */
-function parseTextures(data: Record<string, unknown>): Texture[] {
+function parseTextures(data: any): Texture[] {
   if (!Array.isArray(data)) return [];
 
   return data.map((texture: Record<string, unknown>) => ({

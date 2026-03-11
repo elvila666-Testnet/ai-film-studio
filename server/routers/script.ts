@@ -1,56 +1,102 @@
-
 import { z } from "zod";
 import { router, publicProcedure } from "../_core/trpc";
-import { invokeLLM } from "../_core/llm";
-import { analyzeScriptForCharacters } from "../services/scriptParser";
+import { generateSynopsisFromBrief, generateScriptFromSynopsis, generateScriptFromBrief, refineScriptWithNotes } from "../services/aiGeneration";
+import { getDb, getProjectContent } from "../db";
+import { projectContent } from "../../drizzle/schema";
+import { eq } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
+import { injectBrandDirectives } from "../services/brandService";
+import { logUsage } from "../services/ledgerService";
+import { estimateCost } from "../services/pricingService";
 
 export const scriptRouter = router({
-    generate: publicProcedure
-        .input(
-            z.object({
-                topic: z.string(),
-                genre: z.string().optional(),
-                style: z.string().optional(),
-            })
-        )
-        .mutation(async ({ input }) => {
-            const { topic, genre = "Cinematic", style = "Realistic" } = input;
+    generateSynopsis: publicProcedure
+        .input(z.object({ projectId: z.number(), brief: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+            if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
 
-            const prompt = `Write a movie script about: ${topic}.
-      Genre: ${genre}
-      Visual Style: ${style}
-      
-      Format the output as a standard screenplay with Scene Headings, Action, and Dialogue.
-      Keep it under 3 minutes of screen time.`;
+            const db = await getDb();
+            if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unreachable" });
 
-            try {
-                const response = await invokeLLM({
-                    messages: [{ role: "user", content: prompt }]
-                });
+            const content = await getProjectContent(input.projectId);
+            const globalNotes = content?.globalDirectorNotes ?? undefined;
 
-                const scriptContent = (response.choices?.[0]?.message?.content || "") as string;
+            // Brand Guardian: Proactive Injection
+            const brandInjectedBrief = await injectBrandDirectives(input.projectId, input.brief);
 
-                // Analyze characters immediately
-                const characters = await analyzeScriptForCharacters(scriptContent);
+            const synopsis = await generateSynopsisFromBrief(brandInjectedBrief, globalNotes);
 
-                return {
-                    script: scriptContent,
-                    characters,
-                    metadata: {
-                        topic,
-                        genre,
-                        style
-                    }
-                };
-            } catch (error: unknown) {
-                throw new Error(`Script generation failed: ${error.message}`);
-            }
+            // Save brief and synopsis to project content
+            await db.update(projectContent)
+                .set({ brief: input.brief, synopsis: synopsis })
+                .where(eq(projectContent.projectId, input.projectId));
+
+            // Log usage
+            const cost = estimateCost('gemini-1.5-flash', 1);
+            await logUsage(input.projectId, ctx.user.id.toString(), 'gemini-1.5-flash', cost, 'SYNOPSIS_GENERATION');
+
+            return { synopsis };
         }),
 
-    analyze: publicProcedure
-        .input(z.object({ script: z.string() }))
-        .mutation(async ({ input }) => {
-            const characters = await analyzeScriptForCharacters(input.script);
-            return { characters };
+    generateScript: publicProcedure
+        .input(z.object({ projectId: z.number(), synopsis: z.string().optional(), brief: z.string().optional() }))
+        .mutation(async ({ input, ctx }) => {
+            if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+            const db = await getDb();
+            if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unreachable" });
+
+            const content = await getProjectContent(input.projectId);
+            const globalNotes = content?.globalDirectorNotes ?? undefined;
+
+            let script: string;
+            if (input.synopsis) {
+                const injectedSynopsis = await injectBrandDirectives(input.projectId, input.synopsis);
+                script = await generateScriptFromSynopsis(injectedSynopsis, globalNotes);
+            } else if (input.brief) {
+                const injectedBrief = await injectBrandDirectives(input.projectId, input.brief);
+                script = await generateScriptFromBrief(injectedBrief, globalNotes);
+            } else if (content?.brief) {
+                const injectedBrief = await injectBrandDirectives(input.projectId, content.brief);
+                script = await generateScriptFromBrief(injectedBrief, globalNotes);
+            } else {
+                throw new TRPCError({ code: "BAD_REQUEST", message: "Missing synopsis or brief for script generation" });
+            }
+
+            // Save script to project content
+            await db.update(projectContent)
+                .set({ script: script })
+                .where(eq(projectContent.projectId, input.projectId));
+
+            // Log usage
+            const cost = estimateCost('gemini-1.5-flash', 1);
+            await logUsage(input.projectId, ctx.user.id.toString(), 'gemini-1.5-flash', cost, 'SCRIPT_GENERATION');
+
+            return { script };
+        }),
+
+    refineScript: publicProcedure
+        .input(z.object({ projectId: z.number(), script: z.string(), notes: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+            if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+            const db = await getDb();
+            if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unreachable" });
+
+            const content = await getProjectContent(input.projectId);
+            const globalNotes = content?.globalDirectorNotes ?? undefined;
+
+            const refinedScript = await refineScriptWithNotes(input.script, input.notes, globalNotes);
+
+            // Save refined script
+            await db.update(projectContent)
+                .set({ script: refinedScript })
+                .where(eq(projectContent.projectId, input.projectId));
+
+            // Log usage
+            const cost = estimateCost('gemini-1.5-flash', 1);
+            await logUsage(input.projectId, ctx.user.id.toString(), 'gemini-1.5-flash', cost, 'SCRIPT_REFINEMENT');
+
+            return { script: refinedScript };
         }),
 });

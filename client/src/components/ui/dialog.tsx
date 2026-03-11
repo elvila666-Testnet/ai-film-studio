@@ -11,9 +11,9 @@ const DialogCompositionContext = React.createContext<{
   markCompositionEnd: () => void;
 }>({
   isComposing: () => false,
-  setComposing: () => {},
+  setComposing: () => { },
   justEndedComposing: () => false,
-  markCompositionEnd: () => {},
+  markCompositionEnd: () => { },
 });
 
 export const useDialogComposition = () =>
@@ -128,6 +128,7 @@ function DialogContent({
           className
         )}
         onEscapeKeyDown={handleEscapeKeyDown}
+        aria-describedby={undefined}
         {...props}
       >
         {children}

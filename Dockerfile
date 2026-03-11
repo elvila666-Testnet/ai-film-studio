@@ -4,7 +4,7 @@ FROM node:20-slim AS builder
 WORKDIR /app
 
 # Install pnpm and dependencies
-RUN npm install -g pnpm@9.15.0
+RUN npm install -g pnpm@10.30.1
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
@@ -20,7 +20,7 @@ FROM node:20-slim
 WORKDIR /app
 
 # Install pnpm
-RUN npm install -g pnpm@9.15.0
+RUN npm install -g pnpm@10.30.1
 
 # Copy package files
 COPY package.json pnpm-lock.yaml ./

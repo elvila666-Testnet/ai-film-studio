@@ -12,11 +12,12 @@ Write-Host "Deploying to Project: $ProjectId" -ForegroundColor Cyan
 
 # Submit build to Cloud Build
 Write-Host "Submitting build..."
-gcloud builds submit --config=cloudbuild.yaml .
+gcloud builds submit --config=gcloud/cloudbuild.yaml .
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "Deployment successful!" -ForegroundColor Green
     Write-Host "Check the URL in the output above."
-} else {
+}
+else {
     Write-Host "Deployment failed." -ForegroundColor Red
 }

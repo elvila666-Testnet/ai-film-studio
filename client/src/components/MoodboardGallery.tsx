@@ -6,7 +6,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { Lightbox } from "@/components/ui/Lightbox";
 
 interface MoodboardGalleryProps {
-  brandId: number;
+  brandId: string;
 }
 
 export function MoodboardGallery({ brandId }: MoodboardGalleryProps) {
@@ -180,7 +180,7 @@ export function MoodboardGallery({ brandId }: MoodboardGalleryProps) {
           <h3 className="font-semibold mb-4">Your Moodboards</h3>
           {moodboards && moodboards.length > 0 ? (
             <div className="space-y-2">
-              {moodboards.map((moodboard: unknown) => (
+              {moodboards.map((moodboard: any) => (
                 <Card
                   key={moodboard.id}
                   className={`cursor-pointer transition-colors ${selectedMoodboardId === moodboard.id
@@ -236,7 +236,7 @@ export function MoodboardGallery({ brandId }: MoodboardGalleryProps) {
 
                 {moodboardImages && moodboardImages.length > 0 ? (
                   <div className="grid grid-cols-2 gap-4">
-                    {moodboardImages.map((image: unknown) => (
+                    {moodboardImages.map((image: any) => (
                       <Card
                         key={image.id}
                         className="overflow-hidden group relative cursor-pointer"
@@ -362,6 +362,7 @@ export function MoodboardGallery({ brandId }: MoodboardGalleryProps) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create New Moodboard</DialogTitle>
+            <DialogDescription>Initialize a new creative space to collect visual references and analyze style patterns.</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -404,6 +405,7 @@ export function MoodboardGallery({ brandId }: MoodboardGalleryProps) {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Auto-Synthesize Aesthetics</DialogTitle>
+            <DialogDescription>Generate new visual concepts aligned with your brand DNA and character profiles.</DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
             <div className="space-y-2">
@@ -418,7 +420,7 @@ export function MoodboardGallery({ brandId }: MoodboardGalleryProps) {
             <div className="space-y-2">
               <label className="text-sm font-medium">Include Characters (Optional)</label>
               <div className="grid grid-cols-3 gap-2 max-h-[200px] overflow-y-auto p-1">
-                {characters?.map((char: unknown) => (
+                {characters?.map((char: any) => (
                   <div
                     key={char.id}
                     onClick={() => toggleCharacterSelection(char.id)}

@@ -1,12 +1,6 @@
-import { users, projects, projectContent, storyboardImages, referenceImages, generatedVideos, editorProjects, editorClips, editorTracks, editorExports, editorComments, animaticConfigs, storyboardFrameOrder, storyboardFrameHistory, storyboardFrameNotes, modelConfigs, userModelFavorites, brands, characters, InsertUser, InsertProjectContent, InsertEditorProject, InsertEditorClip, InsertEditorTrack, InsertEditorExport, InsertEditorComment, InsertAnimaticConfig, InsertModelConfig, InsertUserModelFavorite } from "../../drizzle/schema";
-import { eq, and, sql } from "drizzle-orm";
-
+import { brands, brandAssets } from "../../drizzle/schema";
+import { eq } from "drizzle-orm";
 import { getDb } from "../db";
-
-import * as schema from "../../drizzle/schema";
-
-export * from "../../drizzle/schema";
-
 import { randomUUID } from "node:crypto";
 
 export async function createBrand(
@@ -49,10 +43,12 @@ export async function getBrand(brandId: string) {
   const brand = result[0];
   return {
     ...brand,
-    productReferenceImages: brand.productReferenceImages
+    productReferenceImages: typeof brand.productReferenceImages === "string"
       ? JSON.parse(brand.productReferenceImages)
-      : [],
-    colorPalette: brand.colorPalette ? JSON.parse(brand.colorPalette) : {},
+      : (brand.productReferenceImages || []),
+    colorPalette: typeof brand.colorPalette === "string"
+      ? JSON.parse(brand.colorPalette)
+      : (brand.colorPalette || {}),
   };
 }
 
@@ -67,10 +63,12 @@ export async function getUserBrands(userId: number) {
 
   return result.map((brand: any) => ({
     ...brand,
-    productReferenceImages: brand.productReferenceImages
+    productReferenceImages: typeof brand.productReferenceImages === "string"
       ? JSON.parse(brand.productReferenceImages)
-      : [],
-    colorPalette: brand.colorPalette ? JSON.parse(brand.colorPalette) : {},
+      : (brand.productReferenceImages || []),
+    colorPalette: typeof brand.colorPalette === "string"
+      ? JSON.parse(brand.colorPalette)
+      : (brand.colorPalette || {}),
   }));
 }
 
@@ -117,4 +115,38 @@ export async function deleteBrand(brandId: string) {
   if (!db) throw new Error("Database not available");
 
   await db.delete(brands).where(eq(brands.id, brandId));
+}
+
+export async function getBrandAssets(brandId: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db
+    .select()
+    .from(brandAssets)
+    .where(eq(brandAssets.brandId, brandId));
+}
+
+export async function addBrandAsset(
+  brandId: string,
+  assetType: "PDF" | "URL" | "IMG",
+  gcsPath: string,
+  description?: string
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.insert(brandAssets).values({
+    brandId,
+    assetType,
+    gcsPath,
+    description,
+  });
+}
+
+export async function deleteBrandAsset(assetId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.delete(brandAssets).where(eq(brandAssets.id, assetId));
 }

@@ -1,60 +1,29 @@
-import { drizzle } from 'drizzle-orm/mysql2';
-import mysql from 'mysql2/promise';
-import * as schema from '../drizzle/schema';
-import { migrate } from 'drizzle-orm/mysql2/migrator';
-import path from 'path';
+import mysql from "mysql2/promise";
+import { config } from "dotenv";
 
-const connectionString = process.env.DATABASE_URL;
+config();
 
-if (!connectionString) {
-    throw new Error("DATABASE_URL is required");
+async function run() {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    console.error("No DATABASE_URL found");
+    return;
+  }
+  const conn = await mysql.createConnection(url);
+  try {
+    await conn.query("ALTER TABLE projectContent ADD COLUMN proposalStatus enum('draft','pending_review','approved') DEFAULT 'draft'");
+  } catch(e: any) { console.log(e.message); }
+  try {
+    await conn.query("ALTER TABLE projectContent ADD COLUMN creativeProposal mediumtext");
+  } catch(e: any) { console.log(e.message); }
+  try {
+    await conn.query("ALTER TABLE projectContent ADD COLUMN brandValidationFeedback text");
+  } catch(e: any) { console.log(e.message); }
+  try {
+    await conn.query("ALTER TABLE projectContent ADD COLUMN technicalScript mediumtext");
+  } catch(e: any) { console.log(e.message); }
+  console.log('Done altering.');
+  await conn.end();
+  process.exit(0);
 }
-
-console.log("[Manual Migrate] Masked Connection:", connectionString.replace(/:[^@:]+@/, ":****@"));
-
-async function runMigration() {
-    console.log("Starting manual migration script...");
-
-    let connection;
-    if (connectionString.includes('socketPath=')) {
-        console.log("Detected Unix Socket connection...");
-        const socketPath = connectionString.split('socketPath=')[1]?.split('&')[0];
-        const credentialsPart = connectionString.split('://')[1]?.split('@')[0];
-        const user = credentialsPart?.split(':')[0];
-        const password = credentialsPart?.split(':')[1];
-        const dbPart = connectionString.split('@')[1]?.split('/')[1]?.split('?')[0];
-
-        console.log(`[Manual Migrate] Params - User: ${user}, DB: ${dbPart}, Socket: ${socketPath}`);
-
-        connection = await mysql.createConnection({
-            user,
-            password,
-            database: dbPart,
-            socketPath: socketPath
-        });
-    } else {
-        console.log("Connecting via TCP...");
-        connection = await mysql.createConnection(connectionString);
-    }
-
-    console.log("Connection established. Creating users table...");
-
-    await connection.execute(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      openId VARCHAR(64) NOT NULL UNIQUE,
-      name TEXT,
-      email VARCHAR(320),
-      loginMethod VARCHAR(64),
-      role ENUM('user', 'admin') DEFAULT 'user' NOT NULL,
-      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
-      lastSignedIn TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
-    )
-  `);
-
-    console.log("Users table verified. Closing connection.");
-    await connection.end();
-}
-
-runMigration().catch(console.error);
+run();

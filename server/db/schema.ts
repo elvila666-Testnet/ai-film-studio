@@ -95,7 +95,7 @@ export const usageLedger = mysqlTable('usage_ledger', {
 
     // What did we do?
     actionType: varchar('action_type', { length: 50 }).notNull(), // 'IMAGE_GEN', 'VIDEO_GEN'
-    modelId: varchar('model_id', { length: 100 }).notNull(),      // 'black-forest-labs/flux-pro'
+    modelId: varchar('model_id', { length: 100 }).notNull(),      // 'imagen-4.0-ultra-generate-001'
 
     // How much was it?
     quantity: int('quantity').default(1),                         // Seconds or Count

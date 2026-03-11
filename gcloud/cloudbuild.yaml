@@ -4,22 +4,17 @@ steps:
     args:
       - 'build'
       - '-t'
-      - 'gcr.io/$PROJECT_ID/ai-film-studio:$COMMIT_SHA'
+      - 'gcr.io/$PROJECT_ID/ai-film-studio:$BUILD_ID'
       - '-t'
       - 'gcr.io/$PROJECT_ID/ai-film-studio:latest'
       - '.'
     timeout: 1200s
 
-  # Push the Docker image to Container Registry
+  # Push the Docker image
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - 'gcr.io/$PROJECT_ID/ai-film-studio:$COMMIT_SHA'
-
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'push'
-      - 'gcr.io/$PROJECT_ID/ai-film-studio:latest'
+      - 'gcr.io/$PROJECT_ID/ai-film-studio:$BUILD_ID'
 
   # Deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -29,7 +24,7 @@ steps:
       - 'deploy'
       - 'ai-film-studio'
       - '--image'
-      - 'gcr.io/$PROJECT_ID/ai-film-studio:$COMMIT_SHA'
+      - 'gcr.io/$PROJECT_ID/ai-film-studio:$BUILD_ID'
       - '--region'
       - 'us-central1'
       - '--platform'
@@ -42,20 +37,20 @@ steps:
       - '--cpu'
       - '2'
       - '--min-instances'
-      - '0'
-      - '--max-instances'
       - '10'
+      - '--max-instances'
+      - '20'
       - '--timeout'
-      - '300'
+      - '3600'
       - '--set-env-vars'
-      - 'NODE_ENV=production'
+      - 'NODE_ENV=production,GCS_BUCKET_NAME=ai-film-studio-assets,GCP_PROJECT_ID=$PROJECT_ID'
       - '--add-cloudsql-instances'
-      - 'ai-film-studio-485900:us-central1:ai-film-studio-db'
+      - '$PROJECT_ID:us-central1:ai-film-studio-db'
       - '--set-secrets'
-      - 'DATABASE_URL=DATABASE_URL:latest,BUILT_IN_FORGE_API_KEY=GEMINI_API_KEY:latest,NANOBANANA_API_KEY=NANOBANANA_API_KEY:latest,SORA_API_KEY=SORA_API_KEY:latest,VEO3_API_KEY=VEO3_API_KEY:latest'
+      - 'DATABASE_URL=DATABASE_URL:latest,BUILT_IN_FORGE_API_KEY=GEMINI_API_KEY:latest,NANOBANANA_API_KEY=NANOBANANA_API_KEY:latest,SORA_API_KEY=SORA_API_KEY:latest,VEO3_API_KEY=VEO3_API_KEY:latest,REPLICATE_API_TOKEN=REPLICATE_API_TOKEN:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:latest,JWT_SECRET=JWT_SECRET:latest'
 
 images:
-  - 'gcr.io/$PROJECT_ID/ai-film-studio:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/ai-film-studio:$BUILD_ID'
   - 'gcr.io/$PROJECT_ID/ai-film-studio:latest'
 
 options:

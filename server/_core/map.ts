@@ -74,7 +74,10 @@ export async function makeRequest<T = unknown>(
   const response = await fetch(url.toString(), {
     method: options.method || "GET",
     headers: {
+      "Accept": "application/json",
       "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+      "connect-protocol-version": "1",
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
   });

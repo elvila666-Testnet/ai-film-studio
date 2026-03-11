@@ -4,6 +4,7 @@
  */
 
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as characterLibraryDb from "../db/characterLibrary";
 import * as moodboardsDb from "../db/moodboards";
@@ -75,12 +76,22 @@ export const castingRouter = router({
         })
       )
       .mutation(async ({ input }) => {
-        await characterLibraryDb.updateCharacterInLibrary(input.characterId, {
+        const updateData: any = {
           name: input.name,
           description: input.description,
           imageUrl: input.imageUrl,
           traits: input.traits,
-        });
+        };
+
+        // If imageUrl is base64, upload to GCS
+        if (input.imageUrl && input.imageUrl.startsWith('data:image/')) {
+          console.log(`[CastingRouter] Securing library character image...`);
+          const { uploadBase64Image } = await import("../_core/gcs");
+          updateData.imageUrl = await uploadBase64Image(input.imageUrl, `library/characters`);
+          console.log(`[CastingRouter] Library image secured: ${updateData.imageUrl}`);
+        }
+
+        await characterLibraryDb.updateCharacterInLibrary(input.characterId, updateData);
 
         return { success: true };
       }),
@@ -130,7 +141,7 @@ export const castingRouter = router({
         };
 
         return characterSuggestion.suggestCharactersForScript(
-          brandGuidelines as any,
+          brandGuidelines as { id: string; name: string; targetCustomer: string; aesthetic: string; mission: string; coreMessaging: string },
           input.script,
           library
         );
@@ -179,35 +190,229 @@ export const castingRouter = router({
         return { success: true, poses: updatedPoses };
       }),
 
-    // Generate character options based on brand
-    generateOptions: protectedProcedure
+    // Discover Talent — extract principal characters from the script
+    generateOptions: publicProcedure
       .input(
         z.object({
-          brandId: z.string(),
-          targetDemographic: z.string(),
+          projectId: z.number(),
+          brandId: z.string().optional(),
+          targetDemographic: z.string().optional(),
           count: z.number().default(4),
+          refinementNotes: z.string().optional(),
         })
       )
       .mutation(async ({ input }) => {
-        const { getBrand } = await import("../db");
-        const brand = await getBrand(input.brandId);
-        if (!brand) throw new Error("Brand not found");
+        const { getProjectContent, createCharacter } = await import("../db");
 
-        const { BrandManagementService } = await import(
-          "../services/brandManagement"
-        );
-        const options = await BrandManagementService.generateCharacterOptions(
-          {
-            brandVoice: brand.brandVoice || "Professional",
-            visualIdentity: brand.visualIdentity || "Cinematic",
-            colorPalette: (brand.colorPalette as any) || {},
-            keyVisualElements: [], // Could be expanded
-          },
-          input.targetDemographic,
-          input.count
+        console.log(`[Casting] ▶ Discover Talent started. projectId=${input.projectId}`);
+
+
+        const content = await getProjectContent(input.projectId);
+        const scriptText = content?.script || "";
+
+        // Extract technical casting requirements if available
+        let castingContext = "";
+        try {
+          const rawTech = (content as any)?.technicalShots;
+          if (rawTech) {
+            const parsedTech = JSON.parse(rawTech);
+            if (parsedTech.castingRequirements) {
+              castingContext = `\n\nDIRECTOR'S CASTING REQUIREMENTS:\n${parsedTech.castingRequirements}`;
+            }
+          }
+        } catch (e) { }
+
+        console.log(`[Casting] Script length: ${scriptText.length} chars. Tech casting requirements length: ${castingContext.length}`);
+
+        if (!scriptText || scriptText.length < 50) {
+          console.error(`[Casting] ✘ Script too short or missing. Length: ${scriptText.length}`);
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `No script found (or script too short: ${scriptText.length} chars). Write a script first in the Script tab.`,
+          });
+        }
+
+        // Use LLM to extract principal characters from the script
+        const { invokeLLM } = await import("../_core/llm");
+        const { injectBrandDirectives } = await import("../services/brandService");
+
+        console.log(`[Casting] Calling LLM for principal character extraction...`);
+
+        let systemPrompt = `You are a professional Casting Director. Extract principal characters from a screenplay.
+        
+MANDATORY PERSONNEL BREAKDOWN:
+1. PRINCIPAL LEADS:
+   - Extract the main characters explicitly named in the script.
+   - Define constraints, emotional baselines, and precise physicality for photorealistic AI generation.
+2. SPECIALIZED ACTION MODELS:
+   - Identify explicit roles requiring specialized stunt performers entirely based on script action.
+   - HAND & FOOT MODELS: For extreme close-ups of script-specific gear manipulation.
+3. BACKGROUND EXTRAS:
+   - Identify background archetypes and their energy levels to support the scene's dynamic.
+
+Return ONLY a JSON array of character objects, no other text.
+${input.refinementNotes ? `\n### REFINEMENT INSTRUCTIONS ###\nThe Director has provided the following feedback on your previous casting selection. You MUST strictly incorporate these changes:\n${input.refinementNotes}\n` : ""}`;
+
+        systemPrompt = await injectBrandDirectives(input.projectId, systemPrompt);
+
+        const llmResponse = await invokeLLM({
+          messages: [
+            {
+              role: "system",
+              content: systemPrompt,
+            },
+            {
+              role: "user",
+              content: `Extract principal characters from this screenplay. Return ONLY a JSON array.
+
+SCRIPT:
+${scriptText.substring(0, 4000)}${castingContext}
+
+Response format (ONLY JSON, no other text):
+[{"name":"Character Name","description":"Detailed profile (Age, build, weathered skin, intensity, specific brand gear, athletic mastery)"}]
+
+Rules: 
+- Include ALL valid on-screen characters (Leads, Stunt Doubles, and key Extras).
+- Provide rich visual descriptions.`,
+            },
+          ],
+          responseFormat: { type: "json_object" },
+        });
+
+        // Extract text content from LLM response
+        const rawContent = llmResponse.choices?.[0]?.message?.content;
+        let responseText = "";
+        if (typeof rawContent === "string") {
+          responseText = rawContent.trim();
+        } else if (Array.isArray(rawContent)) {
+          // Content might be an array of TextContent objects
+          responseText = rawContent
+            .map((part) => (typeof part === "string" ? part : (part as { text?: string }).text || ""))
+            .join("")
+            .trim();
+        } else {
+          responseText = String(rawContent || "").trim();
+        }
+
+        console.log(`[Casting] LLM response length: ${responseText.length} chars`);
+        console.log(`[Casting] LLM response preview: ${responseText.substring(0, 200)}`);
+
+        let charactersToGenerate: Array<{ name: string; description: string }> = [];
+
+        try {
+          // Robust JSON extraction: strip markdown fences, find JSON array
+          let cleaned = responseText
+            .replace(/```json\s*/gi, "")
+            .replace(/```\s*/g, "")
+            .trim();
+
+          // Try to find the JSON array in the response
+          const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
+          if (arrayMatch) {
+            cleaned = arrayMatch[0];
+          }
+
+          const parsed = JSON.parse(cleaned);
+
+          // Handle both array and object-with-array responses
+          if (Array.isArray(parsed)) {
+            charactersToGenerate = parsed;
+          } else if (parsed.characters && Array.isArray(parsed.characters)) {
+            charactersToGenerate = parsed.characters;
+          } else if (typeof parsed === "object") {
+            // Single character object
+            charactersToGenerate = [parsed];
+          }
+        } catch (parseError) {
+          console.error(`[Casting] ✘ JSON parse failed. Raw: ${responseText.substring(0, 500)}`);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to parse characters from AI response. Please try again.",
+          });
+        }
+
+        // Filter out invalid entries
+        charactersToGenerate = charactersToGenerate.filter(
+          (c) => c && typeof c.name === "string" && c.name.length > 0
         );
 
-        return options;
+        if (charactersToGenerate.length === 0) {
+          console.error(`[Casting] ✘ No valid characters after parsing.`);
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "No principal characters found in the script. Ensure the script has named characters with dialogue.",
+          });
+        }
+
+        console.log(`[Casting] ✓ Discovered ${charactersToGenerate.length} principal characters: ${charactersToGenerate.map(c => c.name).join(", ")}`);
+
+        const newCharacters = [];
+
+        // No limit, extract all returned valid characters
+        const characterPromises = charactersToGenerate.map(async (char) => {
+          try {
+            const newChar = await createCharacter(
+              input.projectId,
+              {
+                name: char.name,
+                description: char.description || "Principal character",
+                imageUrl: "draft",
+                isHero: false
+              }
+            );
+            console.log(`[Casting] ✓ Saved: ${char.name}`);
+            return newChar;
+          } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : String(err);
+            console.error(`[Casting] ✘ Failed to save ${char.name}: ${message}`);
+            return null;
+          }
+        });
+
+        const results = await Promise.all(characterPromises);
+        newCharacters.push(...results.filter(Boolean));
+
+        console.log(`[Casting] ▶ Discovery complete. ${newCharacters.length} characters saved.`);
+        return newCharacters;
+      }),
+
+    generateCharacterOptionImage: protectedProcedure
+      .input(
+        z.object({
+          characterId: z.number(),
+          notes: z.string(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const { renderCharacterPortrait } = await import("../services/agents/production/castingDirectorAgent");
+        const { getCharacter } = await import("../db");
+
+        const char = await getCharacter(input.characterId);
+        if (!char) throw new Error("Character not found");
+
+        console.log(`[Casting] Routing PCI render request for ${char.name} to CastingDirectorAgent...`);
+
+        try {
+          const result = await renderCharacterPortrait(
+            char.projectId,
+            char.id,
+            ctx.user.id.toString(),
+            input.notes
+          );
+
+          return {
+            success: true,
+            imageUrl: result.imageUrl,
+            description: input.notes ? `${char.description} | Directorial adjustments: ${input.notes}` : char.description
+          };
+        } catch (err: any) {
+          console.error(`[Casting] PCI render failed for character ID ${input.characterId}:`, err);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `PCI Synthesis Error: ${err.message}`,
+            cause: err
+          });
+        }
       }),
   }),
 
@@ -364,11 +569,11 @@ export const castingRouter = router({
         // Add character context if enabled
         if (input.characterIds && input.characterIds.length > 0) {
           const characters = await characterLibraryDb.getBrandCharacterLibrary(input.brandId);
-          const selectedChars = characters.filter((c: { id: number }) => input.characterIds?.includes(c.id));
+          const selectedChars = characters.filter((c: any) => input.characterIds?.includes(c.id));
 
           if (selectedChars.length > 0) {
             prompt += `\nFeaturing characters:`;
-            selectedChars.forEach((c: { id: number }) => {
+            selectedChars.forEach((c: any) => {
               prompt += `\n- ${c.name}: ${c.description}. ${c.traits || ""}`;
             });
           }
@@ -379,7 +584,7 @@ export const castingRouter = router({
         // Generate Image
         const { generateStoryboardImage } = await import("../services/aiGeneration");
         // Using Flux Pro for best quality moodboard synthesis
-        const imageUrl = await generateStoryboardImage(prompt, "black-forest-labs/flux-1.1-pro");
+        const imageUrl = await generateStoryboardImage(prompt, "imagen-4.0-generate-001");
 
         // Save to DB
         const imageId = await moodboardsDb.addMoodboardImage(input.moodboardId, {

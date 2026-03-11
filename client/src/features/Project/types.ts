@@ -10,7 +10,8 @@ import {
     Box,
     User,
     Type,
-    Image as ImageIcon
+    Image as ImageIcon,
+    LucideIcon
 } from "lucide-react";
 
 export type PipelineStage = "bible" | "script" | "breakdown" | "characters" | "production-design" | "cinematography" | "storyboard" | "video" | "editor" | "export" | "admin";
@@ -63,6 +64,28 @@ export interface Actor {
     headshotUrl?: string;
 }
 
+export interface CinemaPipelineShot {
+    shotNumber: number;
+    directorIntent?: {
+        visualDescription?: string;
+        emotionalBeat?: string;
+    };
+    cameraSpecs?: {
+        shotType?: string;
+        lensStrategy?: string;
+        movementLogic?: string;
+        lightingSpec?: string;
+        tStop?: string;
+    };
+    productionDesign?: {
+        environmentalAtmosphere?: string;
+        textureSpecs?: string;
+        physicalAssets?: string[];
+        wardrobeDetails?: string;
+        colorPalette?: string;
+    };
+}
+
 export interface EditorProject {
     id: number;
     projectId: number;
@@ -97,17 +120,17 @@ export interface AIModel {
 
 export type ModelCategory = "text" | "image" | "video";
 
-export const PIPELINE_STAGES: { id: PipelineStage; label: string; description: string; order: number; icon: unknown }[] = [
-    { id: "bible", label: "Brand Intelligence", description: "Mandatory guidelines and project identity.", order: 1, icon: Brain },
-    { id: "script", label: "Narrative Engine", description: "Draft or generate the cinematic script.", order: 2, icon: PenTool },
-    { id: "breakdown", label: "Director Breakdown", description: "Analyze script for technical synchronization.", order: 3, icon: Layout },
-    { id: "characters", label: "Casting & Consistency", description: "Define actors and consistency anchors.", order: 4, icon: User },
-    { id: "production-design", label: "Production Design", description: "Define environments, props, and textures.", order: 5, icon: Box },
-    { id: "cinematography", label: "Cinematography", description: "Govern lighting, lenses, and visual style.", order: 6, icon: Video },
-    { id: "storyboard", label: "Storyboard", description: "Generate consistent cinematic frames.", order: 7, icon: Sparkles },
-    { id: "video", label: "Cinematic Synthesis", description: "High-fidelity video generation via AI Engine.", order: 8, icon: Zap },
-    { id: "editor", label: "Studio Editor", description: "Sequence clips and refine audio synchronization.", order: 9, icon: Music },
-    { id: "export", label: "Final Master", description: "Render and distribute the completed asset.", order: 10, icon: CheckCircle2 },
+export const PIPELINE_STAGES: { id: PipelineStage; label: string; description: string; order: number; icon: LucideIcon }[] = [
+    { id: "bible", label: "Intelligence Hub", description: "Mandatory Brand DNA and Project Bible guidelines.", order: 1, icon: Brain },
+    { id: "script", label: "Command Center", description: "Linguistic output from Showrunner or Creative Director.", order: 2, icon: PenTool },
+    { id: "breakdown", label: "Director's Office", description: "Technical scene breakdown and orchestration logic.", order: 3, icon: Layout },
+    { id: "characters", label: "Casting Director", description: "Establish character consistency and actor anchors.", order: 4, icon: User },
+    { id: "production-design", label: "Art Department", description: "Architectural environments, props, and textures.", order: 5, icon: Box },
+    { id: "cinematography", label: "Cinematography", description: "Govern lighting, lenses, and Nanobana parameters.", order: 6, icon: Video },
+    { id: "storyboard", label: "Storyboard Lab", description: "Generate consistent cinematic frames with AI anchors.", order: 7, icon: Sparkles },
+    { id: "video", label: "Motion Synthesis", description: "High-fidelity video generation via AI Video Engine.", order: 8, icon: Zap },
+    { id: "editor", label: "Studio Editor", description: "Sequence clips and refine temporal synchronization.", order: 9, icon: Music },
+    { id: "export", label: "Final Master", description: "Render, validate, and distribute the completed asset.", order: 10, icon: CheckCircle2 },
 ];
 
 export const MODEL_CATEGORIES = [

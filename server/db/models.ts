@@ -133,19 +133,16 @@ export async function initializeModels() {
 
   const defaults: InsertModelConfig[] = [
     // Text Models
-    { category: "text", provider: "Google", modelId: "gemini-2.0-flash", isActive: true, isBuiltIn: true },
+    { category: "text", provider: "Google", modelId: "gemini-3-flash", isActive: true, isBuiltIn: true },
     { category: "text", provider: "OpenAI", modelId: "gpt-4o", isActive: false, isBuiltIn: true },
 
     // Image Models
-    { category: "image", provider: "Apiyi", modelId: "mj-v6", isActive: true, isBuiltIn: true },
-    { category: "image", provider: "Replicate", modelId: "Flux", isActive: false, isBuiltIn: true },
-    { category: "image", provider: "Replicate", modelId: "Nano Banana", isActive: false, isBuiltIn: true },
-    { category: "image", provider: "Replicate", modelId: "Nano Banana Pro", isActive: false, isBuiltIn: true },
-    { category: "image", provider: "Replicate", modelId: "Seadream 4.5", isActive: false, isBuiltIn: true },
+    { category: "image", provider: "Google", modelId: "Nano Banana 2", isActive: true, isBuiltIn: true },
     { category: "image", provider: "OpenAI", modelId: "dall-e-3", isActive: false, isBuiltIn: true },
 
     // Video Models
     { category: "video", provider: "Google", modelId: "Veo3", isActive: true, isBuiltIn: true },
+
     { category: "video", provider: "OpenAI", modelId: "Sora", isActive: false, isBuiltIn: true },
     { category: "video", provider: "Runway", modelId: "Gen-3 Alpha", isActive: false, isBuiltIn: true },
     { category: "video", provider: "Kling", modelId: "Kling AI", isActive: false, isBuiltIn: true },

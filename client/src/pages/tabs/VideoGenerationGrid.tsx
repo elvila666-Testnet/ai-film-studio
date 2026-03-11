@@ -23,12 +23,12 @@ export function VideoGenerationGrid({ projectId }: VideoGenerationGridProps) {
                     projectId,
                     shotNumber,
                     motionPrompt,
-                    provider: "replicate", // Default for now
+                    provider: "veo3", // Switched default to Native Gemini Veo3
                     characterLocked: true
                 });
                 toast.success(`Synthesis engine engaged for Shot ${shotNumber}`);
                 utils.storyboard.getImages.invalidate({ projectId });
-            } catch (e: React.ChangeEvent<any>) {
+            } catch (e: any) {
                 toast.error(`Synthesis failed: ${e.message}`);
             }
         });
@@ -36,7 +36,7 @@ export function VideoGenerationGrid({ projectId }: VideoGenerationGridProps) {
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {storyboardQuery.data?.map((shot: unknown) => (
+            {storyboardQuery.data?.map((shot: { id: number; shotNumber: number; videoUrl?: string; imageUrl?: string; visualDescription: string }) => (
                 <div key={shot.id} className="glass-panel group overflow-hidden border-white/5 hover:border-primary/40 hover:shadow-[0_0_40px_-15px_rgba(var(--primary),0.2)] transition-all duration-700 flex flex-col">
                     <div className="aspect-video relative bg-black/40 overflow-hidden">
                         {(animateFrameMutation.isPending && animateFrameMutation.variables?.shotNumber === shot.shotNumber) && (

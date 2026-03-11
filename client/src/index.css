@@ -86,6 +86,35 @@
   .bg-studio-gradient {
     background: radial-gradient(circle at 50% 50%, rgba(15, 15, 35, 1) 0%, rgba(2, 2, 5, 1) 100%);
   }
+
+  /* Flowchart Styles */
+  .flow-node-glow {
+    @apply absolute inset-0 opacity-0 transition-opacity duration-500 rounded-2xl;
+    box-shadow: 0 0 20px currentColor;
+  }
+
+  .flow-node-active .flow-node-glow {
+    @apply opacity-20;
+  }
+
+  .flow-connector-line {
+    @apply w-0.5 h-full relative overflow-hidden bg-white/5;
+  }
+
+  .flow-connector-active::after {
+    content: '';
+    @apply absolute inset-0 bg-primary animate-flow-pulse;
+    box-shadow: 0 0 15px var(--primary);
+  }
+
+  @keyframes flow-pulse {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100%); }
+  }
+
+  .animate-flow-pulse {
+    animation: flow-pulse 2s linear infinite;
+  }
 }
 
 /* Animations */

@@ -86,17 +86,25 @@ export async function extractCharacterAppearances(
   scriptText: string,
   characterNames: string[]
 ): Promise<Record<string, string>> {
-  const prompt = `Analyze this screenplay and extract detailed physical appearance descriptions for each character mentioned. Focus on visual details like age, hair, clothing, build, distinctive features, etc.
+  const prompt = `You are a professional Character Designer and Prompt Engineer for high-end cinematic production.
+Analyze the screenplay provided and extract ELABORATE, VISUALLY RICH character archetypes for each character listed.
 
-Characters to describe: ${characterNames.join(", ")}
+For each character, synthesize a high-fidelity "Design Specification" that includes:
+1. Physicality: Precise age, height, build, and facial geometry.
+2. Wardrobe & Textures: Specific fabrics (e.g., weathered leather, bio-mesh, silk), textures, and wear/tear.
+3. Aesthetic Archetype: Define their visual genre (e.g., Cyber-Noir Detective, Corporate Hegemon, Wasteland Scavenger).
+4. Cinematic Lighting Cues: How light should hit them (e.g., "Rim lighting highlighting holographic tattoos," "Chiaroscuro shadows masking the left eye").
+5. Distinctive Details: Scars, cybernetics, jewelry, or expressive tics described visually.
 
-Script excerpt:
-${scriptText.substring(0, 2000)}
+Characters to analyze: ${characterNames.join(", ")}
 
-For each character, provide a concise 1-2 sentence appearance description. Format as:
-CHARACTER_NAME: appearance description
+Script context:
+${scriptText.substring(0, 3000)}
 
-If a character has no clear appearance description in the script, infer a reasonable description based on context.`;
+Format the output for each character as:
+CHARACTER_NAME: [Detailed Design Specification]
+
+If the script lacks detail for a character, use the narrative context to INVENT a visually stunning and consistent archetype.`;
 
   try {
     const response = await invokeLLM({

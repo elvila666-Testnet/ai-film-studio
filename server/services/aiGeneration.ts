@@ -1,9 +1,47 @@
 import { invokeLLM } from "../_core/llm";
-import { ReplicateProvider } from "./providers/replicateProvider";
+import { GeminiProvider } from "./providers/geminiProvider";
+import { uploadBase64Image } from "../_core/gcs";
+
+const geminiProvider = new GeminiProvider();
+
+import { uploadExternalUrlToGCS } from "./storageService";
 import { ENV } from "../_core/env";
 
-const replicateProvider = new ReplicateProvider(ENV.replicateApiKey);
-// Apiyi provider will be instantiated dynamically to allow DB config updates
+/**
+ * Ensures an image URL is a permanent GCS link.
+ * If it's a base64 Data URI, uploads it to GCS.
+ * If it's a temporary URL (like Replicate), downloads and uploads to GCS.
+ */
+export async function ensurePermanentUrl(url: string, folder: string = "generations"): Promise<string> {
+  if (url.startsWith("data:image/")) {
+    return await uploadBase64Image(url, folder);
+  }
+
+  if (url.startsWith("http") && ENV.gcsBucketName && !url.includes(`storage.googleapis.com/${ENV.gcsBucketName}`)) {
+    try {
+      const { url: newUrl } = await uploadExternalUrlToGCS(url, folder);
+      return newUrl;
+    } catch (e) {
+      console.error("[ensurePermanentUrl] Failed to migrate external URL, using raw url:", url, e);
+      return url;
+    }
+  }
+
+  return url;
+}
+
+
+export const NANOBANANA_2_0_CRITERIA = `
+**Nanobana 2.0 — IMAX Large Format Cinematography (MANDATORY):**
+- **Camera System:** IMAX 65mm (15/70) Large Format Film.
+- **Optics:** Panavision Primo 70 and System 65 lenses. Naturalistic 830nm visual acuity.
+- **Color Science:** ACES v1.3 with KODAK 5219/2383 Film Print Emulation.
+- **Lighting Architecture:** Volumetric Ray-Tracing (Global Illumination), Physical Sky 2.0.
+- **Fidelity:** Micro-displacement mapping for realistic skin texture, fabric weave, and atmospheric dust.
+`;
+
+// Legacy alias for backward compatibility
+export const NANOBANANA_PRO_CRITERIA = NANOBANANA_2_0_CRITERIA;
 
 
 
@@ -194,6 +232,32 @@ ${globalNotes}` : ""}`,
 }
 
 /**
+ * Generate a Production Design look / World Building
+ */
+export async function generateProductionDesignLook(
+  script: string,
+  brandContext?: string,
+  globalNotes?: string
+): Promise<string> {
+  const response = await invokeLLM({
+    messages: [
+      {
+        role: "system",
+        content: `You are a visionary Production Designer. Based on the script provided, you need to describe the physical world of the story. Include Key Locations (EXT/INT), Hero Props, Set Decoration Style, and Costume Palette. Ensure it visually matches the brand's aesthetic. Return a highly descriptive text.`
+      },
+      {
+        role: "user",
+        content: `Script:\n${script}\n\n${brandContext ? `Brand Guidelines:\n${brandContext}\n\n` : ""}${globalNotes ? `Director's Directives:\n${globalNotes}` : ""}`
+      }
+    ]
+  });
+
+  const content = response.choices[0]?.message.content;
+  if (!content) throw new Error("Failed to generate production design look");
+  return typeof content === "string" ? content : JSON.stringify(content);
+}
+
+/**
  * Refine master visual style with notes using Gemini API
  */
 export async function refineMasterVisualStyle(
@@ -328,11 +392,19 @@ export async function generateTechnicalShots(
  * Generate an image prompt for a shot using Gemini API
  */
 export async function generateImagePromptForShot(
-  shot: { shot: number; tipo_plano: string; accion: string; intencion: string; movimiento?: string; tecnica?: string; iluminacion?: string; audio?: string },
+  shot: any, // Accepts the DB shot containing the deep `aiBlueprint` JSON
   visualStyle: string,
   globalNotes?: string,
   characterPersona?: string
 ): Promise<string> {
+  const blueprint = shot.aiBlueprint || shot; // Fallback to raw object if passed directly
+
+  // Extract nested features if available from the new Cinema Pipeline
+  const director = blueprint.directorIntent || {};
+  const camera = blueprint.cameraSpecs || {};
+  const pd = blueprint.productionDesign || {};
+  const sound = blueprint.soundArchitecture || {};
+
   const response = await invokeLLM({
     messages: [
       {
@@ -343,12 +415,12 @@ export async function generateImagePromptForShot(
         Describe the scene as a cohesive narrative paragraph. Move away from simple keyword lists.
 
         6-POINT MASTER FORMULA:
-        1. Subject: Highly specific identity (e.g., "a weathered sailor with a silver beard").
-        2. Action: Clear movement or state (e.g., "staring intensely at the horizon").
-        3. Environment: Detailed setting and atmosphere (e.g., "on the deck of a wooden ship during a storm").
-        4. Art Style & Optics: Technical specs (e.g., "shot on 35mm anamorphic lenses," "high-contrast cinematic film").
-        5. Lighting: Specific light qualities (e.g., "dramatic rim lighting," "volumetric lightning").
-        6. Details: Fine-grained atmospheric elements (e.g., "sea spray catching the light," "shaking camera").
+        1. Subject: Highly specific identity and emotional state.
+        2. Action: Clear movement or blocking.
+        3. Environment: Detailed setting, architecture, and textures.
+        4. Art Style & Optics: Technical specs (lens, T-stop, film stock).
+        5. Lighting: Specific light qualities and atmosphere.
+        6. Details: Fine-grained atmospheric elements.
         
         SYNTAX RULES:
         Separate the result into [Visuals] and [Dialogue/Audio] tags.
@@ -356,30 +428,30 @@ export async function generateImagePromptForShot(
         EXAMPLE FORMAT:
         [Visuals] [Narrative Paragraph incorporating the 6-point formula]. [Specific technical camera specs and lighting directives].
         
-        [Dialogue/Audio] [Sound Design/Spoken Lines]. [Negative Prompts: no people, text, watermark, camera info, distorted face].`,
+        [Dialogue/Audio] [Sound Design/Spoken Lines]. [Negative Prompts]`,
       },
       {
         role: "user",
-        content: `Shot Breakdown:
-        - Shot No: ${shot.shot}
-        - Framing: ${shot.tipo_plano}
-        - Movement: ${shot.movimiento || 'Dynamic'}
-        - Technical: ${shot.tecnica || 'Cinematic'}
-        - Lighting: ${shot.iluminacion || 'Atmospheric'}
-        - Audio/Dialogue: ${shot.audio || 'Ambient'}
-        - Narrative Action: ${shot.accion}
-        - Emotional Intent: ${shot.intencion}
+        content: `Shot Breakdown (Cinema Pipeline Blueprint):
+        - Shot No: ${shot.shot || shot.order}
+        - Framing & Movement: ${camera.shotType || shot.tipo_plano || 'Cinematic'} | ${camera.movementLogic || shot.movimiento}
+        - Technical Optics: Lens: ${camera.lensStrategy || shot.tecnica}, Aperture: ${camera.tStop}, Focus: ${camera.focusStrategy}
+        - Lighting & Atmosphere: ${camera.lightingSpec || shot.iluminacion} | ${pd.environmentalAtmosphere}
+        - Production Design: ${pd.architectureStyle}, Materials: ${pd.materials}, Palette: ${pd.colorPalette}
+        - Audio/Dialogue: ${sound.environmentalSoundscape || shot.audio}
+        - Narrative Action: ${director.visualDescription || shot.accion}
+        - Emotional Intent: ${director.emotionalObjective || shot.intencion}
         
         Master Visual Style Guide:
         ${visualStyle}
         
-        ${characterPersona ? `LOCKED CHARACTER (VISUAL ANCHOR):
-        ${characterPersona}` : ""}
+        ${characterPersona ? `LOCKED CHARACTER (VISUAL ANCHOR):\n${characterPersona}` : ""}
         
-        ${globalNotes ? `DIRECTOR'S GLOBAL MANDATE:
-        ${globalNotes}` : ""}
+        ${globalNotes ? `DIRECTOR'S GLOBAL MANDATE:\n${globalNotes}` : ""}
         
-        Construct a technical, highly descriptive cinematic image prompt based on these parameters.`,
+        ${NANOBANANA_2_0_CRITERIA ? `NANOBANANA 2.0 CINEMATIC STYLE:\n${NANOBANANA_2_0_CRITERIA}` : ""}
+        
+        Construct a technical, highly descriptive cinematic image prompt based on these deep parameters.`,
       },
     ],
   });
@@ -418,29 +490,59 @@ export async function refineImagePrompt(
 /**
  * Generate a storyboard image using Replicate
  */
-export async function generateStoryboardImage(prompt: string, modelId?: string, projectId?: number, userId?: string): Promise<string> {
+export async function generateStoryboardImage(prompt: string, modelId?: string, projectId?: number, userId?: string, resolution: string = "1024x1024"): Promise<string> {
   // Map friendly names to Replicate model IDs
-  let replicateModelId = modelId || "black-forest-labs/flux-schnell";
+  let geminiModelId = "imagen-4.0-generate-001"; // Canonical: Nano Banana 2
 
-  if (modelId === "flux-fast" || modelId === "Flux") replicateModelId = "black-forest-labs/flux-schnell";
-  if (modelId === "Nano Banana") replicateModelId = "black-forest-labs/flux-1.1-pro";
-  if (modelId === "Nano Banana Pro") replicateModelId = "black-forest-labs/flux-1.1-pro-ultra";
-  if (modelId === "Seadream 4.5") replicateModelId = "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b";
+  if (modelId === "flux-fast" || modelId === "Flux" || modelId === "apiyi-default") geminiModelId = "imagen-4.0-generate-001";
+  if (modelId === "Nano Banana") geminiModelId = "imagen-4.0-generate-001";
+  if (modelId === "Nanobana 2.0" || modelId === "nanobana-2.0" || modelId === "Nano Banana 2" || modelId === "nanobana-2.0" || modelId === "flux-pro") geminiModelId = "imagen-4.0-generate-001";
+  if (modelId === "Seadream 4.5") geminiModelId = "imagen-4.0-generate-001";
 
   try {
-    const result = await replicateProvider.generateImage({
+    const result = await geminiProvider.generateImage({
       prompt,
-      resolution: "1024x1024",
+      resolution: resolution as any,
       quality: "standard",
       projectId,
       userId
-    }, replicateModelId);
-    return result.url;
-  } catch (error: any) {
-    console.error("[AI Service] Replicate generation failed:", error);
-    throw new Error(`Cinematic synthesis failed: ${error.message || error}`);
+    }, geminiModelId);
+    const rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
+    const url = await ensurePermanentUrl(rawUrl, "storyboards");
+    return url;
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[AI Service] Replicate storyboard generation failed:", message);
+    throw new Error(`Storyboard synthesis failed: ${message}`);
   }
 }
+
+/**
+ * Generate a storyboard GRID image (3×4 layout) using landscape aspect ratio
+ * Uses 1792x1024 → maps to 16:9 landscape in provider
+ */
+export async function generateGridImage(prompt: string, projectId?: number, userId?: string, characterReferenceUrl?: string): Promise<string> {
+  const geminiModelId = "imagen-4.0-generate-001"; // Always Nanobanana Pro
+
+  try {
+    const result = await geminiProvider.generateImage({
+      prompt,
+      resolution: "1792x1024", // Standardize to 16:9 Landscape for cinematic 16:9 panels (3 cols x 4 rows)
+      quality: "hd",
+      projectId,
+      userId,
+      ...(characterReferenceUrl ? { imageInputs: [characterReferenceUrl] } : {}),
+    }, geminiModelId);
+    const rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
+    const url = await ensurePermanentUrl(rawUrl, "grids");
+    return url;
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[AI Service] Grid generation failed:", message);
+    throw new Error(`Grid synthesis failed: ${message}`);
+  }
+}
+
 
 /**
  * Generate storyboard image with character consistency
@@ -461,33 +563,36 @@ export async function generateStoryboardImageWithConsistency(
     ? generateConsistentPrompt(prompt, characterReference, "storyboard shot")
     : prompt;
 
-  let replicateModelId = modelId || "black-forest-labs/flux-schnell";
+  let geminiModelId = modelId || "imagen-4.0-generate-001";
 
   // Tier-based override if no specific modelId or generic name used
   if (!modelId || modelId === "Flux" || modelId === "Nano Banana") {
     if (qualityTier === "quality") {
-      replicateModelId = "black-forest-labs/flux-1.1-pro";
+      geminiModelId = "imagen-4.0-generate-001";
     } else {
-      replicateModelId = "black-forest-labs/flux-schnell";
+      geminiModelId = "imagen-4.0-generate-001";
     }
   }
 
-  if (modelId === "Nano Banana Pro") replicateModelId = "black-forest-labs/flux-1.1-pro-ultra";
-  if (modelId === "Seadream 4.5") replicateModelId = "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b";
+  if (modelId === "Nanobana 2.0" || modelId === "nanobana-2.0" || modelId === "Nano Banana 2" || modelId === "nanobana-2.0" || modelId === "flux-pro") geminiModelId = "imagen-4.0-generate-001";
+  if (modelId === "Seadream 4.5") geminiModelId = "imagen-4.0-generate-001";
 
   try {
-    const result = await replicateProvider.generateImage({
+    const result = await geminiProvider.generateImage({
       prompt: finalPrompt,
       resolution: "1024x1024",
       quality: qualityTier === "quality" ? "hd" : "standard",
       seed: finalSeed,
       projectId,
       userId
-    }, replicateModelId);
-    return { url: result.url, seed: finalSeed };
-  } catch (error: any) {
-    console.error("[AI Service] Replicate consistency generation failed:", error);
-    throw new Error(`Consistent synthesis failed: ${error.message || error}`);
+    }, geminiModelId);
+    const rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
+    const url = await ensurePermanentUrl(rawUrl, "consistent-shots");
+    return { url, seed: finalSeed };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[AI Service] Replicate consistency generation failed:", message);
+    throw new Error(`Consistent synthesis failed: ${message}`);
   }
 }
 
@@ -507,26 +612,28 @@ export async function generateStoryboardImageVariation(
   const finalSeed = generateSeed(Date.now(), variationIndex);
   const finalPrompt = generateVariationPrompt(basePrompt, characterReference, variationIndex);
 
-  let replicateModelId = modelId || "black-forest-labs/flux-schnell";
+  let geminiModelId = modelId || "imagen-4.0-generate-001";
 
-  if (modelId === "Flux") replicateModelId = "black-forest-labs/flux-schnell";
-  if (modelId === "Nano Banana") replicateModelId = "black-forest-labs/flux-1.1-pro";
-  if (modelId === "Nano Banana Pro") replicateModelId = "black-forest-labs/flux-1.1-pro-ultra";
-  if (modelId === "Seadream 4.5") replicateModelId = "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b";
+  if (modelId === "Flux") geminiModelId = "imagen-4.0-generate-001";
+  if (modelId === "Nano Banana") geminiModelId = "imagen-4.0-generate-001";
+  if (modelId === "Nanobana 2.0" || modelId === "nanobana-2.0" || modelId === "Nano Banana 2" || modelId === "nanobana-2.0" || modelId === "flux-pro") geminiModelId = "imagen-4.0-generate-001";
+  if (modelId === "Seadream 4.5") geminiModelId = "imagen-4.0-generate-001";
 
   try {
-    const result = await replicateProvider.generateImage({
+    const result = await geminiProvider.generateImage({
       prompt: finalPrompt,
       resolution: "1024x1024",
       quality: "standard",
       seed: finalSeed,
       projectId,
       userId
-    }, replicateModelId);
-    return { url: result.url, seed: finalSeed };
-  } catch (error: any) {
-    console.error("[AI Service] Replicate variation generation failed:", error);
-    throw new Error(`Variation synthesis failed: ${error.message || error}`);
+    }, geminiModelId);
+    const url = await ensurePermanentUrl(result.url, "variations");
+    return { url, seed: finalSeed };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[AI Service] Replicate variation generation failed:", message);
+    throw new Error(`Variation synthesis failed: ${message}`);
   }
 }
 
@@ -536,48 +643,61 @@ export async function generateStoryboardImageVariation(
 export async function generateStyleGuideJSON(
   script: string,
   visualStyle: string,
-  globalNotes?: string
+  globalNotes?: string,
+  brandDNA?: string
 ): Promise<any> {
   const response = await invokeLLM({
     messages: [
       {
         role: "system",
-        content: `You are a professional Art Director and Production Designer.
-        Create a comprehensive, structured visual style guide and mood board plan based on the script and visual directives.
-        
-        The output must be a valid JSON object with the following structure:
-        {
-          "colorPalette": {
-            "primary": { "hex": "#...", "name": "...", "psychology": "...", "usage": "..." },
-            "secondary": { "hex": "#...", "name": "...", "psychology": "...", "usage": "..." },
-            "accent": { "hex": "#...", "name": "...", "psychology": "...", "usage": "..." },
-            "neutral": [{ "hex": "#...", "name": "...", "psychology": "...", "usage": "..." }],
-            "psychology": "Overall palette description"
-          },
-          "typography": {
-            "headingFont": { "name": "...", "weight": "...", "characteristics": "...", "usage": "..." },
-            "bodyFont": { "name": "...", "weight": "...", "characteristics": "...", "usage": "..." },
-            "lineHeight": "...",
-            "spacing": "..."
-          },
-          "composition": {
-            "aspectRatios": ["..."],
-            "gridSystem": "...",
-            "balanceStyle": "...",
-            "depthTechniques": ["..."],
-            "focusPoints": "..."
-          },
-          "textures": ["...", "..."],
-          "moodDescription": "Detailed atmospheric description...",
-          "visualReferencePrompts": [
-            "Detailed image generation prompt for mood board image 1...",
-            "Detailed image generation prompt for mood board image 2...",
-            "Detailed image generation prompt for mood board image 3...",
-            "Detailed image generation prompt for mood board image 4..."
-          ]
-        }
-        
-        Ensure the "visualReferencePrompts" are highly descriptive and ready for an image generator (DALL-E 3/Flux/Midjourney).`,
+        content: `You are the ART_DIRECTOR_ORCHESTRATOR. 
+Create a comprehensive, structured visual style guide and mood board plan based on the script and visual directives.
+
+### MISSION: COMPLETE VISUAL LOOK ###
+Your goal is to provide 4 HIGH-FIDELITY, NANO-PRO READY prompts that represent the complete visual architecture of the project.
+
+### CRITICAL CONSTRAINTS ###
+1. NARRATIVE CONTRAST: Every prompt must reflect the core tension and atmosphere defined in the script.
+2. PRODUCTION DESIGN: Focus on high-fidelity materials, textures, and hero props.
+3. NO HMIs: Cinematography prompts MUST prioritize natural/practical light. STRICTLY BAN studio fixtures for outdoor scenes.
+4. BRAND ALIGNMENT: Incorporate the Brand DNA into the visual prompts if provided.
+
+OUTPUT REQUIREMENTS (JSON):
+{
+  "colorPalette": {
+    "primary": { "hex": string, "name": string, "psychology": string, "usage": string },
+    "secondary": { "hex": string, "name": string, "psychology": string, "usage": string },
+    "accent": { "hex": string, "name": string, "psychology": string, "usage": string },
+    "neutral": [{ "hex": string, "name": string, "psychology": string, "usage": string }],
+    "psychology": "Atmospheric intent"
+  },
+  "typography": {
+    "headingFont": { "name": string, "weight": string, "characteristics": string, "usage": string },
+    "bodyFont": { "name": string, "weight": string, "characteristics": string, "usage": string },
+    "lineHeight": string,
+    "spacing": string
+  },
+  "composition": {
+    "aspectRatios": ["16:9"],
+    "gridSystem": string,
+    "balanceStyle": string,
+    "depthTechniques": string[],
+    "focusPoints": string
+  },
+  "textures": string[],
+  "moodDescription": "Overall visual atmosphere",
+  "visualReferencePrompts": [
+    "CINEMATOGRAPHY REFERENCE: [Core Concept] High-fidelity technical camera prompt...",
+    "PRODUCTION DESIGN REFERENCE: [Material/Set Detail] Master Art Direction prompt...",
+    "ENVIRONMENT REFERENCE: [World Building] Atmospheric landscape prompt...",
+    "TEXTURE & COLOR REFERENCE: [Micro Detail] Abstract material study prompt..."
+  ]
+}
+
+${brandDNA ? `\nBrand DNA Context:\n${brandDNA}` : ""}
+${globalNotes ? `\nGlobal Notes:\n${globalNotes}` : ""}
+
+Every prompt in "visualReferencePrompts" MUST incorporate the brand hex codes (if any) and technical cinematic language.`
       },
       {
         role: "user",
@@ -620,7 +740,7 @@ export async function generateCharacterPose(
   const { isDevModeEnabled } = await import("../_core/devMode");
 
   // Replicate provider is already initialized at module level
-  const replicateModelId = "black-forest-labs/flux-1.1-pro-ultra"; // High fidelity
+  const geminiModelId = "imagen-4.0-generate-001"; // High fidelity
 
   if (isDevModeEnabled()) {
     const { mockImageGeneration } = await import("./mockData");
@@ -628,54 +748,53 @@ export async function generateCharacterPose(
   }
 
   // Use provider from module scope
-  // We need to access the exported replicateProvider or create a new one?
-  // replicateProvider is not exported. But we are inside the module.
-  // Wait, replicateProvider is defined at line 8.
+  // We need to access the exported geminiProvider or create a new one?
+  // geminiProvider is not exported. But we are inside the module.
+  // Wait, geminiProvider is defined at line 8.
 
   // Logic: 
   const prompt = `A cinematic ${pose} of a character. ${character.traits || "A person"}. High quality, 8k, photorealistic, film grain.`;
 
-  // We need to use the replicateProvider instance defined in this file.
+  // We need to use the geminiProvider instance defined in this file.
   // BUT the file view shows it at line 8.
   // Is it accessible? Yes, module scope.
 
+  // I will use it directly.
+
+  // However, I need to make sure I am not breaking anything.
+  // I'll use the same pattern as other functions.
+
+  // We need to make sure we import geminiProvider if it's not available? No it is in same file.
+
+  // BUT checking the file 251, it is there.
+  // However, I need to make sure I don't reference it if it's not in scope of function? It is in module scope.
+
+  // One catch: this new function is at the end of the file.
+
   try {
-    // We need to handle the case where replicateProvider might strictly expect some params.
-    // Looking at previous usages (e.g. generateStoryboardImageWithConsistency), it uses replicateProvider.generateImage
+    // We need to handle the case where geminiProvider might strictly expect some params.
+    // Looking at previous usages (e.g. generateStoryboardImageWithConsistency), it uses geminiProvider.generateImage
     // Let's assume usage is similar.
 
-    // Note: replicateProvider generic usage
-    // We need to ensure replicateProvider is reachable.
-    // It is const replicateProvider = ... at top level.
+    // Note: geminiProvider generic usage
+    // We need to ensure geminiProvider is reachable.
+    // It is const geminiProvider = ... at top level.
 
     // Re-declaring it locally just in case or using the top level one.
     // Top level one is fine.
 
-    // But wait, in this file, verify replicateProvider availability.
-    // It is at line 8.
-
-    // I will use it directly.
-
-    // However, I need to make sure I am not breaking anything.
-    // I'll use the same pattern as other functions.
-
-    // We need to make sure we import replicateProvider if it's not available? No it is in same file.
-
-    // BUT checking the file 251, it is there.
-    // However, I need to make sure I don't reference it if it's not in scope of function? It is in module scope.
-
-    // One catch: this new function is at the end of the file.
-
-    const result = await replicateProvider.generateImage({
+    const result = await geminiProvider.generateImage({
       prompt,
       resolution: "1024x1024",
       quality: "hd",
-    }, replicateModelId);
+    }, geminiModelId);
 
-    return result.url;
-  } catch (error) {
-    console.error("Failed to generate character pose:", error);
-    throw new Error("Failed to generate character pose");
+    const url = await ensurePermanentUrl(result.url, "poses");
+    return url;
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Failed to generate character pose:", message);
+    throw new Error(`Failed to generate character pose: ${message}`);
   }
 }
 
@@ -690,20 +809,20 @@ export async function analyzeScriptToScenes(
     messages: [
       {
         role: "system",
-        content: `You are a professional Script Supervisor.
-        Analyze the screenplay provided and break it down into individual SCENES.
+        content: `You are a world-class Director and Script Analyst. 
+        Analyze the screenplay provided and break it down into individual SCENES, providing a rich "Director's Vision" for each.
         
         For each scene, extract:
         - Order (sequential number)
         - Title (Slugline)
-        - Description (Brief summary of the action and key dialogue)
+        - Description: A "Narrative-Visual Synthesis." Do not just summarize dialogue. Describe the ATMOSPHERE, the LIGHTING intent (e.g., "Volumetric dust motes in cold moonlight"), the MOOD, and the specific CHARACTER ENERGY that should be reflected in storyboards.
 
         RETURN A JSON OBJECT with a "scenes" array.
         Example:
         {
           "scenes": [
-            { "order": 1, "title": "EXT. CITY - DAY", "description": "Establishing shot of the futuristic metropolis." },
-            { "order": 2, "title": "INT. APARTMENT - DAY", "description": "Hero wakes up to the sound of sirens." }
+            { "order": 1, "title": "EXT. CITY - DAY", "description": "High-angle establishing shot of the futuristic metropolis. Volumetric smog chokes the sunlight. The architecture feels oppressive and monolithic." },
+            { "order": 2, "title": "INT. APARTMENT - DAY", "description": "Hero wakes up in a claustrophobic pod. Harsh, flickering fluorescent lighting. The mood is isolation and cold utility." }
           ]
         }`,
       },
@@ -733,102 +852,112 @@ export async function analyzeScriptToScenes(
   }
 }
 
+export const PCI_1_REFERENCE_PROMPT = (description: string) => `**Photorealistic Character Identity Sheet (Using a Reference Image)**
+
+**Prompt**
+Create a **photorealistic multi-angle photographic identity sheet** based **strictly** on the uploaded reference image.
+
+- Match the **exact real-world appearance** of the person: facial structure, proportions, skin texture, age, asymmetry, and natural imperfections.
+- The result must look like **real photography of a real human**, not a digital character or 3D asset.
+- Use a **simple, neutral background**, similar to a studio or indoor wall.
+- The overall feeling should be **documentary and natural**, not stylized or cinematic.
+
+**Layout**
+- **Two horizontal rows**, presented as a clean photo contact sheet.
+- **Top row:** four full-body photographs of the same person:
+    1. Facing the camera
+    2. Standing in side profile (left)
+    3. Standing in side profile (right)
+    4. Facing away from the camera
+- **Bottom row:** four headshot/portrait photographs of the same person:
+    1. Looking at the camera (straight on)
+    2. Half-profile (left)
+    3. Half-profile (right)
+    4. Close-up on eyes/facial texture.
+
+**Lighting & Quality**
+- Pure photographic quality. 35mm lens, f/8 aperture for deep focus. No shallow depth of field. Soft, even studio lighting. No heavy shadows, no lens flares. 4k resolution, high-octane render, masterpiece, raw photo.
+
+[REFERENCE DESCRIPTION]:
+${description}`;
+
+export const PCI_2_DESCRIPTION_PROMPT = (description: string) => `**Photorealistic Character Identity Sheet (Description Only)**
+
+**Prompt**
+Create a **photorealistic multi-angle photographic identity sheet** for a character based on the following description.
+
+[CHARACTER DESCRIPTION]:
+${description}
+
+- The character must have a **distinct and consistent real-world appearance** across all angles: specific facial structure, proportions, skin texture, and age.
+- The result must look like **real photography of a real human**, not a digital character or 3D asset.
+- Use a **simple, neutral background**, similar to a studio or indoor wall.
+- The overall feeling should be **documentary and natural**, not stylized or cinematic.
+
+**Layout**
+- **Two horizontal rows**, presented as a clean photo contact sheet.
+- **Top row:** four full-body photographs of the same person:
+    1. Facing the camera
+    2. Standing in side profile (left)
+    3. Standing in side profile (right)
+    4. Facing away from the camera
+- **Bottom row:** four headshot/portrait photographs of the same person:
+    1. Looking at the camera (straight on)
+    2. Half-profile (left)
+    3. Half-profile (right)
+    4. Close-up on eyes/facial texture.
+
+**Lighting & Quality**
+- Pure photographic quality. 35mm lens, f/8 aperture for deep focus. No shallow depth of field. Soft, even studio lighting. No heavy shadows, no lens flares. 4k resolution, high-octane render, masterpiece, raw photo.`;
+
+export const PCI_3_WARDROBE_PROMPT = (outfitDescription: string) => `Use the same photographic identity sheet as reference.
+- Maintain the exact same person: face, body, age, proportions, posture, and expression.
+- Change only the clothing to the following: ${outfitDescription}
+
+Constraints:
+- The clothing must behave like real fabric on a real body.
+- No change to lighting, camera angle, or body posture.`;
+
 /**
  * Generate a Nano Pro Character Reference Sheet
- * Includes structured JSON Prompt 1 for Nano Pro API
+ * Uses PCI (Photorealistic Character Identity) standards
  */
 export async function generateCharacterNano(
   description: string,
   referenceImages: string[],
-  modelId?: string,
   projectId?: number,
-  userId?: string
+  userId?: string,
+  isWardrobeChange: boolean = false,
+  seed?: number
 ): Promise<string> {
-  const replicateModelId = modelId || "black-forest-labs/flux-1.1-pro-ultra"; // Nano Banana Pro
+  const geminiModelId = "imagen-4.0-generate-001";
 
-  // Structured target Prompt 1
-  const structuredPrompt = {
-    generative_prompt: {
-      source_material: {
-        input: "uploaded reference image",
-        instruction: "base strictly on the uploaded reference image"
-      },
-      subject: description,
-      style: [
-        "professional character reference sheet",
-        "technical model turnaround",
-        "match exact visual style of the reference (same realism level, rendering approach, texture, color treatment, and overall aesthetic)",
-        "crisp",
-        "print-ready",
-        "sharp details"
-      ],
-      background: "clean, neutral plain background",
-      composition: {
-        layout: "two horizontal rows",
-        top_row: {
-          view_type: "full-body standing",
-          pose: "relaxed A-pose",
-          sequence: [
-            "front view",
-            "left profile view (facing left)",
-            "right profile view (facing right)",
-            "back view"
-          ]
-        },
-        bottom_row: {
-          view_type: "highly detailed close-up portraits",
-          sequence: [
-            "front portrait",
-            "left profile portrait (facing left)",
-            "right profile portrait (facing right)"
-          ]
-        }
-      },
-      technical_specifications: {
-        consistency: [
-          "perfect identity consistency across every panel",
-          "consistent scale and alignment between views",
-          "consistent head height across the full-body lineup",
-          "consistent facial scale across the portraits"
-        ],
-        anatomy_and_silhouette: [
-          "accurate anatomy",
-          "clear silhouette"
-        ],
-        framing_and_spacing: [
-          "even spacing",
-          "clean panel separation",
-          "uniform framing"
-        ]
-      },
-      lighting: {
-        type: "natural",
-        characteristics: [
-          "consistent across all panels (same direction, intensity, and softness)",
-          "controlled shadows that preserve detail"
-        ],
-        constraints: [
-          "no dramatic mood shifts"
-        ]
-      }
-    }
-  };
-
-  const finalPrompt = JSON.stringify(structuredPrompt, null, 2);
+  let finalPrompt = "";
+  if (isWardrobeChange) {
+    finalPrompt = PCI_3_WARDROBE_PROMPT(description);
+  } else if (referenceImages.length > 0) {
+    finalPrompt = PCI_1_REFERENCE_PROMPT(description);
+  } else {
+    finalPrompt = PCI_2_DESCRIPTION_PROMPT(description);
+  }
 
   try {
-    const result = await replicateProvider.generateImage({
+    const result = await geminiProvider.generateImage({
       prompt: finalPrompt,
-      resolution: "1024x1024",
+      resolution: "1024x1344",
       quality: "hd",
       projectId,
       userId,
-      imageInputs: referenceImages // pass base64 image URIs to the provider abstraction
-    }, replicateModelId);
-    return result.url;
-  } catch (error: any) {
-    console.error("[AI Service] Nano character generation failed:", error);
-    throw new Error(`Nano character synthesis failed: ${error.message || error}`);
+      seed,
+      ...(referenceImages.length > 0 ? { imageInputs: referenceImages } : {})
+    }, geminiModelId);
+
+    const url = await ensurePermanentUrl(result.url, "characters");
+    return url;
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[AI Service] PCI Character generation failed:", message);
+    throw new Error(`Character synthesis failed: ${message}`);
   }
 }
 
@@ -836,16 +965,76 @@ export async function generateCharacterNano(
  * Upscales an image to 4k using a high-fidelity Replicate upscaler natively
  */
 export async function upscaleImageTo4k(
-  imageUrl: string,
-  projectId?: number,
-  userId?: string
+  imageUrl: string
 ): Promise<string> {
   try {
-    return await replicateProvider.upscaleImage(imageUrl, projectId, userId, 4);
-  } catch (error: any) {
-    console.error("[AI Service] 4k Upscale failed:", error);
-    throw new Error(`4k Upscale failed: ${error.message || error}`);
+    return await geminiProvider.upscaleImage(imageUrl, 4);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[AI Service] 4K Upscale failed:", message);
+    throw new Error(`Upscale synthesis failed: ${message}`);
   }
 }
 
+/**
+ * Generate a visual portrait of a Production Design Set.
+ */
+export async function generateSetNano(
+    description: string,
+    projectId?: number,
+    userId?: string
+): Promise<string> {
+    const geminiModelId = "imagen-4.0-generate-001";
+    const prompt = `8K RAW cinematic master set photograph. PRODUCTION DESIGN ARCHITECTURE: ${description}. 
+    Focus on physical set construction, tactile materials (concrete, aged wood, brushed metal), atmospheric depth, and realistic global illumination. 
+    Cinematography: Panavision Primo 70 lenses, 1.33x Anamorphic squeeze, ACES color science. 
+    Strictly: NO CONCEPT ART, NO PEOPLE, NO STUDIO LIGHTS IN FRAME. This must look like an actual location on a film set.`;
+
+    try {
+        console.log(`[AI Service] Generating set image with prompt: ${prompt.substring(0, 100)}...`);
+        const result = await geminiProvider.generateImage({
+            prompt,
+            resolution: "1792x1024",
+            quality: "hd",
+            projectId,
+            userId,
+        }, geminiModelId);
+        console.log(`[AI Service] Set image generation success.`);
+        return await ensurePermanentUrl(result.url, "sets");
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error("[AI Service] Set generation failed:", message);
+        throw new Error(`Set synthesis failed: ${message}`);
+    }
+}
+
+/**
+ * Generate a high-fidelity image of a hero prop.
+ */
+export async function generatePropNano(
+    description: string,
+    projectId?: number,
+    userId?: string
+): Promise<string> {
+    const geminiModelId = "imagen-4.0-generate-001";
+    const prompt = `8K RAW MACRO product photography of a HERO PROP: ${description}. 
+    Extreme fidelity on materials, surface wear, mechanical imperfections, and high-resolution textures. 
+    Lighting: Precise cinematic rim lighting, volumetric depth, ACES color space. 
+    Strictly: Isolated on a professional, dark neutral cinematic staging area. No people.`;
+
+    try {
+        const result = await geminiProvider.generateImage({
+            prompt,
+            resolution: "1024x1024",
+            quality: "hd",
+            projectId,
+            userId,
+        }, geminiModelId);
+        return await ensurePermanentUrl(result.url, "props");
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error("[AI Service] Prop generation failed:", message);
+        throw new Error(`Prop synthesis failed: ${message}`);
+    }
+}
 

@@ -163,7 +163,7 @@ export class NanoBananaProvider {
 
       return {
         provider: "nanobanana",
-        model: "nanobanana-pro",
+        model: "nanobana-2.0",
         url: data.image_url,
         width,
         height,

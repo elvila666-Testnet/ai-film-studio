@@ -1,0 +1,1 @@
+ALTER TABLE `productionDesignProps` ADD `referenceImageUrl` longtext;

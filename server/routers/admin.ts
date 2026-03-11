@@ -13,8 +13,11 @@ export const adminRouter = router({
             category: z.enum(["text", "image", "video"]),
             provider: z.string(),
             modelId: z.string(),
-            apiKey: z.string().optional(),
-            apiEndpoint: z.string().optional(),
+            name: z.string().optional().nullable(),
+            description: z.string().optional().nullable(),
+            costPerUnit: z.string().optional().nullable(),
+            apiKey: z.string().optional().nullable(),
+            apiEndpoint: z.string().optional().nullable(),
             isActive: z.boolean().default(false),
             isBuiltIn: z.boolean().default(false),
         }))
@@ -22,6 +25,9 @@ export const adminRouter = router({
             // Create InsertModelConfig from input
             const config = {
                 ...input,
+                name: input.name ?? null,
+                description: input.description ?? null,
+                costPerUnit: input.costPerUnit ?? "0.0000",
                 apiKey: input.apiKey ?? null,
                 apiEndpoint: input.apiEndpoint ?? null,
             };

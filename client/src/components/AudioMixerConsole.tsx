@@ -106,8 +106,8 @@ export function AudioMixerConsole({
                     key={track.id}
                     onClick={() => setSelectedTrack(track.id)}
                     className={`p-2 rounded text-xs font-semibold transition-colors ${selectedTrack === track.id
-                        ? "bg-cyan-600 text-white"
-                        : "bg-[#3a3a3a] text-gray-300 hover:bg-[#404040]"
+                      ? "bg-cyan-600 text-white"
+                      : "bg-[#3a3a3a] text-gray-300 hover:bg-[#404040]"
                       }`}
                   >
                     {track.name}
@@ -216,7 +216,7 @@ export function AudioMixerConsole({
         <TabsContent value="eq" className="flex-1 overflow-auto p-4 space-y-4">
           <div className="space-y-2">
             <label className="text-xs font-semibold text-gray-400">EQ PRESET</label>
-            <Select value={eqMode} onValueChange={(value: unknown) => setEqMode(value)}>
+            <Select value={eqMode} onValueChange={(value: string) => setEqMode(value as "voiceover" | "music" | "sfx")}>
               <SelectTrigger className="bg-[#3a3a3a] border-[#404040]">
                 <SelectValue />
               </SelectTrigger>

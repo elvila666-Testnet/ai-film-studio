@@ -3,7 +3,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   Loader2, Film, User, LogOut,
-  Settings, ChevronDown, ChevronUp, Info
+  ChevronDown, ChevronUp, Info
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
@@ -22,10 +22,11 @@ import { AdminPanel } from "./AdminPanel";
 import { PipelineSidebar } from "@/features/Project/PipelineSidebar";
 import { ProjectVault } from "@/features/Project/ProjectVault";
 import { NewProjectPanel } from "@/features/Project/NewProjectPanel";
-import { PipelineStage, Project } from "@/features/Project/types";
+import { PipelineStage, Project, PIPELINE_STAGES } from "@/features/Project/types";
 import { DirectorView } from "@/components/Director/DirectorView";
 import { DirectorConsole } from "@/components/DirectorConsole";
 import { CostTicker } from "@/components/FinOps/CostTicker";
+import { BrandBrainOverlay } from "@/components/BrandBrain/BrandBrainOverlay";
 
 export function Home() {
   const { user, loading, isAuthenticated, logout, refresh } = useAuth();
@@ -44,11 +45,24 @@ export function Home() {
   const deleteProjectMutation = trpc.projects.delete.useMutation();
   const createBrandMutation = trpc.brand.create.useMutation();
 
-  const handleCreateProject = async (name: string, brandId: string | null) => {
+  const handleCreateProject = async (data: {
+    name: string;
+    brandId: string | null;
+    type: "spot" | "movie";
+    targetDuration?: number;
+    aspectRatio: string;
+    brief: string;
+    thumbnailUrl?: string;
+  }) => {
     try {
       const result = await createProjectMutation.mutateAsync({
-        name,
-        brandId: brandId || undefined
+        name: data.name,
+        brandId: data.brandId || undefined,
+        type: data.type,
+        targetDuration: data.targetDuration,
+        aspectRatio: data.aspectRatio,
+        brief: data.brief,
+        thumbnailUrl: data.thumbnailUrl
       });
       projectsQuery.refetch();
       if (result?.id) {
@@ -225,7 +239,7 @@ export function Home() {
                 )}
               </div>
               <p className="production-label !text-[8px]">
-                {currentStage.replace("-", " ")} PHASE
+                {PIPELINE_STAGES.find(s => s.id === currentStage)?.label || currentStage.replace("-", " ")} PHASE
               </p>
             </div>
           </div>
@@ -249,6 +263,8 @@ export function Home() {
         )}
 
         <div className="flex items-center gap-4">
+          <BrandBrainOverlay initialBrandId={selectedProject?.brandId} />
+          <div className="h-6 w-px bg-white/10" />
           <div className="text-[10px] font-mono text-slate-500 uppercase tracking-[0.2em]">
             SN: {selectedProjectId}
           </div>

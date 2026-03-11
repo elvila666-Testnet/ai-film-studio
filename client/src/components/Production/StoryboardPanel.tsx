@@ -31,19 +31,20 @@ export function StoryboardPanel({ projectId, shotId, initialPrompt, sceneId }: S
             await generateImage.mutateAsync({
                 projectId,
                 shotId,
-                modelId: 'black-forest-labs/flux-schnell',
+                modelId: 'nanobana-2.0',
                 prompt,
                 force
             });
             setIsOpen(false);
             toast.success("Image generation started");
         } catch (error: unknown) {
-            if (error.message.includes("Cost limit exceeded")) {
-                const costMatch = error.message.match(/Estimated: \$([0-9.]+)/);
+            const msg = error instanceof Error ? error.message : String(error);
+            if (msg.includes("Cost limit exceeded")) {
+                const costMatch = msg.match(/Estimated: \$([0-9.]+)/);
                 const estimatedCost = costMatch ? parseFloat(costMatch[1]) : 0.003;
                 requestApproval(estimatedCost, () => handleGenerateImage(true));
             } else {
-                toast.error(`Error: ${error.message}`);
+                toast.error(`Error: ${msg}`);
             }
         }
     };
@@ -59,7 +60,8 @@ export function StoryboardPanel({ projectId, shotId, initialPrompt, sceneId }: S
             toast.success("Voiceover generated!");
             setTtsText('');
         } catch (error: unknown) {
-            toast.error(`TTS Failed: ${error.message}`);
+            const msg = error instanceof Error ? error.message : String(error);
+            toast.error(`TTS Failed: ${msg}`);
         }
     };
 
@@ -74,7 +76,8 @@ export function StoryboardPanel({ projectId, shotId, initialPrompt, sceneId }: S
             toast.success("SFX generated!");
             setSfxPrompt('');
         } catch (error: unknown) {
-            toast.error(`SFX Failed: ${error.message}`);
+            const msg = error instanceof Error ? error.message : String(error);
+            toast.error(`SFX Failed: ${msg}`);
         }
     };
 

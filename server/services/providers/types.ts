@@ -4,9 +4,8 @@
  */
 
 // ============ PROVIDER TYPES ============
-
-export type ImageProvider = "nanobanana" | "dalle" | "midjourney" | "replicate" | "apiyi";
-export type VideoProvider = "flow" | "sora" | "kling" | "whan" | "replicate";
+export type ImageProvider = "nanobanana" | "dalle" | "midjourney" | "gemini" | "replicate";
+export type VideoProvider = "flow" | "sora" | "kling" | "whan" | "gemini" | "veo3" | "replicate";
 
 export interface ProviderConfig {
   enabled: boolean;
@@ -61,7 +60,7 @@ export interface GenerationResult {
 
 export interface ImageGenerationParams {
   prompt: string;
-  resolution: "1024x1024" | "1024x1792" | "1792x1024" | "512x512" | "768x768";
+  resolution: "1024x1024" | "1024x1792" | "1792x1024" | "512x512" | "768x768" | "1024x1344" | "1344x1024" | "1216x832" | "832x1216";
   quality: "standard" | "hd";
   style?: string;
   negativePrompt?: string;
@@ -83,6 +82,7 @@ export interface ImageGenerationResult extends GenerationResult {
 
 export interface VideoGenerationParams {
   prompt: string;
+  model?: string;
   keyframeUrl?: string;
   input_image_url?: string;
   duration: number; // seconds
@@ -120,17 +120,17 @@ export const IMAGE_PROVIDER_PRICING: Record<ImageProvider, Record<string, number
     "premium": 0.03,
   },
   nanobanana: {
-    "standard": 0.01, // per image (approximate)
-    "premium": 0.02,
+    "standard": 0.05, // Nanobana 2.0 Base
+    "premium": 0.10,  // Nanobana 2.0 High-Gloss
+  },
+  gemini: {
+    "standard": 0.01,
+    "premium": 0.03,
   },
   replicate: {
-    "standard": 0.005, // Flux Schnell (approximate)
-    "premium": 0.01, // Flux Dev
-  },
-  apiyi: {
-    "standard": 0.04, // Estimated
-    "premium": 0.08,
-  },
+    "1024x1024_standard": 0.03,
+    "1024x1024_hd": 0.06,
+  }
 };
 
 export const VIDEO_PROVIDER_PRICING: Record<VideoProvider, Record<string, number>> = {
@@ -154,11 +154,21 @@ export const VIDEO_PROVIDER_PRICING: Record<VideoProvider, Record<string, number
     "1080p_per_minute": 0.11,
     "4k_per_minute": 0.22,
   },
-  replicate: {
-    "720p_per_minute": 0.04,
-    "1080p_per_minute": 0.08,
-    "4k_per_minute": 0.15,
+  gemini: {
+    "720p_per_minute": 0.05,
+    "1080p_per_minute": 0.1,
+    "4k_per_minute": 0.2,
   },
+  veo3: {
+    "720p_per_minute": 0.12,
+    "1080p_per_minute": 0.18,
+    "4k_per_minute": 0.35,
+  },
+  replicate: {
+    "720p_per_minute": 0.06,
+    "1080p_per_minute": 0.11,
+    "4k_per_minute": 0.22,
+  }
 };
 
 // ============ PROVIDER CAPABILITIES ============
@@ -248,24 +258,34 @@ export const PROVIDER_CAPABILITIES: Record<
     maxConcurrentRequests: 5,
     averageProcessingTime: 50000,
   },
+  gemini: {
+    imageResolutions: ["1024x1024", "1024x1792", "1792x1024", "1216x832", "832x1216"],
+    videoResolutions: ["720p", "1080p"],
+    maxDuration: 60,
+    supportsKeyframe: true,
+    supportsNegativePrompt: false, // native flash/veo has different prompting semantics
+    supportsSeed: true,
+    maxConcurrentRequests: 15,
+    averageProcessingTime: 15000,
+  },
   replicate: {
-    imageResolutions: ["1024x1024", "1024x1792", "1792x1024", "512x512", "768x768"],
-    videoResolutions: ["720p", "1080p", "4k"],
-    maxDuration: 120,
+    imageResolutions: ["1024x1024", "1024x1792", "1792x1024"],
+    videoResolutions: ["720p", "1080p"],
+    maxDuration: 10,
     supportsKeyframe: true,
     supportsNegativePrompt: true,
     supportsSeed: true,
     maxConcurrentRequests: 10,
-    averageProcessingTime: 40000,
+    averageProcessingTime: 30000,
   },
-  apiyi: {
-    imageResolutions: ["1024x1024", "1024x1792", "1792x1024"],
-    videoResolutions: [],
-    maxDuration: 0,
-    supportsKeyframe: false,
-    supportsNegativePrompt: false, // Standard OpenAI format doesn't explicitly support negative prompt in top-level usually, depends on model implementation behind proxy
-    supportsSeed: false,
+  veo3: {
+    imageResolutions: [],
+    videoResolutions: ["720p", "1080p"],
+    maxDuration: 20,
+    supportsKeyframe: true,
+    supportsNegativePrompt: false,
+    supportsSeed: true,
     maxConcurrentRequests: 5,
-    averageProcessingTime: 20000,
-  },
+    averageProcessingTime: 120000,
+  }
 };

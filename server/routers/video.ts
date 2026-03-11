@@ -8,15 +8,6 @@ import { generatedVideos, storyboardImages, modelConfigs } from "../../drizzle/s
 import { eq, and } from "drizzle-orm";
 import { ProviderFactory } from "../services/providers/providerFactory";
 import { VideoProvider } from "../services/providers/types";
-import { Storage } from "@google-cloud/storage";
-import { v4 as uuidv4 } from "uuid";
-import axios from "axios";
-import stream from "stream";
-import { promisify } from "util";
-
-const pipeline = promisify(stream.pipeline);
-const storage = new Storage();
-const BUCKET_NAME = process.env.GCS_BUCKET_NAME || "ai-film-studio-assets";
 
 export const videoRouter = router({
     render: publicProcedure
@@ -24,7 +15,7 @@ export const videoRouter = router({
             storyboardId: z.string(),
             projectId: z.number(), // Added projectId
             format: z.enum(["mp4", "webm"]).default("mp4"),
-            resolution: z.string().optional()
+            resolution: z.enum(["720p", "1080p", "4k", "2k"]).optional()
         }))
         .mutation(async ({ input }) => {
             // Mocking the input file generation for now
@@ -54,7 +45,7 @@ export const videoRouter = router({
                         audioCodec: 'aac',
                         audioBitrate: 128,
                         videoBitrate: 3000,
-                        resolution: '1080p',
+                        resolution: input.resolution || '1080p',
                         frameRate: 30,
                         preset: 'medium'
                     }
@@ -134,9 +125,10 @@ export const videoRouter = router({
             projectId: z.number(),
             shotNumber: z.number(),
             motionPrompt: z.string(),
-            provider: z.enum(["veo3", "sora", "replicate"]).default("replicate"),
+            provider: z.enum(["veo3", "sora", "replicate", "gemini", "flow", "kling", "whan"]).default("replicate"),
             modelId: z.string().optional(),
             duration: z.number().default(4),
+            resolution: z.enum(["720p", "1080p", "4k"]).default("720p"),
             characterLocked: z.boolean().default(true),
             force: z.boolean().default(false),
         }))
@@ -163,7 +155,13 @@ export const videoRouter = router({
                 eq(modelConfigs.isActive, true)
             )).limit(1);
 
-            const apiKey = config[0]?.apiKey || "";
+            let apiKey = config[0]?.apiKey || "";
+            if (!apiKey) {
+                if (provider === "replicate") apiKey = process.env.REPLICATE_API_TOKEN || "";
+                else if (provider === "sora") apiKey = process.env.SORA_API_KEY || "";
+                else if (provider === "veo3" || (provider as any) === "gemini") apiKey = process.env.BUILT_IN_FORGE_API_KEY || "";
+            }
+
             console.log(`[VideoRouter] Selected provider: ${provider}, modelId: ${modelId}, hasApiKey: ${!!apiKey}`);
 
             // 2. Instantiate Provider
@@ -198,7 +196,7 @@ export const videoRouter = router({
             if (!imageUrl) throw new Error("Storyboard image not found for this shot");
 
             // 3b. Estimate & Validate Cost (Financial Control)
-            const { estimateCost, validateCost } = await import("../src/services/pricingService");
+            const { estimateCost, validateCost } = await import("../services/pricingService");
             const cost = estimateCost(modelId, 5); // Assuming 5 seconds duration
             validateCost(cost, input.force);
             console.log(`[VideoRouter] Cost verified: ${cost} USD`);
@@ -223,40 +221,19 @@ export const videoRouter = router({
                     prompt,
                     keyframeUrl: imageUrl,
                     duration: input.duration,
-                    resolution: "720p", // Default
+                    resolution: input.resolution,
                     fps: 24,
                 }, modelId);
 
                 // 7. Asset Ownership: Download -> GCS (Mandated by Constitution)
-                let finalVideoUrl = result.url;
-                if (!result.url.includes("storage.googleapis.com")) {
-                    try {
-                        console.log(`[VideoRouter] Securing asset to GCS...`);
-                        const response = await axios({
-                            method: "GET",
-                            url: result.url,
-                            responseType: "stream",
-                        });
+                const { ensurePermanentUrl } = await import("../services/aiGeneration");
+                const finalVideoUrl = await ensurePermanentUrl(result.url, "videos");
+                console.log(`[VideoRouter] Asset secured: ${finalVideoUrl}`);
 
-                        const filename = `videos/${uuidv4()}.mp4`;
-                        const file = storage.bucket(BUCKET_NAME).file(filename);
-                        const writeStream = file.createWriteStream({
-                            gzip: true,
-                            metadata: { contentType: "video/mp4" },
-                        });
-
-                        await pipeline(response.data, writeStream);
-                        finalVideoUrl = `https://storage.googleapis.com/${BUCKET_NAME}/${filename}`;
-                        console.log(`[VideoRouter] Asset secured: ${finalVideoUrl}`);
-
-                        // Update DB with persistent URL
-                        await db.update(generatedVideos)
-                            .set({ videoUrl: finalVideoUrl })
-                            .where(eq(generatedVideos.id, videoId));
-                    } catch (gcsError) {
-                        console.error("[VideoRouter] GCS Persistence failed (using raw link):", gcsError);
-                    }
-                }
+                // Update DB with persistent URL
+                await db.update(generatedVideos)
+                    .set({ videoUrl: finalVideoUrl })
+                    .where(eq(generatedVideos.id, videoId));
 
                 // 6. Update DB
                 await db.update(generatedVideos)
@@ -345,7 +322,7 @@ export const videoRouter = router({
                     duration: 5,
                     resolution: input.resolution || "720p",
                     fps: 24,
-                }, input.modelId).then(async (result) => {
+                }, input.modelId).then(async (result: any) => {
                     await db.update(generatedVideos)
                         .set({ status: "completed", videoUrl: result.url })
                         .where(eq(generatedVideos.id, videoId));
@@ -353,7 +330,7 @@ export const videoRouter = router({
                     await db.update(storyboardImages)
                         .set({ videoUrl: result.url })
                         .where(eq(storyboardImages.id, shot.id));
-                }).catch(async (err) => {
+                }).catch(async (err: any) => {
                     console.error(`Batch video failed for shot ${shot.shotNumber}:`, err);
                     await db.update(generatedVideos)
                         .set({ status: "failed", error: err.message })

@@ -1,6 +1,6 @@
 
 import { useState, useMemo } from "react";
-import { Check, ChevronsUpDown, Star, Info, Zap, Crown } from "lucide-react";
+import { Check, ChevronsUpDown, Star, Zap, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,11 +57,11 @@ export function ModelSelector({ value, onValueChange, className }: ModelSelector
 
     const models = useMemo(() => modelsQuery.data || [], [modelsQuery.data]);
 
-    const selectedModel = models.find((m: unknown) => m.modelId === value);
+    const selectedModel = models.find((m: Model) => m.modelId === value);
 
     const filteredModels = useMemo(() => {
         if (showFavoritesOnly) {
-            return models.filter((m: unknown) => m.isFavorite);
+            return models.filter((m: Model) => m.isFavorite);
         }
         return models;
     }, [models, showFavoritesOnly]);
@@ -122,7 +122,7 @@ export function ModelSelector({ value, onValueChange, className }: ModelSelector
                     <CommandList>
                         <CommandEmpty>No models found.</CommandEmpty>
                         <CommandGroup heading={showFavoritesOnly ? "Favorites" : "Models"}>
-                            {filteredModels.map((model: unknown) => (
+                            {filteredModels.map((model: Model) => (
                                 <CommandItem
                                     key={model.modelId}
                                     value={model.name || model.modelId} // Search by name or ID

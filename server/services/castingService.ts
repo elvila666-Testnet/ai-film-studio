@@ -5,7 +5,7 @@ import { getDb } from "../db";
 import { actors, usageLedger } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 
-const replicate = new Replicate({ auth: ENV.replicateApiKey });
+const replicate = new Replicate({ auth: ENV.forgeApiKey || "", });
 
 export async function trainCharacterModel(
     userId: string,
@@ -35,8 +35,8 @@ export async function trainCharacterModel(
         // We attempt to get the username from the API key account, or use a default.
         let owner = "ai-film-studio";
         try {
-            const account = await replicate.account.get();
-            owner = account.username;
+            const accountInfo = await replicate.accounts.current();
+            owner = accountInfo.username;
         } catch (e) {
             console.warn("Could not fetch Replicate account info, using default owner:", owner);
         }
@@ -88,11 +88,12 @@ export async function trainCharacterModel(
         return { actorId, trainingId: training.id, status: "training" };
 
     } catch (error: unknown) {
-        console.error("Training failed to start:", error);
+        const errMessage = error instanceof Error ? error.message : String(error);
+        console.error("Training failed to start:", errMessage);
         await db.update(actors).set({
             status: "failed",
         }).where(eq(actors.id, actorId)); // We don't save error message in schema?
-        throw new Error(`Failed to start training: ${error.message}`);
+        throw new Error(`Failed to start training: ${errMessage}`);
     }
 }
 

@@ -57,3 +57,21 @@ private_keys/
 
 # OS
 Thumbs.db
+
+# Sensitive and Temporary files
+db_url.txt
+env_content.txt
+latest_logs.txt
+service_logs.txt
+service_logs2.txt
+service_logs_latest.txt
+gcloud/service-account.json
+cloud-sql-proxy.exe
+revision.json
+service.yaml
+service2.yaml
+drizzle_bak/
+drizzle_snapshot/
+tmp/
+presentaciones/
+*.exe

@@ -1,7 +1,9 @@
 import { Plus, Music } from "lucide-react";
 import { Clip } from "@/features/Project/types";
+import { trpc } from "@/lib/trpc";
 
 interface ManifestSidebarProps {
+    projectId: number;
     clips: Clip[];
     onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onSelect: (id: number) => void;
@@ -9,15 +11,31 @@ interface ManifestSidebarProps {
 }
 
 export function ManifestSidebar({
+    projectId,
     clips,
     onUpload,
     onSelect,
     selectedId
 }: ManifestSidebarProps) {
+    const projectQuery = trpc.projects.get.useQuery({ id: projectId });
+    const brandQuery = trpc.brand.get.useQuery(
+        { id: projectQuery.data?.brandId || "" },
+        { enabled: !!projectQuery.data?.brandId }
+    );
+
     return (
         <div className="w-64 glass-panel rounded-3xl flex flex-col overflow-hidden">
             <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center">
-                <h3 className="production-label text-[10px!important] uppercase tracking-widest text-slate-500">Manifest</h3>
+                <div className="flex items-center gap-2">
+                    {brandQuery.data?.logoUrl ? (
+                        <img src={brandQuery.data.logoUrl} alt="Brand" className="w-5 h-5 rounded object-cover" />
+                    ) : (
+                        <div className="w-5 h-5 bg-white/10 rounded flex items-center justify-center">
+                            <span className="text-[9px] text-white/50 font-bold">M</span>
+                        </div>
+                    )}
+                    <h3 className="production-label text-[10px!important] uppercase tracking-widest text-slate-500">Manifest</h3>
+                </div>
                 <label className="cursor-pointer hover:text-primary transition-colors">
                     <Plus className="w-4 h-4" />
                     <input type="file" hidden accept="video/*,audio/*,image/*" onChange={onUpload} />

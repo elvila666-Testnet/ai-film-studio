@@ -21,13 +21,13 @@ import {
   ProjectMusicSelection,
   MusicSuggestion,
 } from "../../drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, or, desc, and, ilike, inArray, getTableColumns } from "drizzle-orm";
 
 /**
  * Create a new music track in the library
  */
 export async function createMusicTrack(
-  brandId: number,
+  brandId: string,
   data: {
     title: string;
     artist?: string;
@@ -52,7 +52,7 @@ export async function createMusicTrack(
 /**
  * Get all music tracks for a brand
  */
-export async function getBrandMusicLibrary(brandId: number): Promise<MusicLibrary[]> {
+export async function getBrandMusicLibrary(brandId: string): Promise<MusicLibrary[]> {
   const db = await getDatabase();
   return db
     .select()
@@ -95,7 +95,7 @@ export async function deleteMusicTrack(musicId: number): Promise<void> {
  * Get or create brand music preferences
  */
 export async function getBrandMusicPreferences(
-  brandId: number
+  brandId: string
 ): Promise<BrandMusicPreferences | undefined> {
   const db = await getDatabase();
   const result = await db
@@ -109,7 +109,7 @@ export async function getBrandMusicPreferences(
  * Update brand music preferences
  */
 export async function updateBrandMusicPreferences(
-  brandId: number,
+  brandId: string,
   data: {
     preferredGenres?: string;
     preferredMoods?: string;
@@ -261,7 +261,7 @@ export async function incrementMusicUsage(musicId: number): Promise<void> {
  * Get popular music tracks for a brand
  */
 export async function getPopularMusicTracks(
-  brandId: number,
+  brandId: string,
   limit: number = 10
 ): Promise<MusicLibrary[]> {
   const db = await getDatabase();
@@ -279,7 +279,7 @@ export async function getPopularMusicTracks(
  * Search music by mood and genre
  */
 export async function searchMusicByMoodAndGenre(
-  brandId: number,
+  brandId: string,
   mood?: string,
   genre?: string
 ): Promise<MusicLibrary[]> {

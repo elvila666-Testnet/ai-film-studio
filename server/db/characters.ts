@@ -72,21 +72,33 @@ export async function getLockedCharacter(projectId: number) {
   return result[0] || null;
 }
 
+export async function getLockedCharacters(projectId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db
+    .select()
+    .from(characters)
+    .where(
+      and(
+        eq(characters.projectId, projectId),
+        eq(characters.isLocked, true)
+      )
+    );
+}
+
 export async function lockCharacter(projectId: number, characterId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // Unlock all other characters
-  await db
-    .update(characters)
-    .set({ isLocked: false })
-    .where(eq(characters.projectId, projectId));
-
-  // Lock the selected character
+  // Lock the selected character - MULTI-LOCK ENABLED (Removed unlocking others)
   await db
     .update(characters)
     .set({ isLocked: true })
-    .where(eq(characters.id, characterId));
+    .where(and(
+      eq(characters.id, characterId),
+      eq(characters.projectId, projectId)
+    ));
 }
 
 export async function unlockAllCharacters(projectId: number) {
@@ -105,6 +117,7 @@ export async function updateCharacter(
     name: string;
     description: string;
     imageUrl: string;
+    referenceImageUrl: string | null;
     isHero: boolean;
   }>
 ) {
@@ -118,6 +131,7 @@ export async function updateCharacter(
   if (data.name !== undefined) updateData.name = data.name;
   if (data.description !== undefined) updateData.description = data.description;
   if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
+  if (data.referenceImageUrl !== undefined) updateData.referenceImageUrl = data.referenceImageUrl;
   if (data.isHero !== undefined) updateData.isHero = data.isHero;
 
   await db

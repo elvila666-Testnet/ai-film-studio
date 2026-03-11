@@ -174,14 +174,13 @@ export default function ExportTab({ projectId }: ExportTabProps) {
           </div>
         </div>
       </div>
-
       <div className="glass-panel p-8 rounded-[2rem] space-y-8 border-white/5">
         <div className="flex justify-between items-start">
           <div>
-            <h3 className="production-label mb-2">NLE Project Interchange</h3>
-            <p className="text-[10px] uppercase font-black tracking-widest text-slate-500">Edit in DaVinci Resolve / Premiere</p>
+            <h3 className="production-label mb-2">Technical Project Interchange</h3>
+            <p className="text-[10px] uppercase font-black tracking-widest text-slate-500">Edit in Nuke / Resolve / Premiere</p>
           </div>
-          <Badge variant="outline" className="border-blue-500/50 text-blue-400">FCPXML 1.9</Badge>
+          <Badge variant="outline" className="border-blue-500/50 text-blue-400">VFX & NLE PIPELINE</Badge>
         </div>
 
         <Button
@@ -212,6 +211,36 @@ export default function ExportTab({ projectId }: ExportTabProps) {
           </div>
           <Download className="w-5 h-5 text-slate-400" />
         </Button>
+
+        <Button
+          variant="outline"
+          className="w-full h-20 rounded-[1.5rem] border-white/10 bg-white/5 hover:bg-white/10 text-white justify-between px-8"
+          onClick={async () => {
+            const nukeMutation = trpc.projects.exportNuke.mutateAsync({ projectId });
+            toast.promise(
+              nukeMutation,
+              {
+                loading: 'Generating Nuke Script (ACES 1.3)...',
+                success: (data) => {
+                  window.open(data.nkUrl, '_blank');
+                  return 'Nuke Script Exported!';
+                },
+                error: 'Failed to export Nuke script'
+              }
+            );
+          }}
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-orange-500/20 rounded-xl text-orange-400">
+              <Zap className="w-6 h-6" />
+            </div>
+            <div className="text-left">
+              <div className="font-bold uppercase tracking-wider text-sm">Export to Foundry Nuke</div>
+              <div className="text-[10px] text-slate-400 font-mono mt-1">ACES 1.3 Studio Config · Pixel Aspect Ratio Match</div>
+            </div>
+          </div>
+          <Download className="w-5 h-5 text-slate-400" />
+        </Button>
       </div>
 
       {isExporting && (
@@ -236,56 +265,61 @@ export default function ExportTab({ projectId }: ExportTabProps) {
             </div>
           </div>
         </div>
-      )}
+      )
+      }
 
-      {exportComplete && (
-        <div className="glass-panel p-8 rounded-[2rem] border-green-500/20 bg-green-500/5 space-y-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-green-500/20 flex items-center justify-center">
-              <ShieldCheck className="w-6 h-6 text-green-500" />
+      {
+        exportComplete && (
+          <div className="glass-panel p-8 rounded-[2rem] border-green-500/20 bg-green-500/5 space-y-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-green-500/20 flex items-center justify-center">
+                <ShieldCheck className="w-6 h-6 text-green-500" />
+              </div>
+              <div>
+                <h4 className="font-bold text-white uppercase tracking-widest text-xs">Master Ready</h4>
+                <p className="text-[10px] text-green-500/60 font-black uppercase tracking-widest">Verification complete</p>
+              </div>
             </div>
-            <div>
-              <h4 className="font-bold text-white uppercase tracking-widest text-xs">Master Ready</h4>
-              <p className="text-[10px] text-green-500/60 font-black uppercase tracking-widest">Verification complete</p>
+
+            <div className="flex flex-col gap-3">
+              {jobStatus?.url && (
+                <a href={jobStatus.url} target="_blank" rel="noreferrer">
+                  <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-bold h-12 rounded-2xl">
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Master
+                  </Button>
+                </a>
+              )}
+              <Button variant="ghost" className="text-slate-500 hover:text-white" onClick={() => setCurrentJobId(null)}>
+                <Share2 className="w-4 h-4 mr-2" />
+                Distribute
+              </Button>
             </div>
           </div>
+        )
+      }
 
-          <div className="flex flex-col gap-3">
-            {jobStatus?.url && (
-              <a href={jobStatus.url} target="_blank" rel="noreferrer">
-                <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-bold h-12 rounded-2xl">
-                  <Download className="w-4 h-4 mr-2" />
-                  Download Master
-                </Button>
-              </a>
+      {
+        !isExporting && !exportComplete && !exportFailed && (
+          <Button
+            onClick={handleExport}
+            disabled={renderMutation.isPending}
+            className="w-full bg-primary hover:bg-primary/90 text-white font-black h-16 rounded-[2rem] text-sm uppercase tracking-[0.2em] shadow-[0_20px_40px_rgba(79,70,229,0.2)] group"
+          >
+            {renderMutation.isPending ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                Engaging Matrix...
+              </>
+            ) : (
+              <>
+                <Zap className="w-5 h-5 mr-3 group-hover:scale-125 transition-transform" />
+                Finalize Master Output
+              </>
             )}
-            <Button variant="ghost" className="text-slate-500 hover:text-white" onClick={() => setCurrentJobId(null)}>
-              <Share2 className="w-4 h-4 mr-2" />
-              Distribute
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {!isExporting && !exportComplete && !exportFailed && (
-        <Button
-          onClick={handleExport}
-          disabled={renderMutation.isPending}
-          className="w-full bg-primary hover:bg-primary/90 text-white font-black h-16 rounded-[2rem] text-sm uppercase tracking-[0.2em] shadow-[0_20px_40px_rgba(79,70,229,0.2)] group"
-        >
-          {renderMutation.isPending ? (
-            <>
-              <Loader2 className="w-5 h-5 mr-3 animate-spin" />
-              Engaging Matrix...
-            </>
-          ) : (
-            <>
-              <Zap className="w-5 h-5 mr-3 group-hover:scale-125 transition-transform" />
-              Finalize Master Output
-            </>
-          )}
-        </Button>
-      )}
-    </div>
+          </Button>
+        )
+      }
+    </div >
   );
 }

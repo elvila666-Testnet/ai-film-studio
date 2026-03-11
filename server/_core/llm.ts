@@ -278,12 +278,12 @@ const normalizeResponseFormat = ({
  */
 async function invokeGeminiNative(apiKey: string, messages: Message[], model: string, params: InvokeParams): Promise<InvokeResult> {
   // Map models to available ones on this key
-  let finalModel = model || "gemini-2.0-flash";
-  if (finalModel === "gemini-1.5-pro") finalModel = "gemini-2.5-pro";
-  if (finalModel === "gemini-1.5-flash") finalModel = "gemini-2.0-flash";
+  let finalModel = model || "gemini-3.1-pro-preview-customtools";
+  if (finalModel.includes("flash")) finalModel = "gemini-3.1-pro-preview-customtools";
+  if (finalModel.includes("pro")) finalModel = "gemini-3.1-pro-preview-customtools"; // Force fast for audit
 
   // Ensure it at least sounds like a gemini model
-  if (!finalModel.includes("gemini")) finalModel = "gemini-2.0-flash";
+  if (!finalModel.includes("gemini")) finalModel = "gemini-3.1-pro-preview-customtools";
 
   const version = "v1beta";
   const baseUrl = `https://generativelanguage.googleapis.com/${version}/models/${finalModel}:generateContent`;
@@ -320,23 +320,39 @@ async function invokeGeminiNative(apiKey: string, messages: Message[], model: st
     responseFormat?.type === "json_object";
 
   if (isJson) {
-    body.generationConfig = {
+    body.generation_config = {
       response_mime_type: "application/json"
     };
   }
 
   console.log(`[LLM] Invoking Gemini Native REST API (${finalModel})...`);
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
+  const maxRetries = 3;
+  let attempt = 0;
+  let response;
 
-  if (!response.ok) {
-    const error = await response.text();
-    console.error(`Gemini Native Error ${response.status}: ${error}`);
-    throw new Error(`Gemini API Error ${response.status}: ${error}`);
+  while (attempt < maxRetries) {
+    response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
+    if (response.status === 503) {
+      attempt++;
+      console.warn(`[LLM] 503 Unavailable. Retrying attempt ${attempt}/${maxRetries}...`);
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 2500 * attempt)); // Exponential-ish backoff
+        continue;
+      }
+    }
+    break; // Break loop if not 503 or max retries reached
+  }
+
+  if (!response || !response.ok) {
+    const error = await response?.text() || "Unknown Fetch Error";
+    console.error(`Gemini Native Error ${response?.status}: ${error}`);
+    throw new Error(`Gemini API Error ${response?.status}: ${error}`);
   }
 
   const data = await response.json();
@@ -385,17 +401,24 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   // Resolve model, API key, and URL
   let apiKey = ENV.forgeApiKey;
   let apiUrl = resolveApiUrl();
-  let modelName = params.model || "gemini-2.0-flash"; // Default
+  let modelName = params.model || "gemini-3.1-pro-preview-customtools"; // Default
 
   if (activeConfig && !params.model) {
     modelName = activeConfig.modelId;
     if (activeConfig.apiKey) {
-      apiKey = activeConfig.apiKey;
+      apiKey = activeConfig.apiKey.trim();
+    } else {
+      apiKey = ENV.forgeApiKey?.trim() || ENV.openaiApiKey?.trim();
     }
+
+    if (!apiKey) {
+      assertApiKey(); // Throws the appropriate error if no key is configured
+    }
+
     if (activeConfig.apiEndpoint) {
-      apiUrl = activeConfig.apiEndpoint.includes("/v1/")
-        ? activeConfig.apiEndpoint
-        : `${activeConfig.apiEndpoint.replace(/\/$/, "")}/v1/chat/completions`;
+      apiUrl = activeConfig.apiEndpoint.trim().includes("/v1/")
+        ? activeConfig.apiEndpoint.trim()
+        : `${activeConfig.apiEndpoint.trim().replace(/\/$/, "")}/v1/chat/completions`;
     } else {
       // Re-resolve URL if API key changed but no endpoint
       if (apiKey?.startsWith("sk-")) apiUrl = "https://api.openai.com/v1/chat/completions";
@@ -403,14 +426,14 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     }
   } else {
     // Check for explicit OpenAI key first (more reliable for production)
-    if (ENV.openaiApiKey && ENV.openaiApiKey.startsWith("sk-")) {
-      apiKey = ENV.openaiApiKey;
+    if (ENV.openaiApiKey && ENV.openaiApiKey.trim().startsWith("sk-")) {
+      apiKey = ENV.openaiApiKey.trim();
       apiUrl = "https://api.openai.com/v1/chat/completions";
       modelName = "gpt-4o";
     } else {
       assertApiKey();
-      apiKey = ENV.forgeApiKey;
-      modelName = "gemini-2.0-flash"; // Default built-in
+      apiKey = ENV.forgeApiKey?.trim();
+      modelName = "gemini-3.1-pro-preview-customtools"; // Default built-in
     }
   }
 
@@ -456,7 +479,8 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${apiKey}`,
+      "authorization": `Bearer ${apiKey}`,
+      "connect-protocol-version": "1",
     },
     body: JSON.stringify(payload),
   });

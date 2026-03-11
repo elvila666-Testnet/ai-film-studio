@@ -21,10 +21,10 @@ export function PipelineSidebar({
                 <div className="production-label px-2">Workflow Structure</div>
                 <div className="space-y-2">
                     <TooltipProvider>
-                        {selectedProjectId !== -1 && PIPELINE_STAGES.map((stage: any, index: number) => {
+                        {selectedProjectId !== -1 && PIPELINE_STAGES.map((stage, index: number) => {
                             const isActive = currentStage === stage.id;
-                            const isPast = PIPELINE_STAGES.findIndex((s: any) => s.id === currentStage) > index;
-                            const Icon = stage.icon as any;
+                            const isPast = PIPELINE_STAGES.findIndex((s) => s.id === currentStage) > index;
+                            const Icon = stage.icon;
 
                             return (
                                 <Tooltip key={stage.id} delayDuration={300}>

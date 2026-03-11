@@ -45,7 +45,7 @@ export interface MusicRecommendation {
 class EpidemicSoundService {
   private apiKey: string;
   private apiBaseUrl = "https://api.epidemicsound.com/v1";
-  private cache: Map<string, { data: Record<string, unknown>; timestamp: number }> = new Map();
+  private cache: Map<string, { data: any; timestamp: number }> = new Map();
   private cacheTTL = 60 * 60 * 1000; // 1 hour
 
   constructor() {
@@ -338,7 +338,7 @@ class EpidemicSoundService {
   /**
    * Normalize track data from API response
    */
-  private normalizeTrack(rawTrack: Record<string, unknown>): EpidemicTrack {
+  private normalizeTrack(rawTrack: any): EpidemicTrack {
     return {
       id: rawTrack.id,
       title: rawTrack.title,
@@ -363,7 +363,7 @@ class EpidemicSoundService {
   /**
    * Normalize multiple tracks
    */
-  private normalizeTracks(rawTracks: Record<string, unknown>[]): EpidemicTrack[] {
+  private normalizeTracks(rawTracks: any[]): EpidemicTrack[] {
     return rawTracks.map((track) => this.normalizeTrack(track));
   }
 

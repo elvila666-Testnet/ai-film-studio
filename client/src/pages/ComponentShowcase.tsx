@@ -248,7 +248,10 @@ export default function ComponentsShowcase() {
             <h3 className="text-2xl font-semibold">Text Colors</h3>
             <Card>
               <CardContent className="pt-6">
-          {/* Other sections removed to respect 300-line limit */}
+                {/* Other sections removed to respect 300-line limit */}
+              </CardContent>
+            </Card>
+          </section>
         </div>
       </main>
     </div>

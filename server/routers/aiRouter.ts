@@ -1,9 +1,4 @@
-import {
-  getReferenceImages, saveReferenceImage, deleteReferenceImage,
-  createEditorProject, getEditorProjectsByProjectId, getEditorClips, createEditorClip, updateEditorClip, deleteEditorClip, createEditorTrack, getEditorTracks, createEditorExport, getEditorExports, updateEditorExport, createComment, getClipComments, updateComment, deleteComment, getAnimaticConfig, updateFrameDurations, updateAnimaticAudio, getStoryboardFrameOrder, updateFrameOrder, getFrameHistory, createFrameHistoryVersion, getFrameNotes, saveFrameNotes, deleteFrameNotes,
-  createCharacter, getCharacter, getProjectCharacters, getLockedCharacter, lockCharacter, unlockAllCharacters, updateCharacter, deleteCharacter,
-  getProjectContent
-} from "../db";
+import { getProjectContent, getLockedCharacter } from "../db";
 import { z } from "zod";
 import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
 
@@ -154,6 +149,76 @@ export const aiRouter = router({
       return generateMasterVisualStyle(input.script, globalNotes);
     }),
 
+  generateProductionDesignLook: publicProcedure
+    .input(z.object({
+      script: z.string(),
+      brandId: z.string().optional(),
+      projectId: z.number().optional()
+    }))
+    .mutation(async ({ input, ctx }) => {
+      if (!ctx.user) throw new Error("Unauthorized");
+
+      let globalNotes: string | undefined;
+      let brandContext: string | undefined;
+
+      if (input.projectId) {
+        const { getProjectContent } = await import("../db");
+        const content = await getProjectContent(input.projectId);
+        globalNotes = content?.globalDirectorNotes ?? undefined;
+      }
+
+      if (input.brandId) {
+        const { getBrand } = await import("../db");
+        const brand = await getBrand(input.brandId);
+        if (brand) {
+          brandContext = `
+BRAND GUIDELINES DOCTRINE:
+- Brand Name: ${brand.name}
+- Aesthetic/Visual Style: ${brand.aesthetic || "Standard"}
+- Target Audience: ${brand.targetCustomer || "General"}
+- Mission: ${brand.mission || "N/A"}
+- Key Messaging: ${brand.coreMessaging || "N/A"}`;
+        }
+      }
+
+      const { generateProductionDesignLook } = await import("../services/aiGeneration");
+      return generateProductionDesignLook(input.script, brandContext, globalNotes);
+    }),
+
+  generateHighFidelityArtDepartmentLook: publicProcedure
+    .input(z.object({
+      projectId: z.number(),
+      script: z.string(),
+      brandId: z.string().optional(),
+      cineRefinementNotes: z.string().optional(),
+      pdRefinementNotes: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      if (!ctx.user) throw new Error("Unauthorized");
+
+      const { getProjectContent, getBrand } = await import("../db");
+      const content = await getProjectContent(input.projectId);
+      let globalNotes = content?.globalDirectorNotes ?? "";
+
+      if (input.brandId) {
+        const brand = await getBrand(input.brandId);
+        if (brand) {
+          globalNotes += `\n\nBRAND CONTEXT:\n- Name: ${brand.name}\n- Aesthetic: ${brand.aesthetic}\n- Mission: ${brand.mission}`;
+        }
+      }
+
+      const { runCinemaExecutionPipeline } = await import("../services/cinemaOrchestrator");
+      return runCinemaExecutionPipeline({
+        projectId: input.projectId,
+        sceneScript: input.script,
+        globalNotes: globalNotes,
+        scaleMode: "High Fidelity",
+        cineRefinementNotes: input.cineRefinementNotes,
+        pdRefinementNotes: input.pdRefinementNotes
+      });
+    }),
+
+
   refineVisualStyle: publicProcedure
     .input(z.object({
       visualStyle: z.string(),
@@ -243,8 +308,27 @@ Ensure all technical shots align with these brand pillars.`;
         }
       }
 
-      const { generateTechnicalShots } = await import("../services/aiGeneration");
-      return generateTechnicalShots(input.script, input.visualStyle, globalNotes);
+      const { runCinemaExecutionPipeline } = await import("../services/cinemaOrchestrator");
+      const pipelineInput = {
+        sceneScript: input.script,
+        globalNotes: globalNotes,
+        scaleMode: "Standard Cinematic"
+      };
+      const finalBlueprint = await runCinemaExecutionPipeline(pipelineInput);
+
+      return finalBlueprint.finalHarmonizedDocument.shots.map(shot => ({
+        shot: shot.shotNumber,
+        tipo_plano: shot.cameraSpecs.shotType || "Medium Shot",
+        accion: shot.directorIntent.visualDescription || "Action",
+        intencion: shot.directorIntent.emotionalObjective || "Narrative",
+        movimiento: shot.cameraSpecs.movementLogic || "Static",
+        tecnica: (shot.cameraSpecs.lensStrategy || "") + " | " + (shot.cameraSpecs.tStop || ""),
+        iluminacion: (shot.productionDesign.environmentalAtmosphere || "") + " | " + (shot.cameraSpecs.lightingSpec || ""),
+        audio: shot.soundArchitecture.environmentalSoundscape || "",
+
+        description: shot.directorIntent.visualDescription || "Action",
+        camera_angle: shot.cameraSpecs.shotType || "Medium Shot"
+      }));
     }),
 
   generateImagePrompt: publicProcedure
@@ -295,12 +379,18 @@ Ensure all technical shots align with these brand pillars.`;
     .mutation(async ({ input, ctx }) => {
       if (!ctx.user) throw new Error("Unauthorized");
       let globalNotes: string | undefined;
+      let brandDNA: string | undefined;
       if (input.projectId) {
         const content = await getProjectContent(input.projectId);
         globalNotes = content?.globalDirectorNotes ?? undefined;
+        // Fetch brand DNA if brandId is present
+        if (content?.brandId) {
+          const { getBrandDNA } = await import("../services/brandService");
+          brandDNA = await getBrandDNA(content.brandId);
+        }
       }
       const { generateStyleGuideJSON } = await import("../services/aiGeneration");
-      return generateStyleGuideJSON(input.script, input.visualStyle, globalNotes);
+      return generateStyleGuideJSON(input.script, input.visualStyle, globalNotes, brandDNA);
     }),
 
   generateStoryboardImage: publicProcedure
@@ -344,11 +434,16 @@ Ensure all technical shots align with these brand pillars.`;
     .mutation(async ({ input, ctx }) => {
       if (!ctx.user) throw new Error("Unauthorized");
       const { generateStoryboardImage } = await import("../services/aiGeneration");
-      const prompt = `Ultra realistic 8k movie still of ${input.name}, shot on Arri Alexa 35, 25mm lens, cinematic lighting, hyper-realistic, highly detailed skin texture, dramatic atmosphere, film grain, color graded. Description: ${input.description}.`;
-      // Use Apiyi for characters explicitly to avoid Replicate credit issues
+      const prompt = `8K RAW cinematic photograph of a real person, ${input.name}, ${input.description}. This is a professional studio character portrait, not a drawing or illustration. 
+      Focus: Hyper-realistic skin textures, natural hair, depth in eyes. 
+      Optics: Arri Alexa 35, Anamorphic lenses, f/2.8.
+      Lighting: Soft studio rim light.
+      Style: Professional character reference sheet. Top: Full-body turnaround (front, profiles, back). Bottom: Detailed portraits.
+      Negative Prompts: drawing, 3D render, cartoon, digital art, sketch, text.`;
+
       const result = await generateStoryboardImage(
         prompt,
-        "apiyi-default",
+        input.modelId || "Nano Banana 2",
         undefined, // No projectId for generic character gen? Or optional
         ctx.user.id.toString()
       );
@@ -364,13 +459,13 @@ Ensure all technical shots align with these brand pillars.`;
     }))
     .mutation(async ({ input, ctx }) => {
       const { generateCharacterNano } = await import("../services/aiGeneration");
-      const promptParams = `Ultra-detailed Character Name: ${input.name}. Baseline: ${input.description}`;
+      const promptParams = `Character Name: ${input.name}. Description: ${input.description}`;
       const result = await generateCharacterNano(
         promptParams,
         input.referenceImages,
-        "apiyi-default",
-        undefined, // No projectId for generic character gen? Or optional
-        ctx.user.id.toString()
+        undefined, // No projectId for generic character gen
+        ctx.user.id.toString(),
+        false // Not a wardrobe change
       );
       return { imageUrl: result };
     }),

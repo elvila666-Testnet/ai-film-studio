@@ -2,6 +2,7 @@ import { users, projects, projectContent, storyboardImages, referenceImages, gen
 import { eq, and, sql } from "drizzle-orm";
 
 import { getDb } from "../db";
+import { ENV } from "../_core/env";
 
 import * as schema from "../../drizzle/schema";
 

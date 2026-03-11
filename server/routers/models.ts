@@ -3,10 +3,10 @@
  * Handles listing available AI models and managing user favorites
  */
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { getDb } from "../db";
 import { modelConfigs, userModelFavorites } from "../../drizzle/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export const modelRouter = router({
     // List all active models with favorite status for current user
@@ -30,7 +30,7 @@ export const modelRouter = router({
             const favoriteIds = new Set(favorites.map((f: { modelConfigId: number }) => f.modelConfigId));
 
             // Merge data
-            return models.map((model: { id: number }) => ({
+            return models.map((model: any) => ({
                 ...model,
                 isFavorite: favoriteIds.has(model.id),
                 // Ensure numeric types are handled correctly if driver returns strings
@@ -87,7 +87,7 @@ export const modelRouter = router({
                     {
                         category: "image",
                         provider: "replicate",
-                        modelId: "black-forest-labs/flux-schnell",
+                        modelId: "imagen-4.0-ultra-generate-001",
                         name: "Flux Schnell",
                         description: "Fastest generation, good for prototyping.",
                         costPerUnit: "0.0030",
@@ -97,7 +97,7 @@ export const modelRouter = router({
                     {
                         category: "image",
                         provider: "replicate",
-                        modelId: "black-forest-labs/flux-1.1-pro",
+                        modelId: "imagen-4.0-ultra-generate-001",
                         name: "Flux 1.1 Pro",
                         description: "High quality professional model.",
                         costPerUnit: "0.0550",
@@ -107,7 +107,7 @@ export const modelRouter = router({
                     {
                         category: "image",
                         provider: "replicate",
-                        modelId: "black-forest-labs/flux-1.1-pro-ultra",
+                        modelId: "imagen-4.0-ultra-generate-001",
                         name: "Flux Ultra (Raw)",
                         description: "Highest fidelity, raw mode enabled.",
                         costPerUnit: "0.0600",

@@ -68,7 +68,7 @@ export function BrandDashboard() {
         createBrandMutation.mutate({ name: newBrandName });
     };
 
-    const selectedBrand = brandsQuery.data?.find((b: unknown) => b.id === selectedBrandId);
+    const selectedBrand = (brandsQuery.data as any[])?.find((b: any) => b.id === selectedBrandId);
 
     return (
         <DashboardLayout>
@@ -78,7 +78,7 @@ export function BrandDashboard() {
                     <div>
                         <h1 className="text-3xl font-black text-white uppercase tracking-tighter italic flex items-center gap-3">
                             <Palette className="w-8 h-8 text-primary" />
-                            Brand Intelligence Center
+                            Brand Studio
                         </h1>
                         <p className="text-slate-400 mt-2 text-sm max-w-2xl font-medium">
                             Manage your brand identity guidelines. AI-powered DNA extraction ensures all
@@ -144,7 +144,7 @@ export function BrandDashboard() {
                         <div className="space-y-2">
                             {brandsQuery.isLoading ? (
                                 <div className="p-4 glass-panel rounded-2xl animate-pulse h-20" />
-                            ) : brandsQuery.data?.map((brand: unknown) => (
+                            ) : (brandsQuery.data as any[])?.map((brand: any) => (
                                 <button
                                     key={brand.id}
                                     onClick={() => setSelectedBrandId(brand.id)}

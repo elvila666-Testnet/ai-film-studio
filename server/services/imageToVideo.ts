@@ -8,8 +8,8 @@ export interface ImageToVideoRequest {
   imageUrl: string; // Storyboard frame (start frame)
   motionPrompt: string; // Description of camera/character movement
   duration: number; // Video duration in seconds (4-60)
-  provider: "veo3" | "sora" | "replicate"; // Video provider
-  modelId?: string; // Optional model ID (for Replicate)
+  provider: "veo3" | "sora" | "gemini"; // Video provider
+  modelId?: string; // Optional model ID (for Gemini)
   characterLocked: boolean; // Enforce character consistency
   resolution: "720p" | "1080p" | "4k";
 }
@@ -24,17 +24,17 @@ export interface ImageToVideoResponse {
 }
 
 /**
- * Generate video from image with automatic provider selection (Phase 4: Strictly Replicate)
+ * Generate video from image with automatic provider selection (Phase 4: Strictly Gemini)
  */
 export async function generateImageToVideo(
   request: ImageToVideoRequest
 ): Promise<ImageToVideoResponse> {
-  const { ReplicateProvider } = await import("./providers/replicateProvider");
+  const { GeminiProvider } = await import("./providers/geminiProvider");
   const { ENV } = await import("../_core/env");
 
-  const provider = new ReplicateProvider(ENV.replicateApiKey || "");
+  const provider = new GeminiProvider(ENV.forgeApiKey || "");
 
-  // Map specialized providers to Replicate model equivalents
+  // Map specialized providers to Gemini model equivalents
   let modelId = request.modelId || "minimax/video-01";
   if (request.provider === "veo3") modelId = "lucataco/veo-3"; // Example mapping
   if (request.provider === "sora") modelId = "openai/sora"; // Example mapping
@@ -53,16 +53,16 @@ export async function generateImageToVideo(
     return {
       videoUrl: result.url,
       duration: request.duration,
-      provider: "replicate",
+      provider: "gemini",
       taskId: (result.metadata?.jobId as string) || (result.metadata?.id as string) || `repl-${Date.now()}`,
       status: "completed",
     };
   } catch (error: unknown) {
-    console.error("[Replicate] Image-to-Video Synthesis error:", error);
+    console.error("[Gemini] Image-to-Video Synthesis error:", error);
     return {
       videoUrl: "",
       duration: request.duration,
-      provider: "replicate",
+      provider: "gemini",
       taskId: "",
       status: "failed",
       error: error.message || String(error),
@@ -77,11 +77,11 @@ export async function checkVideoStatus(
   taskId: string,
   _provider: string
 ): Promise<ImageToVideoResponse> {
-  // Phase 4: Strictly Replicate status check
+  // Phase 4: Strictly Gemini status check
   return {
     videoUrl: "",
     duration: 0,
-    provider: "replicate",
+    provider: "gemini",
     taskId,
     status: "completed",
   };

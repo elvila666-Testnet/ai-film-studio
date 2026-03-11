@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean, json, decimal } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean, json, decimal, mediumtext, longtext } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -30,6 +30,11 @@ export const projects = mysqlTable("projects", {
   userId: int("userId").notNull().references(() => users.id),
   brandId: varchar("brandId", { length: 36 }).references(() => brands.id, { onDelete: "set null" }),
   name: varchar("name", { length: 255 }).notNull(),
+  type: mysqlEnum("type", ["spot", "movie"]).default("movie").notNull(),
+  targetDuration: int("targetDuration"), // in seconds
+  aspectRatio: varchar("aspectRatio", { length: 50 }).default("16:9"),
+  thumbnailUrl: text("thumbnailUrl"),
+  isScriptLocked: boolean("isScriptLocked").default(false).notNull(), // Locks the script from further edits
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   bible: json("bible"), // The "Project Bible"
@@ -40,22 +45,43 @@ export type InsertProject = typeof projects.$inferInsert;
 
 export const projectContent = mysqlTable("projectContent", {
   id: int("id").autoincrement().primaryKey(),
-  projectId: int("projectId").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  projectId: int("projectId").notNull().unique().references(() => projects.id, { onDelete: "cascade" }),
   brief: text("brief"),
-  synopsis: text("synopsis"),
-  script: text("script"),
-  masterVisual: text("masterVisual"),
-  technicalShots: text("technicalShots"), // JSON stored as text
-  storyboardPrompts: text("storyboardPrompts"), // JSON stored as text
+  synopsis: mediumtext("synopsis"),
+  script: mediumtext("script"),
+  masterVisual: mediumtext("masterVisual"),
+  technicalShots: mediumtext("technicalShots"), // JSON stored as text
+  storyboardPrompts: mediumtext("storyboardPrompts"), // JSON stored as text
   scriptComplianceScore: int("scriptComplianceScore"),
   visualComplianceScore: int("visualComplianceScore"),
   storyboardComplianceScore: int("storyboardComplianceScore"),
   voiceoverComplianceScore: int("voiceoverComplianceScore"),
   complianceMetadata: text("complianceMetadata"), // JSON with detailed compliance info
-  globalDirectorNotes: text("globalDirectorNotes"), // Global notes influencing all AI generations
-  brandVoice: text("brandVoice"),
-  visualIdentity: text("visualIdentity"),
+  globalDirectorNotes: mediumtext("globalDirectorNotes"), // Global notes influencing all AI generations
+  visualStyle: text("visualStyle"), // e.g. "Cinematic", "Noir" etc
+  brandVoice: mediumtext("brandVoice"),
+  visualIdentity: mediumtext("visualIdentity"),
   colorPalette: json("colorPalette"),
+  // Pipeline approval gates
+  scriptStatus: mysqlEnum("scriptStatus", ["draft", "pending_review", "approved"]).default("draft"),
+  technicalScriptStatus: mysqlEnum("technicalScriptStatus", ["draft", "pending_review", "approved"]).default("draft"),
+  proposalStatus: mysqlEnum("proposalStatus", ["draft", "pending_review", "approved"]).default("draft"),
+
+  // New Narrative Workflow Content
+  creativeProposal: mediumtext("creativeProposal"),
+  brandValidationFeedback: text("brandValidationFeedback"),
+  technicalScript: mediumtext("technicalScript"),
+
+  // Department validation persistence
+  castingValidated: boolean("castingValidated").default(false),
+  castingApprovedOutput: mediumtext("castingApprovedOutput"), // JSON: Validated character list with imageUrls
+
+  cineValidated: boolean("cineValidated").default(false),
+  cineApprovedOutput: mediumtext("cineApprovedOutput"), // JSON: { specs, referenceUrls[], moodboardUrls[] }
+
+  pdValidated: boolean("pdValidated").default(false),
+  pdApprovedOutput: mediumtext("pdApprovedOutput"), // JSON: { specs, referenceUrls[], moodboardUrls[] }
+
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
@@ -66,7 +92,7 @@ export const storyboardImages = mysqlTable("storyboardImages", {
   id: int("id").autoincrement().primaryKey(),
   projectId: int("projectId").notNull().references(() => projects.id, { onDelete: "cascade" }),
   shotNumber: int("shotNumber").notNull(),
-  imageUrl: text("imageUrl").notNull(),
+  imageUrl: longtext("imageUrl").notNull(),
   prompt: text("prompt"),
   videoUrl: text("videoUrl"), // Generated video from this frame
   characterId: int("characterId").references(() => characters.id, { onDelete: "set null" }), // Which character appears
@@ -77,7 +103,7 @@ export const storyboardImages = mysqlTable("storyboardImages", {
   qualityTier: mysqlEnum("qualityTier", ["fast", "quality"]).default("fast").notNull(), // FinOps Control
   // 3x3 Grid Redesign Data
   status: mysqlEnum("status", ["draft", "approved"]).default("draft").notNull(),
-  masterImageUrl: text("masterImageUrl"), // The 4k Upscaled Version
+  masterImageUrl: longtext("masterImageUrl"), // The 4k Upscaled Version
   // Character consistency tracking
   characterLibraryId: int("characterLibraryId").references(() => characterLibrary.id, { onDelete: "set null" }),
   characterAppearance: text("characterAppearance"), // JSON: clothing, expression, pose
@@ -105,7 +131,7 @@ export type InsertAnimaticConfig = typeof animaticConfigs.$inferInsert;
 export const referenceImages = mysqlTable("referenceImages", {
   id: int("id").autoincrement().primaryKey(),
   projectId: int("projectId").notNull().references(() => projects.id, { onDelete: "cascade" }),
-  imageUrl: text("imageUrl").notNull(),
+  imageUrl: longtext("imageUrl").notNull(),
   description: text("description"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
@@ -238,7 +264,7 @@ export const storyboardFrameHistory = mysqlTable("storyboardFrameHistory", {
   id: int("id").autoincrement().primaryKey(),
   projectId: int("projectId").notNull().references(() => projects.id, { onDelete: "cascade" }),
   shotNumber: int("shotNumber").notNull(),
-  imageUrl: text("imageUrl").notNull(),
+  imageUrl: longtext("imageUrl").notNull(),
   prompt: text("prompt"),
   notes: text("notes"),
   versionNumber: int("versionNumber").notNull(), // 1, 2, 3, etc
@@ -309,8 +335,9 @@ export const characters = mysqlTable("characters", {
   id: int("id").autoincrement().primaryKey(),
   projectId: int("projectId").notNull().references(() => projects.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
-  description: text("description"), // Character details/personality
-  imageUrl: text("imageUrl").notNull(), // Master approved image
+  description: mediumtext("description"), // Character details/personality
+  imageUrl: longtext("imageUrl").notNull(), // Master approved image
+  referenceImageUrl: longtext("referenceImageUrl"), // Optional reference image for turnaround
   isHero: boolean("isHero").default(false).notNull(), // Main character or supporting
   isLocked: boolean("isLocked").default(false).notNull(), // Character lock for consistency
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -326,7 +353,7 @@ export const characterLibrary = mysqlTable("characterLibrary", {
   brandId: varchar("brandId", { length: 36 }).notNull().references(() => brands.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"), // Character archetype/personality
-  imageUrl: text("imageUrl").notNull(), // Reference image
+  imageUrl: longtext("imageUrl").notNull(), // Reference image
   traits: text("traits"), // JSON: personality traits, appearance, etc
   poses: text("poses"), // JSON: { "close-up": url, "medium": url, "full": url }
   isLocked: boolean("isLocked").default(false).notNull(), // Brand enforcement
@@ -397,7 +424,7 @@ export type InsertMoodboard = typeof moodboards.$inferInsert;
 export const moodboardImages = mysqlTable("moodboardImages", {
   id: int("id").autoincrement().primaryKey(),
   moodboardId: int("moodboardId").notNull().references(() => moodboards.id, { onDelete: "cascade" }),
-  imageUrl: text("imageUrl").notNull(),
+  imageUrl: longtext("imageUrl").notNull(),
   description: text("description"),
   colorPalette: text("colorPalette"), // JSON: extracted colors
   composition: text("composition"), // JSON: AI analysis of composition
@@ -576,24 +603,61 @@ export const shots = mysqlTable("shots", {
   lighting: varchar("lighting", { length: 255 }), // e.g., "Golden Hour", "High Key"
   lens: varchar("lens", { length: 100 }), // e.g., "35mm", "Anamorphic"
   filmStock: varchar("filmStock", { length: 100 }), // e.g., "Kodak Vision3"
+  // Multi-Agent Pipeline Output
+  aiBlueprint: json("aiBlueprint"),
   status: varchar("status", { length: 50 }).default("planned"),
+  referenceImageUrl: longtext("referenceImageUrl"), // User-uploaded or AI-rendered reference
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
 export type Shot = typeof shots.$inferSelect;
 export type InsertShot = typeof shots.$inferInsert;
 
+// Production Design Tables
+export const productionDesignSets = mysqlTable("productionDesignSets", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: mediumtext("description"), // Atmospheric/Physical description
+  atmospherePhilosophy: mediumtext("atmospherePhilosophy"), // Narrative design philosophy
+  imageGenerationPrompt: mediumtext("imageGenerationPrompt"), // Prompt for master wide set photo
+  imageUrl: longtext("imageUrl"), // The master rendered set photo
+  referenceImageUrl: longtext("referenceImageUrl"), // User-uploaded reference
+  status: varchar("status", { length: 50 }).default("draft"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ProductionDesignSet = typeof productionDesignSets.$inferSelect;
+export type InsertProductionDesignSet = typeof productionDesignSets.$inferInsert;
+
+export const productionDesignProps = mysqlTable("productionDesignProps", {
+  id: int("id").autoincrement().primaryKey(),
+  setId: int("setId").references(() => productionDesignSets.id, { onDelete: "cascade" }),
+  projectId: int("projectId").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  symbolism: text("symbolism"), // Narrative purpose
+  imageGenerationPrompt: text("imageGenerationPrompt"), // Prompt for detail/macro shot
+  imageUrl: longtext("imageUrl"), // Prop reference image
+  referenceImageUrl: longtext("referenceImageUrl"), // User-uploaded reference
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ProductionDesignProp = typeof productionDesignProps.$inferSelect;
+export type InsertProductionDesignProp = typeof productionDesignProps.$inferInsert;
+
 export const generations = mysqlTable("generations", {
   id: int("id").autoincrement().primaryKey(),
   shotId: int("shotId").references(() => shots.id, { onDelete: "set null" }),
   projectId: int("projectId").notNull().references(() => projects.id, { onDelete: "cascade" }),
-  imageUrl: text("imageUrl").notNull(),
+  imageUrl: longtext("imageUrl").notNull(),
   prompt: text("prompt").notNull(),
   model: varchar("model", { length: 100 }).notNull(),
   qualityTier: mysqlEnum("qualityTier", ["fast", "quality"]).default("fast").notNull(), // FinOps Control
   cost: decimal("cost", { precision: 10, scale: 4 }).notNull(),
   status: mysqlEnum("status", ["draft", "approved"]).default("draft").notNull(),
-  masterImageUrl: text("masterImageUrl"),
+  masterImageUrl: longtext("masterImageUrl"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

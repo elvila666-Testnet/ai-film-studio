@@ -19,16 +19,16 @@ export function useCostGuard() {
 export function CostGuardProvider({ children }: { children: React.ReactNode }) {
     const [isOpen, setIsOpen] = useState(false);
     const [cost, setCost] = useState(0);
-    const [onApproveCallback, setOnApproveCallback] = useState<(() => void) | null>(null);
+    const onApproveRef = React.useRef<(() => void) | null>(null);
 
     const requestApproval = (estimatedCost: number, onApprove: () => void) => {
         setCost(estimatedCost);
-        setOnApproveCallback(() => onApprove);
+        onApproveRef.current = onApprove;
         setIsOpen(true);
     };
 
     const handleApprove = () => {
-        if (onApproveCallback) onApproveCallback();
+        if (onApproveRef.current) onApproveRef.current();
         setIsOpen(false);
     };
 
@@ -43,6 +43,9 @@ export function CostGuardProvider({ children }: { children: React.ReactNode }) {
                             <Dialog.Title className="text-red-500 text-xl font-bold uppercase tracking-widest flex items-center gap-2">
                                 ⚠️ Financial Alert
                             </Dialog.Title>
+                            <Dialog.Description className="sr-only">
+                                Financial approval required for AI asset generation.
+                            </Dialog.Description>
                             <Dialog.Close asChild>
                                 <button className="text-gray-400 hover:text-white">
                                     <X className="w-5 h-5" />

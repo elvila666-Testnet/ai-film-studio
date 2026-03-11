@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 # Configuration
-$ProjectId = "ai-films-prod-486422"
+$ProjectId = $(gcloud.cmd config get-value project)
 $InstanceName = "ai-film-studio-db"
 
 if ($env:GOOGLE_CLOUD_PROJECT) {

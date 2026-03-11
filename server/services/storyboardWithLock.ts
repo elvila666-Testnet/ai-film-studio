@@ -3,14 +3,14 @@
  * Ensures visual consistency by injecting brand identity and character references
  */
 
-import { getBrand } from "../db";
-import { getLockedCharacter } from "../db";
+import { getBrand } from "../db/brands";
+import { getLockedCharacter } from "../db/characters";
 
 export interface StoryboardGenerationRequest {
   projectId: number;
   shotNumber: number;
   shotDescription: string;
-  brandId?: number;
+  brandId?: string;
   resolution: "720p" | "1080p" | "4k";
 }
 
@@ -28,7 +28,7 @@ export interface StoryboardGenerationResponse {
 export async function buildLockedPrompt(
   shotDescription: string,
   projectId: number,
-  brandId?: number
+  brandId?: string
 ): Promise<{
   prompt: string;
   characterReference?: string;
@@ -117,7 +117,7 @@ export async function generateStoryboardWithLock(
 export async function validateLockedConstraints(
   _imageUrl: string,
   projectId: number,
-  brandId?: number
+  brandId?: string
 ): Promise<{
   valid: boolean;
   issues: string[];
@@ -195,7 +195,7 @@ function getVariationModifier(index: number): string {
 export async function buildFrameDescriptor(
   _imageUrl: string,
   projectId: number,
-  brandId?: number
+  brandId?: string
 ): Promise<{
   composition: string;
   lighting: string;

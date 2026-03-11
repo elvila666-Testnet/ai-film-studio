@@ -8,7 +8,7 @@
 import { invokeLLM } from "../_core/llm";
 
 export interface BrandGuidelines {
-  id: number;
+  id: string | number;
   name: string;
   targetCustomer?: string;
   aesthetic?: string;

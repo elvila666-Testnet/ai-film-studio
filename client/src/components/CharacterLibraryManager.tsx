@@ -6,7 +6,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,7 @@ import { Trash2, Lock, Unlock, Plus, Edit2, Camera } from "lucide-react";
 import { toast } from "sonner";
 
 interface CharacterLibraryManagerProps {
-  brandId: number;
+  brandId: string;
 }
 
 export function CharacterLibraryManager({ brandId }: CharacterLibraryManagerProps) {
@@ -104,7 +104,7 @@ export function CharacterLibraryManager({ brandId }: CharacterLibraryManagerProp
     }
   };
 
-  const handleEdit = (character: unknown) => {
+  const handleEdit = (character: any) => {
     setFormData({
       name: character.name,
       description: character.description,
@@ -131,7 +131,7 @@ export function CharacterLibraryManager({ brandId }: CharacterLibraryManagerProp
 
       {characters && characters.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {characters.map((character: unknown) => (
+          {characters.map((character: any) => (
             <Card key={character.id} className="relative">
               <CardHeader>
                 <div className="flex justify-between items-start">
@@ -231,6 +231,9 @@ export function CharacterLibraryManager({ brandId }: CharacterLibraryManagerProp
             <DialogTitle>
               {editingId ? "Edit Character" : "Add New Character"}
             </DialogTitle>
+            <DialogDescription>
+              Define the visual and persona details for the talent library.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -295,20 +298,20 @@ export function CharacterLibraryManager({ brandId }: CharacterLibraryManagerProp
   );
 }
 
-function PoseGeneratorDialog({ brandId, characters }: { brandId: number; characters: unknown[] }) {
+function PoseGeneratorDialog({ brandId, characters }: { brandId: string; characters: any[] }) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string>("");
   const [selectedPoses, setSelectedPoses] = useState<string[]>([]);
 
   const utils = trpc.useUtils();
   const generatePosesMutation = trpc.casting.characterLibrary.generatePoses.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       toast.success("Poses generated successfully");
       utils.casting.characterLibrary.list.invalidate({ brandId });
       setIsOpen(false);
       setSelectedPoses([]);
     },
-    onError: (err: unknown) => {
+    onError: (err: any) => {
       toast.error(`Failed to generate poses: ${err.message}`);
     }
   });
@@ -357,7 +360,7 @@ function PoseGeneratorDialog({ brandId, characters }: { brandId: number; charact
               onChange={(e) => setSelectedCharacterId(e.target.value)}
             >
               <option value="">-- Choose a character --</option>
-              {characters.map((c: unknown) => (
+              {characters.map((c: any) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>

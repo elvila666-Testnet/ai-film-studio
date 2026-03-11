@@ -1,28 +1,29 @@
 /**
  * Brand Selector Component
- * Allows users to select a brand and view brand details
+ * Focuses on Active DNA Profile with secondary selection capability
  */
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Edit2, Trash2, Check, Link } from "lucide-react";
+import { Plus, Edit2, Trash2, Check, Link, Sparkles, Loader2, Search, Zap } from "lucide-react";
 import { toast } from "sonner";
 
 interface BrandSelectorProps {
-  selectedBrandId?: number;
-  onBrandSelect: (brandId: number) => void;
+  selectedBrandId?: string;
+  onBrandSelect: (brandId: string) => void;
 }
 
 export function BrandSelector({ selectedBrandId, onBrandSelect }: BrandSelectorProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editingBrandId, setEditingBrandId] = useState<number | null>(null);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [editingBrandId, setEditingBrandId] = useState<string | null>(null);
 
   const [urlInput, setUrlInput] = useState("");
   const [formData, setFormData] = useState({
@@ -34,32 +35,22 @@ export function BrandSelector({ selectedBrandId, onBrandSelect }: BrandSelectorP
   });
 
   // Fetch user's brands
-  const brandsQuery = trpc.brands.list.useQuery();
-  const utils = trpc.useUtils();
+  const brandsQuery = trpc.brand.list.useQuery();
 
-  const scrapeDNAMutation = trpc.brands.scrapeDNA.useMutation({
-    onSuccess: (data: unknown) => {
+  const scrapeDNAMutation = trpc.brand.scrapeDNA.useMutation({
+    onSuccess: (data: any) => {
       setFormData(prev => ({
         ...prev,
-        name: data.name || prev.name,
-        targetCustomer: data.targetCustomer || prev.targetCustomer,
-        aesthetic: data.aesthetic || prev.aesthetic,
-        mission: data.mission || prev.mission,
-        coreMessaging: data.coreMessaging || prev.coreMessaging,
-        description: data.description || "",
+        ...data,
       }));
       toast.success("Brand DNA extracted from digital footprint");
     },
-    onError: (err: unknown) => {
+    onError: (err: any) => {
       toast.error(`Extraction failed: ${err.message}`);
     }
   });
 
-  const handleImportUrl = async () => {
-    if (!urlInput.trim()) return;
-    await scrapeDNAMutation.mutateAsync({ url: urlInput });
-  };
-  const createBrandMutation = trpc.brands.create.useMutation({
+  const createBrandMutation = trpc.brand.create.useMutation({
     onSuccess: () => {
       brandsQuery.refetch();
       setIsCreating(false);
@@ -67,7 +58,7 @@ export function BrandSelector({ selectedBrandId, onBrandSelect }: BrandSelectorP
     },
   });
 
-  const updateBrandMutation = trpc.brands.update.useMutation({
+  const updateBrandMutation = trpc.brand.update.useMutation({
     onSuccess: () => {
       brandsQuery.refetch();
       setIsEditing(false);
@@ -76,14 +67,16 @@ export function BrandSelector({ selectedBrandId, onBrandSelect }: BrandSelectorP
     },
   });
 
-  const deleteBrandMutation = trpc.brands.delete.useMutation({
+  const deleteBrandMutation = trpc.brand.delete.useMutation({
     onSuccess: () => {
       brandsQuery.refetch();
-      if (selectedBrandId === editingBrandId) {
-        onBrandSelect(0);
-      }
     },
   });
+
+  const handleImportUrl = async () => {
+    if (!urlInput.trim()) return;
+    await scrapeDNAMutation.mutateAsync({ url: urlInput });
+  };
 
   const handleCreateBrand = async () => {
     if (!formData.name.trim()) return;
@@ -98,7 +91,7 @@ export function BrandSelector({ selectedBrandId, onBrandSelect }: BrandSelectorP
     });
   };
 
-  const handleEditBrand = (brand: unknown) => {
+  const handleEditBrand = (brand: any) => {
     setEditingBrandId(brand.id);
     setFormData({
       name: brand.name,
@@ -110,297 +103,314 @@ export function BrandSelector({ selectedBrandId, onBrandSelect }: BrandSelectorP
     setIsEditing(true);
   };
 
-  const selectedBrand = brandsQuery.data?.find((b: unknown) => b.id === selectedBrandId);
+  const selectedBrand = brandsQuery.data?.find((b: any) => b.id === selectedBrandId);
 
   return (
     <div className="space-y-6">
-      {/* Brand Selection Grid */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Your Brands</h2>
-          <Dialog open={isCreating} onOpenChange={setIsCreating}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                New Brand
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Create New Brand</DialogTitle>
-                <DialogDescription>
-                  Define your brand's identity, target customer, aesthetic, mission, and core messaging
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="p-4 bg-muted/50 rounded-lg border border-border space-y-3">
-                  <Label htmlFor="brand-url" className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Import from Website</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="brand-url"
-                      placeholder="https://example.com"
-                      value={urlInput}
-                      onChange={(e) => setUrlInput(e.target.value)}
-                      className="bg-background"
-                    />
-                    <Button
-                      onClick={handleImportUrl}
-                      disabled={scrapeDNAMutation.isPending || !urlInput.trim()}
-                      variant="secondary"
-                    >
-                      {scrapeDNAMutation.isPending ? <Plus className="h-4 w-4 animate-spin" /> : <Link className="h-4 w-4 mr-2" />}
-                      Import
-                    </Button>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">AI will analyze the website to extract brand DNA.</p>
-                </div>
-
-                <div>
-                  <Label htmlFor="brand-name">Brand Name</Label>
-                  <Input
-                    id="brand-name"
-                    placeholder="e.g., Nike, Apple, Coca-Cola"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="target-customer">Target Customer</Label>
-                  <Textarea
-                    id="target-customer"
-                    placeholder="Describe your ideal customer: demographics, interests, pain points, aspirations..."
-                    value={formData.targetCustomer}
-                    onChange={(e) => setFormData({ ...formData, targetCustomer: e.target.value })}
-                    rows={3}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="aesthetic">Aesthetic</Label>
-                  <Textarea
-                    id="aesthetic"
-                    placeholder="Describe your visual style: minimalist, bold, playful, luxury, modern, vintage, etc."
-                    value={formData.aesthetic}
-                    onChange={(e) => setFormData({ ...formData, aesthetic: e.target.value })}
-                    rows={3}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="mission">Mission</Label>
-                  <Textarea
-                    id="mission"
-                    placeholder="What is your brand's purpose? What problem do you solve? What values do you stand for?"
-                    value={formData.mission}
-                    onChange={(e) => setFormData({ ...formData, mission: e.target.value })}
-                    rows={3}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="core-messaging">Core Messaging</Label>
-                  <Textarea
-                    id="core-messaging"
-                    placeholder="What are your key messages? How do you want to be perceived? What's your unique value proposition?"
-                    value={formData.coreMessaging}
-                    onChange={(e) => setFormData({ ...formData, coreMessaging: e.target.value })}
-                    rows={3}
-                  />
-                </div>
-
-                <Button
-                  onClick={handleCreateBrand}
-                  disabled={createBrandMutation.isPending || !formData.name.trim()}
-                  className="w-full"
-                >
-                  {createBrandMutation.isPending ? "Creating..." : "Create Brand"}
-                </Button>
+      {/* Active Brand Header / Selector */}
+      <Card className="glass-panel overflow-hidden border-primary/30 bg-primary/[0.02] shadow-2xl shadow-primary/5">
+        <CardHeader className="pb-6 border-b border-white/5 bg-white/[0.01]">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
+                <p className="text-[9px] font-black text-primary uppercase tracking-[0.3em] italic">Active Intelligence Node</p>
               </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+              <CardTitle className="text-2xl font-black text-white uppercase tracking-tighter italic flex items-center gap-3">
+                {selectedBrand ? (
+                  <>
+                    <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center border border-primary shadow-lg shadow-primary/20">
+                      {selectedBrand.name.substring(0, 1).toUpperCase()}
+                    </div>
+                    DNA Profile: {selectedBrand.name}
+                  </>
+                ) : (
+                  <>
+                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 text-slate-500">
+                      <Zap className="w-5 h-5" />
+                    </div>
+                    No DNA Profile Active
+                  </>
+                )}
+              </CardTitle>
+            </div>
 
-        {brandsQuery.isLoading ? (
-          <div className="text-center py-8 text-muted-foreground">Loading brands...</div>
-        ) : brandsQuery.data?.length === 0 ? (
-          <Card>
-            <CardContent className="pt-6 text-center">
-              <p className="text-muted-foreground mb-4">No brands yet. Create your first brand to get started.</p>
-              <Button onClick={() => setIsCreating(true)}>Create First Brand</Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {brandsQuery.data?.map((brand: unknown) => (
-              <Card
-                key={brand.id}
-                className={`cursor-pointer transition-all ${selectedBrandId === brand.id ? "ring-2 ring-primary" : "hover:shadow-lg"
-                  }`}
-                onClick={() => onBrandSelect(brand.id)}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg">{brand.name}</CardTitle>
-                      {selectedBrandId === brand.id && (
-                        <div className="flex items-center gap-1 text-xs text-primary mt-1">
-                          <Check className="h-3 w-3" />
-                          Selected
+            <div className="flex items-center gap-3">
+              <Dialog open={isSelecting} onOpenChange={setIsSelecting}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="h-11 rounded-xl bg-white/[0.02] border-white/10 text-[10px] uppercase font-black tracking-widest text-slate-400 hover:text-white hover:border-primary/50 transition-all px-6">
+                    <Search className="w-3.5 h-3.5 mr-2" />
+                    {selectedBrand ? "Switch DNA" : "Activate DNA"}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-xl bg-slate-950 border-white/10 text-white shadow-2xl">
+                  <DialogHeader>
+                    <DialogTitle className="text-lg font-black uppercase italic tracking-tighter">Identity Repository</DialogTitle>
+                    <DialogDescription className="text-slate-500 uppercase text-[9px] font-bold tracking-widest">
+                      Select a brand DNA profile to activate intelligence for this project.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                    <div className="grid grid-cols-1 gap-3 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
+                      {brandsQuery.isLoading ? (
+                        Array(3).fill(0).map((_, i) => (
+                          <div key={i} className="h-16 bg-white/[0.02] border border-white/5 rounded-2xl animate-pulse" />
+                        ))
+                      ) : brandsQuery.data?.length === 0 ? (
+                        <div className="p-8 text-center border border-dashed border-white/10 rounded-2xl">
+                          <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">No profiles found</p>
                         </div>
+                      ) : (
+                        brandsQuery.data?.map((brand: any) => (
+                          <div
+                            key={brand.id}
+                            className={`group relative flex items-center justify-between p-4 bg-white/[0.02] border rounded-2xl cursor-pointer transition-all hover:bg-white/[0.04] ${selectedBrandId === brand.id ? "border-primary/50 bg-primary/5 shadow-inner shadow-primary/10" : "border-white/5"}`}
+                            onClick={() => {
+                              onBrandSelect(brand.id);
+                              setIsSelecting(false);
+                            }}
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center border font-black text-xs ${selectedBrandId === brand.id ? "bg-primary text-white border-primary" : "bg-white/5 border-white/10 text-slate-400 group-hover:text-white"}`}>
+                                {brand.name.substring(0, 1).toUpperCase()}
+                              </div>
+                              <div>
+                                <h4 className="text-xs font-black text-white uppercase tracking-tight">{brand.name}</h4>
+                                {selectedBrandId === brand.id && (
+                                  <div className="flex items-center gap-1 text-[8px] font-black text-primary uppercase tracking-widest mt-0.5">
+                                    <Check className="h-2 w-2" /> ACTIVE
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-lg text-slate-500 hover:text-white"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditBrand(brand);
+                                }}
+                              >
+                                <Edit2 className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-lg text-slate-500 hover:text-red-500"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteBrandMutation.mutate({ id: brand.id });
+                                }}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))
                       )}
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditBrand(brand);
-                        }}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteBrandMutation.mutate({ id: brand.id });
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <Button
+                      onClick={() => {
+                        setIsSelecting(false);
+                        setIsCreating(true);
+                      }}
+                      className="w-full bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-white font-bold h-12 rounded-xl mt-2"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      FORGE NEW IDENTITY
+                    </Button>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  {brand.targetCustomer && (
-                    <div>
-                      <p className="font-semibold text-xs text-muted-foreground">Target Customer</p>
-                      <p className="line-clamp-2">{brand.targetCustomer}</p>
-                    </div>
-                  )}
-                  {brand.aesthetic && (
-                    <div>
-                      <p className="font-semibold text-xs text-muted-foreground">Aesthetic</p>
-                      <p className="line-clamp-2">{brand.aesthetic}</p>
-                    </div>
-                  )}
-                  {brand.mission && (
-                    <div>
-                      <p className="font-semibold text-xs text-muted-foreground">Mission</p>
-                      <p className="line-clamp-2">{brand.mission}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
+                </DialogContent>
+              </Dialog>
 
-      {/* Selected Brand Details */}
-      {selectedBrand && (
-        <Card className="border-primary/50 bg-primary/5">
-          <CardHeader>
-            <CardTitle>Brand Details: {selectedBrand.name}</CardTitle>
-            <CardDescription>Brand Brain AI is analyzing this brand's parameters</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Dialog open={isCreating} onOpenChange={setIsCreating}>
+                <DialogTrigger asChild>
+                  <Button className="h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-black uppercase text-[10px] tracking-widest px-8 shadow-lg shadow-primary/20 transition-all border border-primary/50">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Forge New
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl bg-slate-950 border-white/10 text-white shadow-2xl">
+                  <DialogHeader>
+                    <div className="flex items-center gap-3 mb-1">
+                      <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+                        <Sparkles className="w-5 h-5 text-primary" />
+                      </div>
+                      <DialogTitle className="text-xl font-black uppercase italic tracking-tighter">Forge New Brand DNA</DialogTitle>
+                    </div>
+                    <DialogDescription className="text-slate-500 uppercase text-[10px] font-bold tracking-[0.2em]">
+                      AI will synthesize the core brand architecture from your digital footprint.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-6 pt-6">
+                    <div className="p-6 bg-white/[0.02] rounded-3xl border border-white/5 space-y-4 relative overflow-hidden group">
+                      <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <Label htmlFor="brand-url" className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black relative z-10">Digital Footprint URL</Label>
+                      <div className="flex gap-3 relative z-10">
+                        <Input
+                          id="brand-url"
+                          placeholder="https://example.com"
+                          value={urlInput}
+                          onChange={(e) => setUrlInput(e.target.value)}
+                          className="bg-white/[0.03] border-white/10 text-white h-12 rounded-xl focus:border-primary/50"
+                        />
+                        <Button
+                          onClick={handleImportUrl}
+                          disabled={scrapeDNAMutation.isPending || !urlInput.trim()}
+                          className="bg-primary hover:bg-primary/90 text-white font-bold h-12 px-8 rounded-xl shrink-0"
+                        >
+                          {scrapeDNAMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link className="h-4 w-4 mr-2" />}
+                          INGEST
+                        </Button>
+                      </div>
+                      <p className="text-[9px] text-slate-600 uppercase font-bold italic tracking-wider relative z-10">Neural extraction from live web assets.</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="brand-name" className="text-[10px] uppercase font-black text-slate-500 tracking-[0.2em] ml-1">Identity Name</Label>
+                        <Input
+                          id="brand-name"
+                          placeholder="e.g., Apple, Nike, SpaceX"
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          className="bg-white/[0.03] border-white/10 text-white h-14 rounded-2xl focus:border-primary/50 text-lg font-bold"
+                        />
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={handleCreateBrand}
+                      disabled={createBrandMutation.isPending || !formData.name.trim()}
+                      className="w-full bg-primary hover:bg-primary/90 text-white font-black h-16 rounded-2xl text-lg shadow-2xl shadow-primary/20 mt-4 uppercase tracking-[0.2em]"
+                    >
+                      {createBrandMutation.isPending ? "FORGING..." : "Seal Identity"}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+        </CardHeader>
+
+        {selectedBrand && (
+          <CardContent className="p-8 lg:p-10 pt-8 lg:pt-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {selectedBrand.targetCustomer && (
-                <div>
-                  <h4 className="font-semibold text-sm mb-1">Target Customer</h4>
-                  <p className="text-sm text-muted-foreground">{selectedBrand.targetCustomer}</p>
+                <div className="space-y-2 group/dna">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-1 h-3 bg-primary/40 rounded-full group-hover/dna:bg-primary transition-colors" />
+                    <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em]">Demographic</h4>
+                  </div>
+                  <p className="text-sm text-slate-300 leading-relaxed font-medium italic line-clamp-4 pl-3 border-l border-white/5 group-hover/dna:border-primary/20 transition-colors">
+                    {selectedBrand.targetCustomer}
+                  </p>
                 </div>
               )}
               {selectedBrand.aesthetic && (
-                <div>
-                  <h4 className="font-semibold text-sm mb-1">Aesthetic</h4>
-                  <p className="text-sm text-muted-foreground">{selectedBrand.aesthetic}</p>
+                <div className="space-y-2 group/dna">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-1 h-3 bg-primary/40 rounded-full group-hover/dna:bg-primary transition-colors" />
+                    <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em]">Aesthetic</h4>
+                  </div>
+                  <p className="text-sm text-slate-300 leading-relaxed font-medium italic line-clamp-4 pl-3 border-l border-white/5 group-hover/dna:border-primary/20 transition-colors">
+                    {selectedBrand.aesthetic}
+                  </p>
                 </div>
               )}
               {selectedBrand.mission && (
-                <div>
-                  <h4 className="font-semibold text-sm mb-1">Mission</h4>
-                  <p className="text-sm text-muted-foreground">{selectedBrand.mission}</p>
+                <div className="space-y-2 group/dna">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-1 h-3 bg-primary/40 rounded-full group-hover/dna:bg-primary transition-colors" />
+                    <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em]">Strategic</h4>
+                  </div>
+                  <p className="text-sm text-slate-300 leading-relaxed font-medium italic line-clamp-4 pl-3 border-l border-white/5 group-hover/dna:border-primary/20 transition-colors">
+                    {selectedBrand.mission}
+                  </p>
                 </div>
               )}
               {selectedBrand.coreMessaging && (
-                <div>
-                  <h4 className="font-semibold text-sm mb-1">Core Messaging</h4>
-                  <p className="text-sm text-muted-foreground">{selectedBrand.coreMessaging}</p>
+                <div className="space-y-2 group/dna">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-1 h-3 bg-primary/40 rounded-full group-hover/dna:bg-primary transition-colors" />
+                    <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em]">Narrative</h4>
+                  </div>
+                  <p className="text-sm text-slate-300 leading-relaxed font-medium italic line-clamp-4 pl-3 border-l border-white/5 group-hover/dna:border-primary/20 transition-colors">
+                    {selectedBrand.coreMessaging}
+                  </p>
                 </div>
               )}
             </div>
           </CardContent>
-        </Card>
-      )}
+        )}
+      </Card>
 
-      {/* Edit Brand Dialog */}
+      {/* Edit Brand Dialog (Shared) */}
       <Dialog open={isEditing} onOpenChange={setIsEditing}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl bg-slate-950 border-white/10 text-white">
           <DialogHeader>
-            <DialogTitle>Edit Brand</DialogTitle>
-            <DialogDescription>Update your brand's identity and guidelines</DialogDescription>
+            <DialogTitle className="text-xl font-black uppercase italic tracking-tighter">Edit Identity</DialogTitle>
+            <DialogDescription className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Update brand DNA parameters</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="edit-brand-name">Brand Name</Label>
+          <div className="space-y-5 pt-4">
+            <div className="space-y-2">
+              <Label className="text-[10px] uppercase font-bold text-slate-500">Identity Name</Label>
               <Input
-                id="edit-brand-name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="bg-white/[0.03] border-white/10 h-12 rounded-xl"
               />
             </div>
 
-            <div>
-              <Label htmlFor="edit-target-customer">Target Customer</Label>
+            <div className="space-y-2">
+              <Label className="text-[10px] uppercase font-bold text-slate-500">Target Demographic</Label>
               <Textarea
-                id="edit-target-customer"
                 value={formData.targetCustomer}
                 onChange={(e) => setFormData({ ...formData, targetCustomer: e.target.value })}
                 rows={3}
+                className="bg-white/[0.03] border-white/10 rounded-xl"
               />
             </div>
 
-            <div>
-              <Label htmlFor="edit-aesthetic">Aesthetic</Label>
+            <div className="space-y-2">
+              <Label className="text-[10px] uppercase font-bold text-slate-500">Brand Aesthetic</Label>
               <Textarea
-                id="edit-aesthetic"
                 value={formData.aesthetic}
                 onChange={(e) => setFormData({ ...formData, aesthetic: e.target.value })}
                 rows={3}
+                className="bg-white/[0.03] border-white/10 rounded-xl"
               />
             </div>
 
-            <div>
-              <Label htmlFor="edit-mission">Mission</Label>
-              <Textarea
-                id="edit-mission"
-                value={formData.mission}
-                onChange={(e) => setFormData({ ...formData, mission: e.target.value })}
-                rows={3}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="edit-core-messaging">Core Messaging</Label>
-              <Textarea
-                id="edit-core-messaging"
-                value={formData.coreMessaging}
-                onChange={(e) => setFormData({ ...formData, coreMessaging: e.target.value })}
-                rows={3}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase font-bold text-slate-500">Mission</Label>
+                <Textarea
+                  value={formData.mission}
+                  onChange={(e) => setFormData({ ...formData, mission: e.target.value })}
+                  rows={4}
+                  className="bg-white/[0.03] border-white/10 rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase font-bold text-slate-500">Core Messaging</Label>
+                <Textarea
+                  value={formData.coreMessaging}
+                  onChange={(e) => setFormData({ ...formData, coreMessaging: e.target.value })}
+                  rows={4}
+                  className="bg-white/[0.03] border-white/10 rounded-xl"
+                />
+              </div>
             </div>
 
             <Button
               onClick={handleUpdateBrand}
-              disabled={updateBrandMutation.isPending || !formData.name.trim()}
-              className="w-full"
+              disabled={updateBrandMutation.isPending}
+              className="w-full bg-primary h-14 rounded-xl font-bold uppercase tracking-widest"
             >
-              {updateBrandMutation.isPending ? "Updating..." : "Update Brand"}
+              {updateBrandMutation.isPending ? "Updating..." : "Persist Changes"}
             </Button>
           </div>
         </DialogContent>

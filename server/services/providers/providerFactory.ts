@@ -9,7 +9,6 @@ import {
   ProviderConfig,
   ProviderRegistry,
 } from "./types";
-import { ReplicateProvider } from "./replicateProvider";
 // Note: FlowProvider, SoraProvider, KlingProvider, WHANProvider are available but not used directly here yet
 
 export class ProviderFactory {
@@ -18,14 +17,16 @@ export class ProviderFactory {
       nanobanana: { enabled: false, priority: 10, maxRetries: 3, timeout: 60000 },
       dalle: { enabled: false, priority: 10, maxRetries: 3, timeout: 60000 },
       midjourney: { enabled: false, priority: 10, maxRetries: 2, timeout: 120000 },
+      gemini: { enabled: true, priority: 1, maxRetries: 3, timeout: 120000 },
       replicate: { enabled: true, priority: 1, maxRetries: 3, timeout: 120000 },
-      apiyi: { enabled: false, priority: 10, maxRetries: 3, timeout: 60000 },
     },
     video: {
       flow: { enabled: false, priority: 10, maxRetries: 2, timeout: 120000 },
-      sora: { enabled: false, priority: 10, maxRetries: 2, timeout: 180000 },
+      sora: { enabled: true, priority: 2, maxRetries: 2, timeout: 180000 },
       kling: { enabled: false, priority: 10, maxRetries: 2, timeout: 120000 },
       whan: { enabled: false, priority: 10, maxRetries: 2, timeout: 120000 },
+      gemini: { enabled: true, priority: 1, maxRetries: 3, timeout: 300000 },
+      veo3: { enabled: true, priority: 3, maxRetries: 2, timeout: 180000 },
       replicate: { enabled: true, priority: 1, maxRetries: 3, timeout: 300000 },
     },
   };
@@ -44,6 +45,12 @@ export class ProviderFactory {
     if (provider === "replicate") {
       this.registry.video.replicate.apiKey = apiKey;
       this.registry.video.replicate.enabled = true;
+    } else if (provider === "sora") {
+      this.registry.video.sora.apiKey = apiKey;
+      this.registry.video.sora.enabled = true;
+    } else if (provider === "veo3") {
+      this.registry.video.veo3.apiKey = apiKey;
+      this.registry.video.veo3.enabled = true;
     }
   }
 
@@ -51,12 +58,12 @@ export class ProviderFactory {
    * Create a video provider instance
    */
   static createVideoProvider(
-    _provider: VideoProvider,
+    provider: VideoProvider,
     apiKey: string,
-    _apiUrl?: string
-  ): ReplicateProvider {
-    // Phase 4: Strictly Replicate
-    return new ReplicateProvider(apiKey);
+    apiUrl?: string
+  ): any {
+    const { VideoProviderFactory } = require("./videoProviders");
+    return VideoProviderFactory.createProvider(provider, apiKey, apiUrl);
   }
 
   /**
@@ -70,7 +77,12 @@ export class ProviderFactory {
    * Get enabled video providers sorted by priority
    */
   static getEnabledVideoProviders(): VideoProvider[] {
-    return ["replicate"];
+    const providers: VideoProvider[] = [];
+    if (this.registry.video.replicate.enabled) providers.push("replicate");
+    if (this.registry.video.sora.enabled) providers.push("sora");
+    if (this.registry.video.veo3.enabled) providers.push("veo3");
+    if (this.registry.video.gemini.enabled) providers.push("gemini");
+    return providers;
   }
 
   /**
@@ -94,7 +106,8 @@ export class ProviderFactory {
   }
 
   static isVideoProviderAvailable(provider: VideoProvider): boolean {
-    return provider === "replicate" && !!this.registry.video.replicate.apiKey;
+    const config = this.registry.video[provider];
+    return config?.enabled && !!config?.apiKey;
   }
 
   /**
@@ -106,14 +119,16 @@ export class ProviderFactory {
         nanobanana: { enabled: false, priority: 10, maxRetries: 3, timeout: 60000 },
         dalle: { enabled: false, priority: 10, maxRetries: 3, timeout: 60000 },
         midjourney: { enabled: false, priority: 10, maxRetries: 2, timeout: 120000 },
+        gemini: { enabled: true, priority: 1, maxRetries: 3, timeout: 120000 },
         replicate: { enabled: true, priority: 1, maxRetries: 3, timeout: 120000 },
-        apiyi: { enabled: false, priority: 10, maxRetries: 3, timeout: 60000 },
       },
       video: {
         flow: { enabled: false, priority: 10, maxRetries: 2, timeout: 120000 },
         sora: { enabled: false, priority: 10, maxRetries: 2, timeout: 180000 },
         kling: { enabled: false, priority: 10, maxRetries: 2, timeout: 120000 },
         whan: { enabled: false, priority: 10, maxRetries: 2, timeout: 120000 },
+        gemini: { enabled: true, priority: 1, maxRetries: 3, timeout: 300000 },
+        veo3: { enabled: false, priority: 10, maxRetries: 2, timeout: 180000 },
         replicate: { enabled: true, priority: 1, maxRetries: 3, timeout: 300000 },
       },
     };

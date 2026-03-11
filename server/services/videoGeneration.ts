@@ -14,14 +14,14 @@ interface VideoGenerationResponse {
 }
 
 /**
- * Generate video using Replicate (supporting various models like Minimax, Sora, Veo)
+ * Generate video using Gemini (supporting various models like Minimax, Sora, Veo)
  */
-export async function generateVideoWithReplicate(request: VideoGenerationRequest): Promise<VideoGenerationResponse> {
+export async function generateVideoWithGemini(request: VideoGenerationRequest): Promise<VideoGenerationResponse> {
   const { getActiveModelConfig } = await import("../db");
   const activeConfig = await getActiveModelConfig("video");
-  const { ReplicateProvider } = await import("./providers/replicateProvider");
+  const { GeminiProvider } = await import("./providers/geminiProvider");
 
-  const provider = new ReplicateProvider(activeConfig?.apiKey || ENV.replicateApiKey);
+  const provider = new GeminiProvider(activeConfig?.apiKey || ENV.forgeApiKey);
   const modelId = activeConfig?.modelId || "minimax/video-01"; // Default to Minimax
 
   try {
@@ -38,7 +38,7 @@ export async function generateVideoWithReplicate(request: VideoGenerationRequest
       videoUrl: result.url,
     };
   } catch (error) {
-    console.error("Replicate video generation error:", error);
+    console.error("Gemini video generation error:", error);
     return {
       taskId: "",
       status: "failed",
@@ -51,11 +51,11 @@ export async function generateVideoWithReplicate(request: VideoGenerationRequest
  * Check video generation status
  */
 export async function checkVideoStatus(_provider: string, taskId: string): Promise<VideoGenerationResponse> {
-  // Phase 4: Replicate status check (placeholder for now as ReplicateProvider.generateVideo is sync in our wrapper)
+  // Phase 4: Gemini status check (placeholder for now as GeminiProvider.generateVideo is sync in our wrapper)
   return {
     taskId,
     status: "completed",
-    videoUrl: "", // Should be fetched from DB or Replicate if needed
+    videoUrl: "", // Should be fetched from DB or Gemini if needed
   };
 }
 
@@ -79,6 +79,6 @@ export async function generateVideoFromStoryboard(
     quality: "high",
   };
 
-  return generateVideoWithReplicate(request);
+  return generateVideoWithGemini(request);
 }
 

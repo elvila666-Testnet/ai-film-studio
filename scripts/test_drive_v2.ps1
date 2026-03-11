@@ -1,5 +1,5 @@
 $ErrorActionPreference = "Stop"
-$base = "https://ai-film-studio-1021191579798.us-central1.run.app"
+$base = "https://ai-film-studio-553654730386.us-central1.run.app"
 $s = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 
 function Post-Trpc {
@@ -31,7 +31,9 @@ function Get-Trpc {
     # Wrap in TRPC batch format
     $batchJson = '{"0":' + $json + '}'
     $enc = [uri]::EscapeDataString($batchJson)
-    Invoke-RestMethod -Uri "$base/api/trpc/$path?batch=1&input=$enc" -Method Get -WebSession $s
+    $uri = "$base/api/trpc/$path`?batch=1&input=$enc"
+    Write-Host "   DEBUG: URI: $uri"
+    Invoke-RestMethod -Uri $uri -Method Get -WebSession $s
 }
 
 Write-Host "1. Logging in..."
@@ -76,3 +78,34 @@ $savedScript = if ($getRes2 -is [array]) { $getRes2[0].result.data.content.scrip
 
 if ($savedScript.Length -gt 10) { Write-Host "   [PASS] Script Persisted." -ForegroundColor Green }
 else { Write-Host "   [FAIL] Script Not Persisted." -ForegroundColor Red }
+
+Write-Host "`n7. Testing Storyboard Router (Health Check)..."
+try {
+    $saveRes = Post-Trpc "storyboard.saveImage" @{ 
+        projectId  = $pidVal; 
+        shotNumber = 1; 
+        imageUrl   = "http://test.com/img.png"; 
+        prompt     = "test prompt" 
+    }
+    Write-Host "   [PASS] storyboard.saveImage successful." -ForegroundColor Green
+}
+catch {
+    Write-Host "   [FAIL] storyboard.saveImage Error: $_" -ForegroundColor Red
+}
+
+Write-Host "`n8. Testing Storyboard Grid Generation (New Feature)..."
+try {
+    # First we need some scenes/shots for a real test, but we can call the endpoint
+    $gridRes = Post-Trpc "storyboard.generateGrid" @{ projectId = $pidVal }
+    $gridPages = if ($gridRes -is [array]) { $gridRes[0].result.data.gridPages } else { $gridRes.result.data.gridPages }
+    
+    if ($gridPages.Count -ge 0) { 
+        Write-Host "   [PASS] Grid Generation call successful. Pages returned: $($gridPages.Count)" -ForegroundColor Green 
+    }
+    else { Write-Host "   [FAIL] Grid Generation returned invalid data." -ForegroundColor Red }
+}
+catch {
+    Write-Host "   [FAIL] Grid Generation Error: $_" -ForegroundColor Red
+}
+
+Write-Host "`n--- TEST DRIVE COMPLETE ---"

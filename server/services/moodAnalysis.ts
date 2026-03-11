@@ -1,5 +1,8 @@
 import { invokeLLM } from "../_core/llm";
 import { errorHandler } from "./errorHandling";
+import { getDb } from "../db";
+import { projectContent } from "../../drizzle/schema";
+import { eq } from "drizzle-orm";
 
 /**
  * Project Mood Analysis Engine
@@ -36,6 +39,33 @@ export interface ContentAnalysis {
 }
 
 class MoodAnalysisService {
+  /**
+   * Helper to get project mood from DB and analyze it
+   */
+  async getProjectMood(projectId: number): Promise<ProjectMood> {
+    const db = await getDb();
+    if (!db) return this.getDefaultMood();
+
+    const [content] = await db.select().from(projectContent).where(eq(projectContent.projectId, projectId)).limit(1);
+
+    if (!content) return this.getDefaultMood();
+
+    const analysis: ContentAnalysis = {
+      script: content.script ? {
+        tone: content.brandVoice || "neutral",
+        themes: [],
+        pacing: "moderate"
+      } : undefined,
+      visualStyle: content.visualStyle ? {
+        colorPalette: (content.colorPalette as any) || [],
+        cinematography: content.technicalShots || "standard",
+        mood: content.visualStyle || "neutral"
+      } : undefined
+    };
+
+    return await this.analyzeProjectMood(projectId.toString(), analysis);
+  }
+
   /**
    * Analyze project content to determine mood
    */

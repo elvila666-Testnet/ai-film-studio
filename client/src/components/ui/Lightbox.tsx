@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Dialog, DialogContent, DialogOverlay, DialogPortal } from "@radix-ui/react-dialog";
+import { Dialog, DialogContent, DialogOverlay, DialogPortal, DialogTitle, DialogDescription } from "@radix-ui/react-dialog";
 import { X, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -69,6 +69,8 @@ export function Lightbox({
             <DialogPortal>
                 <DialogOverlay className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
                 <DialogContent className="fixed left-[50%] top-[50%] z-[101] flex h-full w-full max-w-none translate-x-[-50%] translate-y-[-50%] flex-col items-center justify-center p-0 shadow-none outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:max-w-none border-none bg-transparent">
+                    <DialogTitle className="sr-only">Image Lightbox</DialogTitle>
+                    <DialogDescription className="sr-only">Viewing image in full screen</DialogDescription>
 
                     {/* Header Controls */}
                     <div className="absolute top-0 left-0 right-0 flex justify-between items-center p-4 z-50 bg-gradient-to-b from-black/80 to-transparent">

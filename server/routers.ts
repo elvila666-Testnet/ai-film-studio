@@ -1,9 +1,8 @@
-import { storyboardRouter } from "./routers/storyboardRouter";
+import { storyboardRouter } from "./routers/storyboard";
 import { aiRouter } from "./routers/aiRouter";
 import { referenceImagesRouter } from "./routers/referenceImagesRouter";
 import { editorRouter } from "./routers/editorRouter";
 import { charactersRouter } from "./routers/charactersRouter";
-import { z } from "zod";
 console.log("FORCE REBUILD: GEMINI NATIVE REST + NANOBANANA REPLICATE - " + Date.now());
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -13,18 +12,23 @@ import { advancedFeaturesRouter } from "./routers/advancedFeatures";
 import { castingRouter } from "./routers/casting";
 import { storyboardCharacterRouter } from "./routers/storyboardCharacter";
 import { modelRouter } from "./routers/models";
-import { getStoryboardImages, saveStoryboardImage, getReferenceImages, saveReferenceImage, deleteReferenceImage, createEditorProject, getEditorProjectsByProjectId, getEditorClips, createEditorClip, updateEditorClip, deleteEditorClip, createEditorTrack, getEditorTracks, createEditorExport, getEditorExports, updateEditorExport, createComment, getClipComments, updateComment, deleteComment, getAnimaticConfig, updateFrameDurations, updateAnimaticAudio, getStoryboardFrameOrder, updateFrameOrder, getFrameHistory, createFrameHistoryVersion, getFrameNotes, saveFrameNotes, deleteFrameNotes, createCharacter, getCharacter, getProjectCharacters, getLockedCharacter, lockCharacter, unlockAllCharacters, updateCharacter, deleteCharacter, getProjectContent } from "./db";
-import { protectedProcedure } from "./_core/trpc";
+
 
 import { adminRouter } from "./routers/admin";
 import { videoRouter } from "./routers/video";
-import { projectRouter } from "./src/routers/project";
-import { directorRouter } from "./src/routers/director";
-import { generatorRouter } from "./src/routers/generator";
-import { finopsRouter } from "./src/routers/finops";
-import { audioRouter } from "./src/routers/audio";
-import { scriptRouter } from "./src/routers/script";
+import { projectRouter } from "./routers/project";
+import { directorRouter } from "./routers/director";
+import { generatorRouter } from "./routers/generator";
+import { finopsRouter } from "./routers/finops";
+import { audioRouter } from "./routers/audio";
+import { scriptRouter } from "./routers/script";
 import { brandRouter } from "./routers/brandRouter";
+import { storyboardAgentRouter } from "./routers/storyboardAgent";
+import { scriptWriterRouter } from "./routers/scriptWriter";
+import { directorRouter as directorV2Router } from "./routers/directorNew";
+import { promptEngineerRouter } from "./routers/promptEngineer";
+import { shootingRouter } from "./routers/shooting";
+import { productionDesignRouter } from "./routers/productionDesign";
 
 export const appRouter = router({
   system: systemRouter,
@@ -52,8 +56,16 @@ export const appRouter = router({
   script: scriptRouter,
   video: videoRouter,
   brand: brandRouter,
+  brands: brandRouter, // Compatibility alias
 
   storyboard: storyboardRouter,
+  storyboardAgent: storyboardAgentRouter,
+
+  // ─── New Pipeline Agents ──────────────────────────────────
+  scriptWriter: scriptWriterRouter,
+  directorV2: directorV2Router,
+  promptEngineer: promptEngineerRouter,
+  shooting: shootingRouter,
 
   ai: aiRouter,
 
@@ -64,6 +76,7 @@ export const appRouter = router({
   editor: editorRouter,
 
   characters: charactersRouter,
+  productionDesign: productionDesignRouter,
 
   // ============================================================================
   // VIDEO GENERATION ROUTER
