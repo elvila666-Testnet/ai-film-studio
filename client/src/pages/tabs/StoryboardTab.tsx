@@ -233,10 +233,24 @@ export default function StoryboardTab({ projectId }: StoryboardTabProps) {
             <div
               className="glass-panel overflow-hidden group cursor-pointer relative"
               onClick={() => setLightboxUrl(currentGridImage.imageUrl)}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gridTemplateRows: 'repeat(3, 1fr)',
+                gap: '0px',
+                aspectRatio: '16 / 9',
+                width: '100%',
+              }}
             >
               <img
                 src={currentGridImage.imageUrl}
-                className="w-full object-contain transition-transform duration-700 group-hover:scale-[1.01]"
+                className="w-full h-full transition-transform duration-700 group-hover:scale-[1.01]"
+                style={{
+                  objectFit: 'cover',
+                  objectPosition: 'center',
+                  gridColumn: '1 / -1',
+                  gridRow: '1 / -1',
+                }}
                 alt={`Storyboard Grid Page ${currentPage + 1}`}
               />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-500 flex items-center justify-center">

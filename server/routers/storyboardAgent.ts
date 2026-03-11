@@ -63,15 +63,44 @@ The array MUST contain exactly 12 items. Make the actions direct, simple, and cl
 
             console.log(`[StoryboardAgent] Successfully generated ${parsed.shots.length} shots. Assembling Generic Storyboard Prompt...`);
 
-            // Assemble the final prompt
-            let masterPrompt = `[System/Framework Instructions] Create a 3x4 storyboard grid (12 panels total) showing the exact same character and environment provided in the attached reference images. Preserve the exact character identity, facial features, outfit, props, and location shown in the references. Maintain a consistent cinematic style, color grade, and lighting across all 12 panels. Do not alter or add new elements that are not specified.\n\n`;
-            masterPrompt += `[Panel-by-Panel Descriptions] Please generate the following specific camera angles and actions for each frame:\n`;
+            // Assemble the final prompt with STRICT GRID SPECIFICATIONS
+            let masterPrompt = `
+[MANDATORY GRID ARCHITECTURE]
+Create a STRICT 3×4 STORYBOARD GRID with EXACTLY 12 PANELS arranged in 3 rows and 4 columns.
+
+[CELL SPECIFICATION - ABSOLUTE REQUIREMENTS]
+- Each cell MUST be exactly 16:9 aspect ratio
+- All 12 cells MUST be IDENTICAL in size
+- NO variable sizing based on image content
+- NO masonry layout or flexible wrapping
+- Each panel must occupy exactly 1/12 of the total grid area
+- Grid output dimensions: 1792×1024 pixels (16:9 total)
+- Each cell dimensions: 448×341 pixels (16:9 per cell)
+
+[RENDERING CONSTRAINT]
+- Use object-fit: cover for all images (crop to fit, don't scale)
+- Center all compositions within their cells
+- NO padding or margins between cells
+- All cells must align perfectly on a rigid grid
+
+[PANEL DESCRIPTIONS]
+`;
 
             parsed.shots.forEach((s) => {
-                masterPrompt += `Frame ${s.frameNumber || 0}: [${s.cameraAngle}] - [${s.action}]\n`;
+                masterPrompt += `Panel ${s.frameNumber || 0}: [${s.cameraAngle}] - ${s.action}\n`;
             });
 
-            masterPrompt += `\nOutput the final image as a single 16:9 aspect ratio storyboard sheet. Technical Style: ${visualStyle}`;
+            masterPrompt += `
+[TECHNICAL REQUIREMENTS]
+- Maintain consistent character identity across all 12 panels
+- Preserve cinematic style and color grading
+- All panels must be visually cohesive
+- Output as a single 1792×1024 image with 12 equally-sized cells in a 4-column × 3-row layout
+- CRITICAL: Every cell must be the same size. No exceptions.
+- Technical Style: ${visualStyle}
+
+[SHOT LABELS]
+Add 'Shot X' label in bottom-left corner of each cell (X = 1 to 12)`
 
             // We offload generation so we don't block the UI
             (async () => {
