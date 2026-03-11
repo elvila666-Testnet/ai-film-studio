@@ -63,44 +63,38 @@ The array MUST contain exactly 12 items. Make the actions direct, simple, and cl
 
             console.log(`[StoryboardAgent] Successfully generated ${parsed.shots.length} shots. Assembling Generic Storyboard Prompt...`);
 
-            // Assemble the final prompt with STRICT GRID SPECIFICATIONS
+            // Assemble the final prompt with INDUSTRIAL CONTACT SHEET SPECIFICATIONS
             let masterPrompt = `
-[MANDATORY GRID ARCHITECTURE]
-Create a STRICT 3×4 STORYBOARD GRID with EXACTLY 12 PANELS arranged in 3 rows and 4 columns.
+[STRICT INDUSTRIAL CONTACT SHEET ARCHITECTURE]
+Generate a SINGLE high-fidelity 16:9 image containing a RIGID 3×4 STORYBOARD GRID.
+The grid MUST consist of EXACTLY 12 IDENTICAL RECTANGULAR PANELS arranged in 3 rows and 4 columns.
 
-[CELL SPECIFICATION - ABSOLUTE REQUIREMENTS]
-- Each cell MUST be exactly 16:9 aspect ratio
-- All 12 cells MUST be IDENTICAL in size
-- NO variable sizing based on image content
-- NO masonry layout or flexible wrapping
-- Each panel must occupy exactly 1/12 of the total grid area
-- Grid output dimensions: 1792×1024 pixels (16:9 total)
-- Each cell dimensions: 448×341 pixels (16:9 per cell)
+[GEOMETRIC CONSTRAINTS - NON-NEGOTIABLE]
+- GRID LAYOUT: 4 columns across, 3 rows down.
+- CELL SYMMETRY: Every single cell MUST have the EXACT SAME dimensions (448px x 341px).
+- NO MASONRY: Disable all dynamic or flexible layouts. All horizontal and vertical lines must be perfectly straight and continuous across the entire sheet.
+- BORDERS: Use a thin 2px solid black or dark gray divider between all cells to ensure clear separation.
+- ASPECT RATIO: Each individual cell MUST be a perfect 16:9 cinematic frame.
 
-[RENDERING CONSTRAINT]
-- Use object-fit: cover for all images (crop to fit, don't scale)
-- Center all compositions within their cells
-- NO padding or margins between cells
-- All cells must align perfectly on a rigid grid
+[INTEGRATED TECHNICAL LABELS]
+- MANDATORY: Render a small, legible text label in the BOTTOM-LEFT corner of EVERY cell.
+- LABEL FORMAT: "SHOT 1", "SHOT 2", "SHOT 3" ... up to "SHOT 12".
+- LABEL STYLE: White sans-serif text with a subtle black outline for readability.
 
-[PANEL DESCRIPTIONS]
+[PANEL SEQUENCE & CONTENT]
 `;
 
-            parsed.shots.forEach((s) => {
-                masterPrompt += `Panel ${s.frameNumber || 0}: [${s.cameraAngle}] - ${s.action}\n`;
+            parsed.shots.forEach((s, index) => {
+                const shotNum = index + 1;
+                masterPrompt += `PANEL ${shotNum} (Row ${Math.floor(index/4)+1}, Col ${(index%4)+1}): [${s.cameraAngle}] - ${s.action}. Label this cell as "SHOT ${shotNum}".\n`;
             });
 
             masterPrompt += `
-[TECHNICAL REQUIREMENTS]
-- Maintain consistent character identity across all 12 panels
-- Preserve cinematic style and color grading
-- All panels must be visually cohesive
-- Output as a single 1792×1024 image with 12 equally-sized cells in a 4-column × 3-row layout
-- CRITICAL: Every cell must be the same size. No exceptions.
-- Technical Style: ${visualStyle}
-
-[SHOT LABELS]
-Add 'Shot X' label in bottom-left corner of each cell (X = 1 to 12)`
+[VISUAL CONSISTENCY & STYLE]
+- Character: Maintain 100% identity lock for all characters across all 12 panels.
+- Lighting/Color: Apply a consistent ${visualStyle} grade and lighting scheme to the entire sheet.
+- Composition: Center-weighted compositions for each cell.
+- FINAL OUTPUT: A single, professionally organized 1792×1024 technical storyboard sheet.`
 
             // We offload generation so we don't block the UI
             (async () => {
