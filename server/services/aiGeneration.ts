@@ -936,7 +936,7 @@ export async function generateCharacterNano(
   isWardrobeChange: boolean = false,
   seed?: number
 ): Promise<string> {
-  const geminiModelId = "imagen-4.0-generate-001";
+  const geminiModelId = "imagen-3.0-generate-001"; // Use imagen-3.0 for better Vertex AI support
 
   let finalPrompt = "";
   if (isWardrobeChange) {
@@ -948,6 +948,7 @@ export async function generateCharacterNano(
   }
 
   try {
+    console.log(`[AI Service] Generating character with ${referenceImages.length} reference image(s) using Vertex AI`);
     const result = await geminiProvider.generateImage({
       prompt: finalPrompt,
       resolution: "1024x1344",
@@ -959,6 +960,7 @@ export async function generateCharacterNano(
     }, geminiModelId);
 
     const url = await ensurePermanentUrl(result.url, "characters");
+    console.log(`[AI Service] Character generated successfully with visual anchors: ${url}`);
     return url;
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
@@ -988,22 +990,25 @@ export async function upscaleImageTo4k(
 export async function generateSetNano(
     description: string,
     projectId?: number,
-    userId?: string
+    userId?: string,
+    referenceImageUrl?: string
 ): Promise<string> {
-    const geminiModelId = "imagen-4.0-generate-001";
+    const geminiModelId = "imagen-3.0-generate-001"; // Use imagen-3.0 for better Vertex AI support
     const prompt = `8K RAW cinematic master set photograph. PRODUCTION DESIGN ARCHITECTURE: ${description}. 
     Focus on physical set construction, tactile materials (concrete, aged wood, brushed metal), atmospheric depth, and realistic global illumination. 
     Cinematography: Panavision Primo 70 lenses, 1.33x Anamorphic squeeze, ACES color science. 
     Strictly: NO CONCEPT ART, NO PEOPLE, NO STUDIO LIGHTS IN FRAME. This must look like an actual location on a film set.`;
 
     try {
-        console.log(`[AI Service] Generating set image with prompt: ${prompt.substring(0, 100)}...`);
+        console.log(`[AI Service] Generating set image with reference: ${referenceImageUrl ? "YES" : "NO"}`);
+        const imageInputs = referenceImageUrl ? [referenceImageUrl] : [];
         const result = await geminiProvider.generateImage({
             prompt,
             resolution: "1792x1024",
             quality: "hd",
             projectId,
             userId,
+            ...(imageInputs.length > 0 ? { imageInputs } : {})
         }, geminiModelId);
         console.log(`[AI Service] Set image generation success.`);
         return await ensurePermanentUrl(result.url, "sets");
