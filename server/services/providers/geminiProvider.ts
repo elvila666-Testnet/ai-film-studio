@@ -5,7 +5,6 @@ import {
     VideoGenerationResult,
 } from "./types";
 import { ENV } from "../../_core/env";
-import { GoogleAuth } from "google-auth-library";
 
 /**
  * Gemini/Vertex AI Provider
@@ -131,6 +130,13 @@ export class GeminiProvider {
             if (!response.ok) {
                 const errText = await response.text();
                 console.error(`[GeminiProvider] Vertex AI Error (${response.status}): ${errText}`);
+                
+                // If 404, try fallback model name
+                if (response.status === 404 && modelId === "imagen-3.0-generate-001") {
+                    console.log(`[GeminiProvider] Model not found, trying fallback: imagen-3.0`);
+                    return await this.generateImageWithVertexAI(params, "imagen-3.0", startTime);
+                }
+
                 // Fall back to Gemini REST API if Vertex AI fails
                 console.log(`[GeminiProvider] Falling back to Gemini REST API...`);
                 return await this.generateImageWithGemini(params, modelId, startTime);
@@ -176,6 +182,9 @@ export class GeminiProvider {
         modelId: string,
         startTime: number
     ): Promise<ImageGenerationResult> {
+        // Adjust model name for Gemini REST API v1beta
+        const geminiModelId = modelId === "imagen-3.0-generate-001" ? "imagen-3.0" : modelId;
+        
         try {
             const payload: any = {
                 instances: [
@@ -192,7 +201,7 @@ export class GeminiProvider {
                 }
             };
 
-            const url = `${this.geminiBaseUrl}/${modelId}:predict?key=${this.apiKey}`;
+            const url = `${this.geminiBaseUrl}/${geminiModelId}:predict?key=${this.apiKey}`;
             
             console.log(`[GeminiProvider] Calling Gemini endpoint: ${url}`);
 
@@ -204,6 +213,13 @@ export class GeminiProvider {
 
             if (!response.ok) {
                 const errText = await response.text();
+                
+                // If 404, try the other variant
+                if (response.status === 404 && geminiModelId === "imagen-3.0") {
+                    console.log(`[GeminiProvider] Gemini model not found, trying variant: imagen-3.0-generate-001`);
+                    return await this.generateImageWithGemini(params, "imagen-3.0-generate-001", startTime);
+                }
+
                 throw new Error(`Gemini Image API Error (${response.status}): ${errText}`);
             }
 
@@ -222,7 +238,7 @@ export class GeminiProvider {
 
             return {
                 provider: "gemini",
-                model: modelId,
+                model: geminiModelId,
                 url: urlResult,
                 width: 1792,
                 height: 1024,
