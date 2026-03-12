@@ -3,9 +3,11 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { invokeLLM } from "../_core/llm";
 import { generateGridImage } from "../services/aiGeneration";
-import { getProjectContent, saveStoryboardImage, getLockedCharacter } from "../db";
+import { getProjectContent, saveStoryboardImage, getLockedCharacter, getDb } from "../db";
 import { estimateCost } from "../services/pricingService";
 import { logUsage } from "../services/ledgerService";
+import { productionDesignSets } from "../../drizzle/schema";
+import { eq } from "drizzle-orm";
 
 export const storyboardAgentRouter = router({
     autoStoryboardScene: protectedProcedure
@@ -23,9 +25,17 @@ export const storyboardAgentRouter = router({
             const lockedChar = await getLockedCharacter(input.projectId);
             const characterReferenceUrl = lockedChar ? lockedChar.imageUrl : undefined;
 
-            // TODO: Retrieve set reference image from Art Department
-            // This will be populated once the Art Department generates the primary set
-            let setReferenceUrl: string | undefined = undefined;
+            // Retrieve set reference images from Art Department
+            const db = await getDb();
+            const projectSets = await db.select().from(productionDesignSets).where(eq(productionDesignSets.projectId, input.projectId));
+            const setMap = projectSets.reduce((acc: any, set: any) => {
+                acc[set.name.toLowerCase()] = set.imageUrl || set.referenceImageUrl;
+                return acc;
+            }, {});
+
+            // Get the technical breakdown to match shots to sets
+            const technicalShots = content?.technicalShots ? JSON.parse(content.technicalShots) : null;
+            const technicalShotsList = technicalShots?.scenes?.flatMap((s: any) => s.shots) || [];
 
             // Stage 1: Parse the scene text into exactly 12 panels
             const prompt = `You are a professional storyboard artist. Take the following narrative scene and break it down into exactly 12 consecutive visual shots to form a 3x4 storyboard grid.
@@ -34,13 +44,20 @@ Scene: \n${input.sceneText}\n\n
 Global Director Notes: ${globalNotes}
 Visual Style: ${visualStyle}
 
+TECHNICAL BREAKDOWN REFERENCE (Follow this order exactly):
+${technicalShotsList.map((s: any) => `Shot ${s.shotNumber}: ${s.visualDescription} (Set: ${s.productionDesignNotes || 'Unknown'})`).join('\n')}
+
+AVAILABLE SETS FOR REFERENCE:
+${projectSets.map((s: any) => `- ${s.name}: ${s.description}`).join('\n')}
+
 Output JSON ONLY in exactly this schema:
 {
   "shots": [
     {
       "frameNumber": <number 1 to 12>,
       "cameraAngle": "e.g. Wide Establishing Shot",
-      "action": "Description of the visual action"
+      "action": "Description of the visual action",
+      "assignedSet": "Exact name of the set from the list above"
     }
   ]
 }
@@ -49,12 +66,12 @@ The array MUST contain exactly 12 items. Make the actions direct, simple, and cl
             console.log(`[StoryboardAgent] Analyzing scene for Project ${input.projectId}...`);
             const llmResult = await invokeLLM({
                 messages: [{ role: "user", content: prompt }],
-                responseFormat: { type: "json_object" }
+                response_format: { type: "json_object" }
             });
             const llmCost = estimateCost('gemini-1.5-flash', 1);
             await logUsage(input.projectId, ctx.user.id.toString(), 'gemini-1.5-flash', llmCost, 'AGENT_SCENE_BREAKDOWN');
 
-            let parsed: { shots: Array<{ frameNumber: number; cameraAngle: string; action: string; }> };
+            let parsed: { shots: Array<{ frameNumber: number; cameraAngle: string; action: string; assignedSet?: string }> };
             try {
                 parsed = JSON.parse(llmResult.choices[0].message.content as string);
                 if (!parsed.shots || !Array.isArray(parsed.shots)) {
@@ -88,9 +105,20 @@ The grid MUST consist of EXACTLY 12 IDENTICAL RECTANGULAR PANELS arranged in 3 r
 [PANEL SEQUENCE & CONTENT]
 `;
 
+            // Pick a representative set image (the one most frequently assigned in the 12 shots)
+            const setCounts: Record<string, number> = {};
+            parsed.shots.forEach(s => {
+                if (s.assignedSet) {
+                    const name = s.assignedSet.toLowerCase();
+                    setCounts[name] = (setCounts[name] || 0) + 1;
+                }
+            });
+            const mostFrequentSetName = Object.keys(setCounts).reduce((a, b) => setCounts[a] > setCounts[b] ? a : b, "");
+            const setReferenceUrl = setMap[mostFrequentSetName];
+
             parsed.shots.forEach((s, index) => {
                 const shotNum = index + 1;
-                masterPrompt += `PANEL ${shotNum} (Row ${Math.floor(index/4)+1}, Col ${(index%4)+1}): [${s.cameraAngle}] - ${s.action}. Label this cell as "SHOT ${shotNum}".\n`;
+                masterPrompt += `PANEL ${shotNum} (Row ${Math.floor(index/4)+1}, Col ${(index%4)+1}): [${s.cameraAngle}] - ${s.action}${s.assignedSet ? ` (Set: ${s.assignedSet})` : ""}. Label this cell as "SHOT ${shotNum}".\n`;
             });
 
             masterPrompt += `
