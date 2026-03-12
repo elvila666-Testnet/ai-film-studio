@@ -522,10 +522,10 @@ export async function generateStoryboardImage(prompt: string, modelId?: string, 
  * Uses 1792x1024 → maps to 16:9 landscape in provider
  */
 export async function generateGridImage(prompt: string, projectId?: number, userId?: string, characterReferenceUrl?: string, setReferenceUrl?: string): Promise<string> {
-  const geminiModelId = "imagen-4.0-generate-001"; // Always Nanobanana Pro
+  const geminiModelId = "imagen-3.0-generate-001"; // Use imagen-3.0 which is better supported by Vertex AI
 
   try {
-    // Assemble all reference images (character + set)
+    // Assemble visual anchor references (character + set)
     const imageInputs: string[] = [];
     if (characterReferenceUrl) imageInputs.push(characterReferenceUrl);
     if (setReferenceUrl) imageInputs.push(setReferenceUrl);
@@ -540,6 +540,7 @@ export async function generateGridImage(prompt: string, projectId?: number, user
     }, geminiModelId);
     const rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
     const url = await ensurePermanentUrl(rawUrl, "grids");
+    console.log(`[AI Service] Grid successfully generated with visual anchors (character + set): ${url}`);
     return url;
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
