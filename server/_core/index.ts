@@ -85,19 +85,23 @@ if (clientPath) {
 
 // Background Init
 initBackgroundWorkers();
+
+// Start server after DB initialization
 (async () => {
   try {
     await initializeModels();
     await ensureActiveModels();
+    console.log("✅ Database initialized successfully");
   } catch (err) {
     console.error("DB Init Error:", err);
+    console.warn("⚠️ Continuing without full DB initialization");
   }
+  
+  // Start listening after DB is ready
+  app.listen(PORT, () => {
+    console.log(`✅ Server running on http://localhost:${PORT}/`);
+  });
 })();
-
-// Start
-app.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}/`);
-});
 
 // Shutdown
 process.on("SIGTERM", () => process.exit(0));
