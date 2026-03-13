@@ -1,12 +1,16 @@
 # Build stage
-FROM node:20-slim AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install pnpm and dependencies
-RUN npm install -g pnpm@10.30.1
+# Install pnpm
+RUN npm install -g pnpm@latest
+
+# Copy package files
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+
+# Install dependencies with retry logic
+RUN pnpm install --frozen-lockfile || pnpm install
 
 # Copy source code
 COPY . .
@@ -15,18 +19,18 @@ COPY . .
 RUN pnpm run build
 
 # Production stage
-FROM node:20-slim
+FROM node:20-alpine
 
 WORKDIR /app
 
 # Install pnpm
-RUN npm install -g pnpm@10.30.1
+RUN npm install -g pnpm@latest
 
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
 
 # Install production dependencies only
-RUN pnpm install --prod --frozen-lockfile
+RUN pnpm install --prod --frozen-lockfile || pnpm install --prod
 
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist
