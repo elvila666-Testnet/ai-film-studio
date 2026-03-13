@@ -3,7 +3,7 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { logUsage } from "../services/ledgerService";
 import { estimateCost } from "../services/pricingService";
-import { buildStoryboardPrompts, getBuiltPrompts } from "../services/agents/production/promptEngineerAgent";
+import { buildStoryboardPrompts } from "../services/agents/production/promptEngineerAgent";
 import { generateGridImage } from "../services/aiGeneration";
 import { saveStoryboardImage } from "../db";
 
