@@ -118,59 +118,87 @@ export class GeminiProvider {
             
             console.log(`[GeminiProvider] Calling Vertex AI endpoint: ${url}`);
 
-            const response = await fetch(url, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${this.apiKey}`
-                },
-                body: JSON.stringify(payload)
-            });
+            // Add timeout protection (30 seconds)
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-            if (!response.ok) {
-                const errText = await response.text();
-                console.error(`[GeminiProvider] Vertex AI Error (${response.status}): ${errText}`);
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${this.apiKey}`
+                    },
+                    body: JSON.stringify(payload),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
                 
-                // If 404, try fallback model name
-                if (response.status === 404 && modelId === "imagen-3.0-generate-001") {
-                    console.log(`[GeminiProvider] Model not found, trying fallback: imagen-3.0`);
-                    return await this.generateImageWithVertexAI(params, "imagen-3.0", startTime);
+                return await this.handleVertexAIResponse(response, params, modelId, startTime);
+            } catch (fetchError: any) {
+                clearTimeout(timeoutId);
+                if (fetchError.name === 'AbortError') {
+                    console.log(`[GeminiProvider] Vertex AI timeout after 30 seconds, falling back to Gemini REST API...`);
+                    return await this.generateImageWithGemini(params, modelId, startTime);
                 }
-
-                // Fall back to Gemini REST API if Vertex AI fails
-                console.log(`[GeminiProvider] Falling back to Gemini REST API...`);
-                return await this.generateImageWithGemini(params, modelId, startTime);
+                throw fetchError;
             }
-
-            const data = await response.json();
-
-            if (!data.predictions || data.predictions.length === 0) {
-                throw new Error("Vertex AI returned no predictions for image generation.");
-            }
-
-            const base64Image = data.predictions[0].bytesBase64Encoded;
-            if (!base64Image) {
-                throw new Error("Vertex AI did not return bytesBase64Encoded.");
-            }
-
-            const urlResult = `data:image/jpeg;base64,${base64Image}`;
-
-            return {
-                provider: "vertex-ai",
-                model: modelId,
-                url: urlResult,
-                width: 1792,
-                height: 1024,
-                actualCost: 0.05,
-                processingTime: Date.now() - startTime,
-                metadata: {
-                    style: params.style,
-                    resolution: params.resolution,
-                },
-            };
         } catch (error: any) {
             console.error("[GeminiProvider] Vertex AI generation failed:", error);
             throw error;
+        }
+    }
+
+    /**
+     * Handle Vertex AI response
+     */
+    private async handleVertexAIResponse(
+        response: Response,
+        params: ImageGenerationParams,
+        modelId: string,
+        startTime: number
+    ): Promise<ImageGenerationResult> {
+
+        if (!response.ok) {
+            const errText = await response.text();
+            console.error(`[GeminiProvider] Vertex AI Error (${response.status}): ${errText}`);
+            
+            // If 404, try fallback model name
+            if (response.status === 404 && modelId === "imagen-3.0-generate-001") {
+                console.log(`[GeminiProvider] Model not found, trying fallback: imagen-3.0`);
+                return await this.generateImageWithVertexAI(params, "imagen-3.0", startTime);
+            }
+
+            // Fall back to Gemini REST API if Vertex AI fails
+            console.log(`[GeminiProvider] Falling back to Gemini REST API...`);
+            return await this.generateImageWithGemini(params, modelId, startTime);
+        }
+
+        const data = await response.json();
+
+        if (!data.predictions || data.predictions.length === 0) {
+            throw new Error("Vertex AI returned no predictions for image generation.");
+        }
+
+        const base64Image = data.predictions[0].bytesBase64Encoded;
+        if (!base64Image) {
+            throw new Error("Vertex AI did not return bytesBase64Encoded.");
+        }
+
+        const urlResult = `data:image/jpeg;base64,${base64Image}`;
+
+        return {
+            provider: "vertex-ai",
+            model: modelId,
+            url: urlResult,
+            width: 1792,
+            height: 1024,
+            actualCost: 0.05,
+            processingTime: Date.now() - startTime,
+            metadata: {
+                style: params.style,
+                resolution: params.resolution,
+            },
         }
     }
 
