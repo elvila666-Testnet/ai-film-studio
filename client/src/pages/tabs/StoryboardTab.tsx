@@ -70,7 +70,7 @@ export default function StoryboardTab({ projectId }: StoryboardTabProps) {
   const handleGenerateGrid = async () => {
     requestApproval(0.10, async () => {
       try {
-        toast.info("Generating paginated 3×4 Storyboard Grids (Nanobanana Pro)...");
+        toast.info("Generating paginated 3×4 Storyboard Grids (Nanobanana 2.0 - Gemini 1.5 Pro)...");
         setCurrentPage(0);
         
         // Get visual style from project data if available
@@ -81,7 +81,7 @@ export default function StoryboardTab({ projectId }: StoryboardTabProps) {
           globalInstructions: globalInstructions || undefined,
           visualStyle: visualStyle,
         });
-        toast.success("Storyboard Grid pages materialized!");
+        toast.success("Storyboard Grid pages materialized with Nanobanana 2.0!");
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : String(e);
         toast.error(`Grid synthesis failed: ${message}`);

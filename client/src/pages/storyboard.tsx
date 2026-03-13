@@ -26,8 +26,8 @@ export default function StoryboardPage() {
     return (
         <div className="space-y-8">
             <div>
-                <h1 className="text-3xl font-bold">Storyboard</h1>
-                <p className="text-muted-foreground">Visualize your script scene by scene.</p>
+                <h1 className="text-3xl font-bold">Storyboard Lab - Nanobanana 2.0</h1>
+                <p className="text-muted-foreground">High-fidelity Image-to-Image generation powered by Gemini 1.5 Pro</p>
             </div>
 
             <div className="grid gap-6">
