@@ -61,9 +61,18 @@ export class GeminiProvider {
             if (params.imageInputs && params.imageInputs.length > 0) {
                 console.log(`[GeminiProvider] Using Vertex AI API for image generation with ${params.imageInputs.length} reference image(s)`);
                 try {
-                    return await this.generateImageWithVertexAI(params, modelId, startTime);
+                    // Decision: Implement strict 30s timeout for Vertex AI to trigger fallback
+                    const timeoutPromise = new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Vertex AI Timeout after 30s')), 30000)
+                    );
+                    
+                    console.log(`[GeminiProvider] Starting Vertex AI call for image generation...`);
+                    return await Promise.race([
+                        this.generateImageWithVertexAI(params, modelId, startTime),
+                        timeoutPromise
+                    ]) as ImageGenerationResult;
                 } catch (vertexError: any) {
-                    console.warn(`[GeminiProvider] Vertex AI failed, falling back to Gemini REST API:`, vertexError.message);
+                    console.warn(`[GeminiProvider] Vertex AI failed or timed out, falling back to Gemini REST API:`, vertexError.message);
                     return await this.generateImageWithGemini(params, modelId, startTime);
                 }
             } else {
