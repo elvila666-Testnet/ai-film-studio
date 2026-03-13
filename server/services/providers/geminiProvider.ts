@@ -60,7 +60,12 @@ export class GeminiProvider {
             // If we have image inputs (character/set references), use Vertex AI which supports them
             if (params.imageInputs && params.imageInputs.length > 0) {
                 console.log(`[GeminiProvider] Using Vertex AI API for image generation with ${params.imageInputs.length} reference image(s)`);
-                return await this.generateImageWithVertexAI(params, modelId, startTime);
+                try {
+                    return await this.generateImageWithVertexAI(params, modelId, startTime);
+                } catch (vertexError: any) {
+                    console.warn(`[GeminiProvider] Vertex AI failed, falling back to Gemini REST API:`, vertexError.message);
+                    return await this.generateImageWithGemini(params, modelId, startTime);
+                }
             } else {
                 // Otherwise use Gemini REST API (text-only)
                 console.log(`[GeminiProvider] Using Gemini REST API for text-only image generation`);

@@ -121,13 +121,31 @@ The grid MUST consist of EXACTLY 12 IDENTICAL RECTANGULAR PANELS arranged in 3 r
                 masterPrompt += `PANEL ${shotNum} (Row ${Math.floor(index/4)+1}, Col ${(index%4)+1}): [${s.cameraAngle}] - ${s.action}${s.assignedSet ? ` (Set: ${s.assignedSet})` : ""}. Label this cell as "SHOT ${shotNum}".\n`;
             });
 
+            // Build detailed visual descriptions from character and set references
+            let characterVisualDescription = "";
+            if (lockedChar) {
+                characterVisualDescription = `
+CHARACTER IDENTITY LOCK:
+- Name: ${lockedChar.name || 'Protagonist'}
+- Physical Description: ${lockedChar.description || 'Professional athlete in extreme conditions'}
+- Key Visual Markers: Maintain exact appearance across all 12 panels. Same facial features, build, and distinctive characteristics.
+- Wardrobe: ${lockedChar.wardrobe || 'Technical expedition gear'}`;
+            }
+
+            let setVisualDescription = "";
+            if (projectSets.length > 0) {
+                setVisualDescription = `
+SET ENVIRONMENT ANCHORS:
+${projectSets.map((s: any) => `- ${s.name}: ${s.description}`).join('\n')}`;
+            }
+
             masterPrompt += `
 [VISUAL CONSISTENCY & STYLE]
-- Character: Maintain 100% identity lock for all characters across all 12 panels. Use provided character reference as definitive visual identity.
-- Environment: Ground all compositions in provided set reference. Respect architectural, material, and atmospheric qualities.
+- Character: Maintain 100% identity lock for all characters across all 12 panels.${characterVisualDescription}
+- Environment: Ground all compositions in the assigned set environments. Respect architectural, material, and atmospheric qualities.${setVisualDescription}
 - Lighting/Color: Apply consistent ${visualStyle} grade and lighting scheme to entire sheet.
 - Composition: Center-weighted compositions for each cell.
-- REFERENCE IMAGES: Use character and set reference images as foundational visual anchors for all 12 panels.
+- CONSISTENCY RULE: Every character appearance must be identical across all 12 panels. Every environment must match its assigned set.
 - FINAL OUTPUT: A single, professionally organized 1792x1024 technical storyboard sheet.`
 
             // We offload generation so we don't block the UI
@@ -135,6 +153,8 @@ The grid MUST consist of EXACTLY 12 IDENTICAL RECTANGULAR PANELS arranged in 3 r
                 const uniqueShotNumber = 1000 + Math.floor(Math.random() * 10000); // 1000+ maps to grid paginated pages
                 try {
                     console.log(`[StoryboardAgent] Triggering 3x4 Grid Generation...`);
+                    // NOTE: We pass characterReferenceUrl and setReferenceUrl for logging/tracking,
+                    // but the actual visual consistency is enforced via detailed prompt descriptions.
                     const imageUrl = await generateGridImage(masterPrompt, input.projectId, ctx.user.id.toString(), characterReferenceUrl, setReferenceUrl);
                     await saveStoryboardImage(input.projectId, uniqueShotNumber, imageUrl, masterPrompt);
                     console.log(`[StoryboardAgent] Grid Materialized -> ${imageUrl}`);
