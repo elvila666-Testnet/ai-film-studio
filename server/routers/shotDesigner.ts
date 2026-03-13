@@ -8,7 +8,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { storyboardImages, projectContent } from "../../drizzle/schema";
-import { getDb } from "../_core/db";
+import { getDb } from "../db";
 import { GeminiProvider } from "../services/providers/geminiProvider";
 import { ensurePermanentUrl } from "../services/aiGeneration";
 
