@@ -3,9 +3,14 @@
  * API endpoints for 4K rendering and multi-moment generation
  */
 
-import { protectedProcedure, router } from "../_core/trpc";
+import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+import { storyboardImages, projectContent } from "../../drizzle/schema";
+import { getDb } from "../_core/db";
+import { GeminiProvider } from "../services/providers/geminiProvider";
+import { ensurePermanentUrl } from "../services/aiGeneration";
 
 export const shotDesignerRouter = router({
   /**
@@ -33,7 +38,7 @@ export const shotDesignerRouter = router({
         visualStyle: z.string().optional(),
       })
     )
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ input }) => {
       try {
         const { generateShotDesign, validateShotDesignRequest } = await import(
           "../services/shotDesigner"
@@ -58,7 +63,7 @@ export const shotDesignerRouter = router({
           });
         }
 
-        // Save results to database if needed
+        // Save results to database
         if (result.moments.length > 0) {
           const { saveStoryboardImage } = await import("../db");
           for (const moment of result.moments) {
@@ -84,6 +89,93 @@ export const shotDesignerRouter = router({
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message,
+        });
+      }
+    }),
+
+  /**
+   * Render a storyboard frame in 4K resolution
+   */
+  render4kFrame: publicProcedure
+    .input(
+      z.object({
+        projectId: z.number(),
+        frameId: z.number(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unreachable" });
+
+      // Get the frame
+      const frameList = await db
+        .select()
+        .from(storyboardImages)
+        .where(eq(storyboardImages.id, input.frameId))
+        .limit(1);
+
+      if (!frameList || frameList.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Frame not found" });
+      }
+
+      const storyboardFrame = frameList[0];
+
+      try {
+        console.log(`[ShotDesigner] Rendering 4K frame ${input.frameId} for shot ${storyboardFrame.shotNumber}`);
+
+        // Build 4K upscaling prompt
+        const upscalePrompt = `
+You are a professional cinematographer upscaling a storyboard frame to 4K UHD resolution.
+
+Original Frame Description:
+${storyboardFrame.prompt}
+
+Task:
+1. Upscale the reference image to 4K (3840×2160) resolution
+2. Enhance details, textures, and clarity
+3. Maintain the exact composition and framing
+4. Improve color grading and cinematic quality
+5. Preserve character consistency and environment details
+
+Output:
+- Single 4K UHD image (16:9 aspect ratio)
+- Professional cinematographic quality
+- Enhanced detail and clarity
+- Hyper-realistic photographic style
+`;
+
+        // Use Gemini Provider to render 4K
+        const geminiProvider = new GeminiProvider();
+        const result = await geminiProvider.generateImage(
+          {
+            prompt: upscalePrompt,
+            style: "Cinematic 4K",
+            resolution: "3840x2160",
+            count: 1,
+            imageInputs: storyboardFrame.imageUrl ? [storyboardFrame.imageUrl] : undefined,
+          },
+          "imagen-3.0-generate-001"
+        );
+
+        // Ensure permanent URL
+        const permanentUrl = await ensurePermanentUrl(result.url);
+
+        console.log(`[ShotDesigner] 4K frame rendered successfully: ${permanentUrl}`);
+
+        return {
+          id: storyboardFrame.id,
+          shotNumber: storyboardFrame.shotNumber,
+          imageUrl: permanentUrl,
+          prompt: storyboardFrame.prompt,
+          status: "4k_rendered",
+          resolution: "4K UHD",
+          processingTime: result.processingTime,
+        };
+      } catch (error: any) {
+        console.error("[ShotDesigner] 4K rendering failed:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `4K rendering failed: ${error.message}`,
         });
       }
     }),
@@ -117,7 +209,7 @@ export const shotDesignerRouter = router({
         ),
       })
     )
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ input }) => {
       try {
         const { generateSequenceDesign } = await import(
           "../services/shotDesigner"
@@ -246,6 +338,40 @@ export const shotDesignerRouter = router({
           message,
         });
       }
+    }),
+
+  /**
+   * Get all moments for a shot
+   */
+  getMoments: publicProcedure
+    .input(
+      z.object({
+        projectId: z.number(),
+        shotNumber: z.number().optional(),
+      })
+    )
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unreachable" });
+
+      // Get all storyboard images for this shot
+      let query = db
+        .select()
+        .from(storyboardImages)
+        .where(eq(storyboardImages.projectId, input.projectId));
+
+      if (input.shotNumber !== undefined) {
+         // Using shot numbering logic (shotNumber * 100 + momentNumber)
+         // search for shots in range [shotNumber * 100, (shotNumber + 1) * 100)
+         const start = input.shotNumber * 100;
+         const end = (input.shotNumber + 1) * 100;
+         // Note: Using a simplified filter for now
+         const moments = await query;
+         return moments.filter(m => m.shotNumber >= start && m.shotNumber < end) || [];
+      }
+
+      const moments = await query;
+      return moments || [];
     }),
 });
 

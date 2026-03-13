@@ -3,18 +3,19 @@ import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
 export interface StoryboardFramePrompt {
-    frameNumber: number;    // 1-12
+    frameNumber: number;    // 1-12 (one per shot)
+    shotId: number;         // Reference to the original shot
     cameraAngle: string;
     action: string;
     characterRefs: string[]; // GCS URLs for character references
     moodboardRefs: string[]; // GCS URLs for mood board references
-    motionPrompt: string;   // 1-2 sentence description of what happens next
+    motionPrompt: string;   // Description of the first moment of this shot
 }
 
 export interface GridPrompt {
     pageNumber: number;
-    masterPrompt: string;              // The full Nanobanana 2.0 Storyboard Prompt
-    frames: StoryboardFramePrompt[];   // Individual frame specs for reference
+    masterPrompt: string;              // Prompt for generating 3×4 grid of first images
+    frames: StoryboardFramePrompt[];   // Individual frame specs (1 per shot)
     characterReferenceUrls: string[];  // All character refs to inject as image inputs
     storyIntent: string;               // Emotional/narrative arc
     visualContinuityRules: string;     // Strict continuity constraints
@@ -23,15 +24,10 @@ export interface GridPrompt {
 /**
  * PROMPT ENGINEER AGENT - Nanobanana 2.0 Edition
  * 
- * Consolidates Director shot list + character portraits + PD/Cine mood boards
- * into award-winning cinematographic storyboard prompts for the Storyboard Agent.
+ * Generates prompts for the FIRST IMAGE of each shot (3×4 grid = 12 shots)
+ * Each frame represents the opening moment of a shot.
  * 
- * Features:
- * - 3×4 grid (12 frames) with 4-beat story structure
- * - Hyper-realistic photographic style
- * - Strict visual continuity rules
- * - Motion prompts for each frame
- * - Image-to-Image reference integration
+ * Shot Designer will later generate additional moments within each shot.
  */
 export async function buildStoryboardPrompts(
     projectId: number,
@@ -76,6 +72,7 @@ export async function buildStoryboardPrompts(
     // 3. Get all scene/shot data
     const sceneList = await db.select().from(scenes).where(eq(scenes.projectId, projectId)).orderBy(scenes.order);
     const allShots: Array<{
+        shotId: number;
         shotNumber: number;
         cameraAngle: string;
         visualDescription: string;
@@ -89,6 +86,7 @@ export async function buildStoryboardPrompts(
         for (const shot of shotList) {
             const blueprint = shot.aiBlueprint as Record<string, unknown> | null;
             allShots.push({
+                shotId: shot.id,
                 shotNumber: globalShotNumber++,
                 cameraAngle: shot.cameraAngle ?? "Medium Shot",
                 visualDescription: shot.visualDescription ?? "",
@@ -110,6 +108,7 @@ export async function buildStoryboardPrompts(
     }
 
     // 4. Build prompts, 12 frames per grid page (3×4)
+    // Each frame = FIRST IMAGE of one shot
     const FRAMES_PER_PAGE = 12;
     const totalPages = Math.ceil(allShots.length / FRAMES_PER_PAGE);
     const gridPrompts: GridPrompt[] = [];
@@ -121,14 +120,15 @@ export async function buildStoryboardPrompts(
         const pageNumber = pageIdx + 1;
         const pageShots = allShots.slice(pageIdx * FRAMES_PER_PAGE, (pageIdx + 1) * FRAMES_PER_PAGE);
 
-        // Build frame specs with motion prompts
+        // Build frame specs - ONE FRAME PER SHOT (first image only)
         const frames: StoryboardFramePrompt[] = pageShots.map((s, i) => ({
             frameNumber: i + 1,
+            shotId: s.shotId,
             cameraAngle: s.cameraAngle,
             action: s.visualDescription,
             characterRefs: characterReferenceUrls,
             moodboardRefs: moodboardReferenceUrls,
-            motionPrompt: generateMotionPrompt(i + 1, s.visualDescription, s.cameraAngle),
+            motionPrompt: generateFirstImagePrompt(i + 1, s.visualDescription, s.cameraAngle),
         }));
 
         // Generate story intent based on narrative arc
@@ -142,7 +142,7 @@ export async function buildStoryboardPrompts(
             brandDNA
         );
 
-        // Assemble Enhanced Nanobanana 2.0 Storyboard Prompt
+        // Assemble Storyboard Prompt for 3×4 grid of FIRST IMAGES
         let masterPrompt = buildMasterPrompt(
             projectTitle,
             visualStyle,
@@ -169,32 +169,16 @@ export async function buildStoryboardPrompts(
         .set({ storyboardPrompts: JSON.stringify(gridPrompts) })
         .where(eq(projectContent.projectId, projectId));
 
-    console.log(`[PromptEngineer] Built ${gridPrompts.length} storyboard prompt page(s) for project ${projectId}`);
+    console.log(`[PromptEngineer] Built ${gridPrompts.length} storyboard prompt page(s) with first images for project ${projectId}`);
     return gridPrompts;
 }
 
 /**
- * Generate a motion prompt for each frame (1-2 sentences)
- * Describes what happens NEXT, as if the frame is the first moment of a video clip
+ * Generate a prompt for the FIRST IMAGE of a shot
+ * This is the opening moment - what the viewer sees first
  */
-function generateMotionPrompt(frameNumber: number, action: string, cameraAngle: string): string {
-    const storyBeats = {
-        1: "Opening moment establishing the scene and protagonist.",
-        2: "Introduction of the environment and context.",
-        3: "First hint of conflict or tension.",
-        4: "Rising action begins, stakes increase.",
-        5: "Tension escalates with dynamic movement.",
-        6: "Climactic moment of highest intensity.",
-        7: "Peak action or emotional crescendo.",
-        8: "Turning point toward resolution.",
-        9: "Transition to resolution phase.",
-        10: "Resolution unfolds with clarity.",
-        11: "Emotional payoff and closure.",
-        12: "Final frame leaving lasting impression.",
-    };
-
-    const beat = storyBeats[frameNumber as keyof typeof storyBeats] || "Narrative moment unfolds.";
-    return `${beat} ${action}. Camera: ${cameraAngle}.`;
+function generateFirstImagePrompt(frameNumber: number, action: string, cameraAngle: string): string {
+    return `Shot ${frameNumber}: The opening moment. ${action}. Camera: ${cameraAngle}.`;
 }
 
 /**
@@ -204,14 +188,14 @@ function generateStoryIntent(projectTitle: string, frames: StoryboardFramePrompt
     return `
 Project: ${projectTitle}
 
-Story Structure (12 frames):
-- Frames 1-3 (Setup): Establish character, environment, and context
-- Frames 4-8 (Rising Tension & Climax): Build tension, escalate action, reach peak moment
-- Frames 9-12 (Resolution): Resolve conflict, provide emotional payoff, conclude narrative
+Storyboard Structure (3×4 Grid = 12 First Images):
+- Each frame represents the OPENING MOMENT of a shot
+- Frames 1-3: Setup and introduction
+- Frames 4-8: Rising action and development
+- Frames 9-12: Climax and resolution
 
-Emotional Arc: Progression from introduction → tension → climax → resolution
-Visual Arc: Smooth camera movement and framing variations across all 12 frames
-Character Arc: Consistent identity, wardrobe, and emotional state throughout
+Each frame is the first image the viewer sees of that shot.
+Shot Designer will later generate additional moments within each shot.
 `;
 }
 
@@ -225,7 +209,7 @@ function buildVisualContinuityRules(
     brandDNA: string
 ): string {
     return `
-### Strict Visual Continuity Rules (3×4 Grid - 12 Frames)
+### Strict Visual Continuity Rules (3×4 Grid - 12 First Images)
 
 **Character Consistency:**
 - Same main character appears in all frames with consistent facial features, skin tone, hair color/style
@@ -262,11 +246,12 @@ ${brandDNA}
 - Panels separated by thin white borders
 - No caption or description overlays
 - Each frame maintains 16:9 aspect ratio
+- Each frame shows the FIRST/OPENING moment of that shot
 `;
 }
 
 /**
- * Build the master prompt for Nanobanana 2.0
+ * Build the master prompt for Nanobanana 2.0 Storyboard
  */
 function buildMasterPrompt(
     projectTitle: string,
@@ -279,22 +264,19 @@ function buildMasterPrompt(
     visualContinuityRules: string
 ): string {
     let prompt = `
-# NANOBANANA 2.0 - CINEMATOGRAPHIC STORYBOARD PROMPT
+# NANOBANANA 2.0 - STORYBOARD GRID (FIRST IMAGES)
 ## Project: ${projectTitle}
 
 ---
 
 ## ROLE & CONTEXT
-You are an award-winning trailer director, cinematographer, and visual storyteller with expertise in:
-- Cinematic storyboarding and shot composition
-- Character consistency and visual continuity
-- Professional color grading and lighting
-- High-fidelity image-to-image generation
+You are an award-winning cinematographer and visual storyteller creating a storyboard grid.
+Your task is to generate the OPENING MOMENT of each shot in a 3×4 grid layout.
 
 ---
 
 ## TASK
-Generate a 3×4 storyboard grid (12 frames total) that tells a cohesive cinematic story.
+Generate a 3×4 storyboard grid (12 frames total) showing the FIRST IMAGE of each shot.
 Each frame should be a 16:9 aspect ratio panel in a single unified 16:9 canvas.
 
 ---
@@ -324,15 +306,15 @@ ${brandDNA}
 
 ---
 
-## PANEL-BY-PANEL FRAME DESCRIPTIONS
+## SHOT-BY-SHOT FRAME DESCRIPTIONS
 
 `;
 
     frames.forEach((f) => {
         prompt += `
-### Frame ${f.frameNumber} (${f.cameraAngle})
-**Action:** ${f.action}
-**Motion Prompt:** ${f.motionPrompt}
+### Frame ${f.frameNumber} - Shot ${f.frameNumber} (${f.cameraAngle})
+**Opening Moment:** ${f.action}
+**First Image Description:** ${f.motionPrompt}
 `;
     });
 
@@ -351,9 +333,14 @@ ${brandDNA}
 - Physically accurate textures and materials
 - Professional color grading
 - NO caption or description overlays
+- EACH FRAME SHOWS THE OPENING MOMENT OF THAT SHOT
 
-### Text Output (Motion Prompts)
-For each of the 12 frames, provide a 1-2 sentence motion prompt describing what happens next, as if the frame is the first moment of a video clip that is about to play.
+### Important Notes
+- Frame 1 = Opening moment of Shot 1
+- Frame 2 = Opening moment of Shot 2
+- ... and so on
+- These are the FIRST IMAGES viewers see of each shot
+- Shot Designer will later generate additional moments within each shot
 
 ---
 
@@ -369,7 +356,7 @@ For each of the 12 frames, provide a 1-2 sentence motion prompt describing what 
 ---
 
 ## FINAL INSTRUCTION
-Generate the storyboard now. Ensure all 12 frames tell a cohesive story with perfect visual continuity, professional cinematography, and award-winning visual composition.
+Generate the storyboard grid now. Each of the 12 frames should show the OPENING MOMENT of its respective shot, with perfect visual continuity, professional cinematography, and award-winning visual composition.
 `;
 
     return prompt;

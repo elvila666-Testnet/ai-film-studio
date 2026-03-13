@@ -15,6 +15,7 @@ import BrandIntelligenceTab from "./tabs/BrandIntelligenceTab";
 import CinematographyTab from "@/features/Project/CinematographyTab";
 import ProductionDesignTab from "@/features/Project/ProductionDesignTab";
 import StoryboardTab from "./tabs/StoryboardTab";
+import ShotDesignerTab from "./tabs/ShotDesignerTab";
 import VideoTab from "./tabs/VideoTab";
 import EditorTab from "./tabs/EditorTab";
 import ExportTab from "./tabs/ExportTab";
@@ -307,6 +308,7 @@ export function Home() {
               {currentStage === "production-design" && <ProductionDesignTab projectId={selectedProjectId!} />}
               {currentStage === "cinematography" && <CinematographyTab projectId={selectedProjectId!} />}
               {currentStage === "storyboard" && <StoryboardTab projectId={selectedProjectId!} />}
+              {currentStage === "shot-designer" && <ShotDesignerTab projectId={selectedProjectId!} />}
               {currentStage === "video" && <VideoTab projectId={selectedProjectId!} />}
               {currentStage === "editor" && <EditorTab projectId={selectedProjectId!} />}
               {currentStage === "export" && <ExportTab projectId={selectedProjectId!} />}
