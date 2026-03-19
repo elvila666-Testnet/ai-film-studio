@@ -29,6 +29,7 @@ import { directorRouter as directorV2Router } from "./routers/directorNew";
 import { promptEngineerRouter } from "./routers/promptEngineer";
 import { shootingRouter } from "./routers/shooting";
 import { productionDesignRouter } from "./routers/productionDesign";
+import { shotDesignerRouter } from "./routers/shotDesigner";
 
 export const appRouter = router({
   system: systemRouter,
@@ -77,6 +78,7 @@ export const appRouter = router({
 
   characters: charactersRouter,
   productionDesign: productionDesignRouter,
+  shotDesigner: shotDesignerRouter,
 
   // ============================================================================
   // VIDEO GENERATION ROUTER

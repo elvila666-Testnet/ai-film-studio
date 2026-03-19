@@ -5,6 +5,7 @@
  */
 
 import { GeminiProvider } from "./providers/geminiProvider";
+import { generateEnhancedShotPrompt, EnhancedPromptRequest } from "./enhancedPromptGeneration";
 import type { ImageGenerationParams } from "./providers/types";
 
 export interface ShotDesignRequest {
@@ -157,6 +158,20 @@ function buildShotMomentPrompt(
   cinematographyStyle?: string,
   visualStyle?: string
 ): string {
+  const enhancedPromptRequest: EnhancedPromptRequest = {
+    shotNumber: moment.momentNumber,
+    visualDescription: `${basePrompt}. Moment: ${moment.description}`,
+    emotionalObjective: moment.emotionalBeat || "Neutral",
+    cameraMovement: moment.cameraMovement || "Static",
+    characterActions: [], // This would ideally come from a more detailed shot breakdown
+    sceneContext: `Shot ${moment.momentNumber} within a multi-moment sequence.`,
+    cinematographyNotes: cinematographyStyle,
+    audioNotes: undefined, // Not directly used in image generation prompt
+    style: visualStyle,
+  };
+
+  const enhancedPrompt = generateEnhancedShotPrompt(enhancedPromptRequest);
+
   const characterAnchors = Object.entries(characterReferences)
     .map(([name, url]) => `- ${name}: [Reference: ${url}]`)
     .join("\n");
@@ -165,32 +180,12 @@ function buildShotMomentPrompt(
     .map(([name, url]) => `- ${name}: [Reference: ${url}]`)
     .join("\n");
 
-  const emotionalContext = moment.emotionalBeat
-    ? `\nEmotional Beat: ${moment.emotionalBeat}`
-    : "";
-
-  const cameraContext = moment.cameraMovement
-    ? `\nCamera Movement: ${moment.cameraMovement}`
-    : "";
-
-  const cinematography = cinematographyStyle
-    ? `\nCinematography Style: ${cinematographyStyle}`
-    : "";
-
-  const visualGuidance = visualStyle
-    ? `\nVisual Style: ${visualStyle}`
-    : "";
-
   return `
 ═══════════════════════════════════════════════════════════════
-SHOT DESIGNER - 4K MOMENT GENERATION
+SHOT DESIGNER - 4K MULTI-MOMENT GENERATION
 ═══════════════════════════════════════════════════════════════
 
-BASE SHOT DESCRIPTION:
-${basePrompt}
-
-MOMENT ${moment.momentNumber} SPECIFICATION:
-${moment.description}${emotionalContext}${cameraContext}
+${enhancedPrompt}
 
 DURATION: ${moment.duration} seconds
 
@@ -200,11 +195,6 @@ ${characterAnchors || "No character references"}
 SET VISUAL ANCHORS (MAINTAIN CONSISTENCY):
 ${setAnchors || "No set references"}
 
-TECHNICAL SPECIFICATIONS:
-Resolution: 4K (3840x2160)
-Format: 16:9 Cinematic
-Frame Rate: 24fps${cinematography}${visualGuidance}
-
 CRITICAL REQUIREMENTS:
 1. Maintain exact character appearance from reference images
 2. Preserve set design and architecture from reference images
@@ -212,14 +202,6 @@ CRITICAL REQUIREMENTS:
 4. Apply professional color grading and lighting
 5. Generate at maximum quality and detail
 6. Respect all visual anchors provided
-
-NANOBANANA 2.0 QUALITY STANDARDS:
-- IMAX 65mm Large Format Film aesthetic
-- Panavision Primo 70 and System 65 lenses
-- ACES v1.3 color science with KODAK film emulation
-- Volumetric Ray-Tracing and Global Illumination
-- Micro-displacement mapping for realistic textures
-- Professional cinematography standards throughout
 
 ═══════════════════════════════════════════════════════════════
 `;

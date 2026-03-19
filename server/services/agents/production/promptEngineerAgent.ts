@@ -24,7 +24,8 @@ export interface GridPrompt {
  * into ready-to-send Generic Storyboard Prompts for the Storyboard Agent.
  */
 export async function buildStoryboardPrompts(
-    projectId: number
+    projectId: number,
+    overrideVisualStyle?: string
 ): Promise<GridPrompt[]> {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unreachable" });
@@ -102,7 +103,7 @@ export async function buildStoryboardPrompts(
     const totalPages = Math.ceil(allShots.length / FRAMES_PER_PAGE);
     const gridPrompts: GridPrompt[] = [];
 
-    const visualStyle = content.visualStyle ?? "Cinematic";
+    const visualStyle = overrideVisualStyle ?? content.visualStyle ?? "Cinematic";
     const projectTitle = content.brief?.substring(0, 60) ?? "Production";
 
     for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {

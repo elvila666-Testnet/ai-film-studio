@@ -522,7 +522,7 @@ export async function generateStoryboardImage(prompt: string, modelId?: string, 
  * Uses 1792x1024 → maps to 16:9 landscape in provider
  */
 export async function generateGridImage(prompt: string, projectId?: number, userId?: string, characterReferenceUrl?: string, setReferenceUrl?: string): Promise<string> {
-  const geminiModelId = "imagen-3.0-generate-001"; // Use imagen-3.0 which is better supported by Vertex AI
+  const geminiModelId = "imagen-4.0-generate-001"; // Use imagen-4.0-generate-001 which is better supported by Vertex AI
 
   try {
     // Assemble visual anchor references (character + set)
@@ -936,7 +936,7 @@ export async function generateCharacterNano(
   isWardrobeChange: boolean = false,
   seed?: number
 ): Promise<string> {
-  const geminiModelId = "imagen-3.0-generate-001"; // Use imagen-3.0 for better Vertex AI support
+  const geminiModelId = "imagen-4.0-generate-001"; // Use imagen-4.0-generate-001 for better Vertex AI support
 
   let finalPrompt = "";
   if (isWardrobeChange) {
@@ -993,7 +993,7 @@ export async function generateSetNano(
     userId?: string,
     referenceImageUrl?: string
 ): Promise<string> {
-    const geminiModelId = "imagen-3.0-generate-001"; // Use imagen-3.0 for better Vertex AI support
+    const geminiModelId = "imagen-4.0-generate-001"; // Use imagen-4.0-generate-001 for better Vertex AI support
     const prompt = `8K RAW cinematic master set photograph. PRODUCTION DESIGN ARCHITECTURE: ${description}. 
     Focus on physical set construction, tactile materials (concrete, aged wood, brushed metal), atmospheric depth, and realistic global illumination. 
     Cinematography: Panavision Primo 70 lenses, 1.33x Anamorphic squeeze, ACES color science. 

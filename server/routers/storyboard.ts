@@ -180,6 +180,7 @@ export const storyboardRouter = router({
     .input(z.object({
       projectId: z.number(),
       globalInstructions: z.string().optional(),
+      visualStyle: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       try {
@@ -187,9 +188,9 @@ export const storyboardRouter = router({
         const { getBuiltPrompts, buildStoryboardPrompts } = await import("../services/agents/production/promptEngineerAgent");
         
         let gridPrompts = await getBuiltPrompts(input.projectId);
-        if (!gridPrompts || gridPrompts.length === 0) {
-            console.log("[Storyboard] No built prompts found, falling back to Prompt Engineer Agent...");
-            gridPrompts = await buildStoryboardPrompts(input.projectId);
+        if (!gridPrompts || gridPrompts.length === 0 || input.visualStyle) {
+            console.log("[Storyboard] Building storyboard prompts with visualStyle:", input.visualStyle || "default");
+            gridPrompts = await buildStoryboardPrompts(input.projectId, input.visualStyle);
         }
 
         const { getDb, storyboardImages, saveStoryboardImage, getLockedCharacter } = await import("../db");

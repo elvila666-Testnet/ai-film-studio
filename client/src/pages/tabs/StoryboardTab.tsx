@@ -33,6 +33,7 @@ export default function StoryboardTab({ projectId }: StoryboardTabProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [pipelineResults, setPipelineResults] = useState<any>(null);
 
+  const projectQuery = trpc.projects.get.useQuery({ id: projectId });
   const storyboardQuery = trpc.storyboard.getImages.useQuery({ projectId });
   const generateGridMutation = trpc.storyboard.generateGrid.useMutation({
     onSuccess: () => storyboardQuery.refetch(),
@@ -71,9 +72,14 @@ export default function StoryboardTab({ projectId }: StoryboardTabProps) {
       try {
         toast.info("Generating paginated 3×4 Storyboard Grids (Nanobanana Pro)...");
         setCurrentPage(0);
+        
+        // Get visual style from project data if available
+        const visualStyle = projectQuery.data?.content?.masterVisual || "Cinematic";
+        
         await generateGridMutation.mutateAsync({
           projectId,
           globalInstructions: globalInstructions || undefined,
+          visualStyle: visualStyle,
         });
         toast.success("Storyboard Grid pages materialized!");
       } catch (e: unknown) {

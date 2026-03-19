@@ -15,7 +15,7 @@ export class GeminiProvider {
     private apiKey: string;
     private projectId: string;
     private readonly geminiBaseUrl = "https://generativelanguage.googleapis.com/v1beta/models";
-    private readonly vertexBaseUrl = "https://us-central1-aiplatform.googleapis.com/v1/projects";
+    private readonly vertexBaseUrl = "https://us-central1-aiplatform.googleapis.com/v1/projects"; // Base URL for Vertex AI prediction
 
     constructor(apiKey?: string) {
         this.apiKey = apiKey || ENV.forgeApiKey || "";
@@ -49,7 +49,7 @@ export class GeminiProvider {
      */
     async generateImage(
         params: ImageGenerationParams,
-        modelId: string = "imagen-3.0-generate-001"
+        modelId: string = "imagen-4.0-generate-001"
     ): Promise<ImageGenerationResult> {
         this.checkAuth();
         const startTime = Date.now();
@@ -114,7 +114,7 @@ export class GeminiProvider {
             };
 
             // Use Vertex AI endpoint
-            const url = `${this.vertexBaseUrl}/${this.projectId}/locations/us-central1/publishers/google/models/${modelId}:predict`;
+            const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${this.projectId}/locations/us-central1/publishers/google/models/${modelId}:predict`;
             
             console.log(`[GeminiProvider] Calling Vertex AI endpoint: ${url}`);
 
@@ -164,9 +164,9 @@ export class GeminiProvider {
             console.error(`[GeminiProvider] Vertex AI Error (${response.status}): ${errText}`);
             
             // If 404, try fallback model name
-            if (response.status === 404 && modelId === "imagen-3.0-generate-001") {
-                console.log(`[GeminiProvider] Model not found, trying fallback: imagen-3.0`);
-                return await this.generateImageWithVertexAI(params, "imagen-3.0", startTime);
+            if (response.status === 404 && modelId === "imagen-4.0-generate-001") {
+                console.log(`[GeminiProvider] Model not found, trying fallback: imagen-4.0-generate-001`);
+                return await this.generateImageWithVertexAI(params, "imagen-4.0-generate-001", startTime);
             }
 
             // Fall back to Gemini REST API if Vertex AI fails
@@ -210,8 +210,8 @@ export class GeminiProvider {
         modelId: string,
         startTime: number
     ): Promise<ImageGenerationResult> {
-        // Adjust model name for Gemini REST API v1beta
-        const geminiModelId = modelId === "imagen-3.0-generate-001" ? "imagen-3.0" : modelId;
+        // Adjust model name for Gemini REST API v1
+        const geminiModelId = modelId === "imagen-4.0-generate-001" ? "imagen-4.0-generate-001" : modelId;
         
         try {
             const payload: any = {
@@ -243,9 +243,9 @@ export class GeminiProvider {
                 const errText = await response.text();
                 
                 // If 404, try the other variant
-                if (response.status === 404 && geminiModelId === "imagen-3.0") {
-                    console.log(`[GeminiProvider] Gemini model not found, trying variant: imagen-3.0-generate-001`);
-                    return await this.generateImageWithGemini(params, "imagen-3.0-generate-001", startTime);
+                if (response.status === 404 && geminiModelId === "imagen-4.0-generate-001") {
+                    console.log(`[GeminiProvider] Gemini model not found, trying variant: imagen-4.0-generate-001`);
+                    return await this.generateImageWithGemini(params, "imagen-4.0-generate-001", startTime);
                 }
 
                 throw new Error(`Gemini Image API Error (${response.status}): ${errText}`);

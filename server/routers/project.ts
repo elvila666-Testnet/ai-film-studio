@@ -67,6 +67,13 @@ export const projectRouter = router({
             brandVoice: z.string().optional(),
             visualIdentity: z.string().optional(),
             colorPalette: z.record(z.string()).optional(),
+            castingValidated: z.boolean().optional(),
+            cineValidated: z.boolean().optional(),
+            pdValidated: z.boolean().optional(),
+            castingApprovedOutput: z.string().optional(),
+            cineApprovedOutput: z.string().optional(),
+            pdApprovedOutput: z.string().optional(),
+            technicalScriptStatus: z.string().optional(),
         }))
         .mutation(async ({ input, ctx }) => {
             if (!ctx.user) throw new Error("Unauthorized");
@@ -83,6 +90,13 @@ export const projectRouter = router({
             if (input.brandVoice !== undefined) data.brandVoice = input.brandVoice;
             if (input.visualIdentity !== undefined) data.visualIdentity = input.visualIdentity;
             if (input.colorPalette !== undefined) data.colorPalette = input.colorPalette;
+            if (input.castingValidated !== undefined) data.castingValidated = input.castingValidated;
+            if (input.cineValidated !== undefined) data.cineValidated = input.cineValidated;
+            if (input.pdValidated !== undefined) data.pdValidated = input.pdValidated;
+            if (input.castingApprovedOutput !== undefined) data.castingApprovedOutput = input.castingApprovedOutput;
+            if (input.cineApprovedOutput !== undefined) data.cineApprovedOutput = input.cineApprovedOutput;
+            if (input.pdApprovedOutput !== undefined) data.pdApprovedOutput = input.pdApprovedOutput;
+            if (input.technicalScriptStatus !== undefined) data.technicalScriptStatus = input.technicalScriptStatus;
 
             try {
                 await updateProjectContent(projectId, data);
