@@ -58,7 +58,7 @@ export const projectContent = mysqlTable("projectContent", {
   voiceoverComplianceScore: int("voiceoverComplianceScore"),
   complianceMetadata: text("complianceMetadata"), // JSON with detailed compliance info
   globalDirectorNotes: mediumtext("globalDirectorNotes"), // Global notes influencing all AI generations
-  visualStyle: text("visualStyle"), // e.g. "Cinematic", "Noir" etc
+  visualStyle: longtext("visualStyle"), // e.g. "Cinematic", "Noir" etc
   brandVoice: mediumtext("brandVoice"),
   visualIdentity: mediumtext("visualIdentity"),
   colorPalette: json("colorPalette"),
@@ -93,7 +93,7 @@ export const storyboardImages = mysqlTable("storyboardImages", {
   projectId: int("projectId").notNull().references(() => projects.id, { onDelete: "cascade" }),
   shotNumber: int("shotNumber").notNull(),
   imageUrl: longtext("imageUrl").notNull(),
-  prompt: text("prompt"),
+  prompt: longtext("prompt"),
   videoUrl: text("videoUrl"), // Generated video from this frame
   characterId: int("characterId").references(() => characters.id, { onDelete: "set null" }), // Which character appears
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -106,7 +106,7 @@ export const storyboardImages = mysqlTable("storyboardImages", {
   masterImageUrl: longtext("masterImageUrl"), // The 4k Upscaled Version
   // Character consistency tracking
   characterLibraryId: int("characterLibraryId").references(() => characterLibrary.id, { onDelete: "set null" }),
-  characterAppearance: text("characterAppearance"), // JSON: clothing, expression, pose
+  characterAppearance: json("characterAppearance"), // JSON: clothing, expression, pose
   consistencyScore: int("consistencyScore"), // 0-100: consistency with other appearances
   consistencyNotes: text("consistencyNotes"), // AI feedback on consistency issues
   isConsistencyLocked: boolean("isConsistencyLocked").default(false), // Prevent changes after approval
@@ -265,7 +265,7 @@ export const storyboardFrameHistory = mysqlTable("storyboardFrameHistory", {
   projectId: int("projectId").notNull().references(() => projects.id, { onDelete: "cascade" }),
   shotNumber: int("shotNumber").notNull(),
   imageUrl: longtext("imageUrl").notNull(),
-  prompt: text("prompt"),
+  prompt: longtext("prompt"),
   notes: text("notes"),
   versionNumber: int("versionNumber").notNull(), // 1, 2, 3, etc
   isActive: boolean("isActive").default(false).notNull(), // Current active version
@@ -595,16 +595,16 @@ export const shots = mysqlTable("shots", {
   id: int("id").autoincrement().primaryKey(),
   sceneId: int("sceneId").notNull().references(() => scenes.id, { onDelete: "cascade" }),
   order: int("order").notNull(),
-  visualDescription: text("visualDescription"),
-  audioDescription: text("audioDescription"),
+  visualDescription: longtext("visualDescription"),
+  audioDescription: longtext("audioDescription"),
   cameraAngle: varchar("cameraAngle", { length: 255 }),
-  movement: text("movement"),
+  movement: longtext("movement"),
   // Cinematography Fields
-  lighting: text("lighting"), // e.g., "Golden Hour", "High Key"
-  lens: text("lens"), // e.g., "35mm", "Anamorphic"
+  lighting: longtext("lighting"), // e.g., "Golden Hour", "High Key"
+  lens: longtext("lens"), // e.g., "35mm", "Anamorphic"
   filmStock: varchar("filmStock", { length: 255 }), // e.g., "Kodak Vision3"
   // Multi-Agent Pipeline Output
-  aiBlueprint: json("aiBlueprint"),
+  aiBlueprint: longtext("aiBlueprint"), // Storing JSON as longtext to avoid length limits
   status: varchar("status", { length: 50 }).default("planned"),
   referenceImageUrl: longtext("referenceImageUrl"), // User-uploaded or AI-rendered reference
   createdAt: timestamp("createdAt").defaultNow().notNull(),
