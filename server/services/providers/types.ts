@@ -60,7 +60,7 @@ export interface GenerationResult {
 
 export interface ImageGenerationParams {
   prompt: string;
-  resolution: "1024x1024" | "1024x1792" | "1792x1024" | "512x512" | "768x768" | "1024x1344" | "1344x1024" | "1216x832" | "832x1216";
+  resolution: "1024x1024" | "1024x1792" | "1792x1024" | "512x512" | "768x768" | "1024x1344" | "1344x1024" | "1216x832" | "832x1216" | "1920x1080" | "3840x2160";
   quality: "standard" | "hd";
   style?: string;
   negativePrompt?: string;

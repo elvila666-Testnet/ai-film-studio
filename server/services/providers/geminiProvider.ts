@@ -76,28 +76,9 @@ export class GeminiProvider {
         console.log(`[GeminiProvider] Nanobanana 2.0: Generating Image with ${modelId} - Prompt: ${params.prompt.substring(0, 100)}...`);
 
         try {
-            // Primary: Try Vertex AI SDK with timeout (Image-to-Image support)
-            if (this.vertexAI && params.imageInputs && params.imageInputs.length > 0) {
-                console.log(`[GeminiProvider] Using Vertex AI SDK for Image-to-Image generation with ${params.imageInputs.length} reference image(s)`);
-                try {
-                    const timeoutPromise = new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('Vertex AI SDK timeout after 30s')), 30000)
-                    );
-                    
-                    console.log(`[GeminiProvider] Starting Vertex AI SDK call for Image-to-Image...`);
-                    return await Promise.race([
-                        this.generateImageWithVertexAISDK(params, modelId, startTime),
-                        timeoutPromise
-                    ]) as ImageGenerationResult;
-                } catch (vertexSDKError: any) {
-                    console.warn(`[GeminiProvider] Vertex AI SDK failed or timed out, falling back to REST API:`, vertexSDKError.message);
-                }
-            }
-
-            // Secondary: Use Gemini REST API (text-only or fallback)
-            console.log(`[GeminiProvider] Using Gemini REST API for image generation`);
-            return await this.generateImageWithGeminiREST(params, modelId, startTime);
-
+            // Primary: Try Vertex AI REST API for highest fidelity Imagen 3.0
+            console.log(`[GeminiProvider] Using Vertex AI API for image generation`);
+            return await this.generateImageWithVertexAI(params, modelId, startTime);
         } catch (error: any) {
             console.error("[GeminiProvider] Image Generation failed:", error);
             throw new Error(`Image generation failed: ${error.message || String(error)}`);
@@ -105,91 +86,76 @@ export class GeminiProvider {
     }
 
     /**
-     * Generate image using Vertex AI SDK (Native Image-to-Image)
-     * Nanobanana 2.0 Core Engine
+     * Internal: Generate image using Vertex AI API
      */
-    private async generateImageWithVertexAISDK(
+    private async generateImageWithVertexAI(
         params: ImageGenerationParams,
         modelId: string,
         startTime: number
     ): Promise<ImageGenerationResult> {
+        // Use Vertex AI endpoint
+        const url = `${this.vertexBaseUrl}/${this.projectId}/locations/us-central1/publishers/google/models/${modelId}:predict`;
+        
+        console.log(`[GeminiProvider] Calling Vertex AI endpoint: ${url}`);
+
+        // Add timeout protection (30 seconds)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+
         try {
-            if (!this.vertexAI) {
-                throw new Error("Vertex AI SDK not initialized");
-            }
-
-            // Initialize Gemini 1.5 Pro model for multimodal reasoning or Imagen via SDK
-            // Note: If using Imagen 3.0 via SDK, the interface might differ
-            const model = this.vertexAI.getGenerativeModel({
-                model: modelId,
-            });
-
-            // Convert image URLs to base64 for visual reference
-            const imageBase64Array: string[] = [];
-            if (params.imageInputs) {
-                for (const imageUrl of params.imageInputs) {
-                    const base64 = imageUrl.startsWith('http')
-                        ? await this.downloadImageAsBase64(imageUrl)
-                        : (imageUrl.split(",")[1] || imageUrl);
-                    imageBase64Array.push(base64);
-                }
-            }
-
-            console.log(`[GeminiProvider] Calling Vertex AI with references...`);
-
-            // Check if it's gemini model or imagen model
-            if (modelId.includes("gemini")) {
-                const content = [
+            // Prepare payload
+            const payload = {
+                instances: [
                     {
-                        role: "user",
-                        parts: [
-                            {
-                                text: `You are a professional cinematographer and visual effects artist. Generate a high-fidelity image based on this reference and prompt:\n\n${params.prompt}\n\nMaintain visual consistency with the reference image. Ensure all details match perfectly.`,
-                            },
-                            ...(imageBase64Array.length > 0 ? [{
-                                inlineData: {
-                                    mimeType: "image/jpeg",
-                                    data: imageBase64Array[0], // Primary reference image
-                                }
-                            }] : [])
-                        ],
+                        prompt: params.prompt,
+                        ...(params.imageInputs && params.imageInputs.length > 0 && {
+                            image: {
+                                bytesBase64Encoded: params.imageInputs[0].startsWith('data:') 
+                                    ? params.imageInputs[0].split(',')[1] 
+                                    : (params.imageInputs[0].startsWith('http') 
+                                        ? await this.downloadImageAsBase64(params.imageInputs[0]) 
+                                        : params.imageInputs[0])
+                            }
+                        })
                     }
-                ];
+                ],
+                parameters: {
+                    sampleCount: params.count || 1,
+                    aspectRatio: this.getAspectRatio(params.resolution),
+                    outputOptions: { mimeType: "image/jpeg" }
+                }
+            };
 
-                const response = await model.generateContent({
-                    contents: content as any,
-                    generationConfig: {
-                        maxOutputTokens: 2048,
-                        temperature: 0.7,
-                        topP: 0.95,
-                    },
-                });
+            // Vertex AI requires an OAuth token, not a Gemini API key (AIza...)
+            let accessToken = this.apiKey;
+            if (this.apiKey.startsWith("AIza")) {
+                const { GoogleAuth } = await import("google-auth-library");
+                const auth = new GoogleAuth({ scopes: "https://www.googleapis.com/auth/cloud-platform" });
+                const client = await auth.getClient();
+                const tokenResponse = await client.getAccessToken();
+                accessToken = tokenResponse.token || this.apiKey;
+            }
 
-                // Since Gemini is LLM, it returns text. For actual image generation we need Imagen.
-                // This is a placeholder for the logic handled by the orchstrator
-                return {
-                    provider: "vertex-ai-sdk",
-                    model: modelId,
-                    url: "data:image/jpeg;base64,...", // This would be populated by the actual generation pipeline
-                    width: 1792,
-                    height: 1024,
-                    actualCost: 0.08,
-                    processingTime: Date.now() - startTime,
-                    metadata: {
-                        style: params.style,
-                        resolution: params.resolution,
-                        engine: "Nanobanana 2.0",
-                        imageToImageEnabled: true,
-                    },
-                };
-            } else {
-                // For Imagen models via SDK
-                // (Logic for native Imagen SDK calls if available, otherwise fallback to REST)
+            const response = await fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${accessToken}`
+                },
+                body: JSON.stringify(payload),
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            return await this.handleVertexAIResponse(response, params, modelId, startTime);
+            
+        } catch (fetchError: any) {
+            clearTimeout(timeoutId);
+            if (fetchError.name === 'AbortError') {
+                console.log(`[GeminiProvider] Vertex AI timeout, falling back to Gemini REST API...`);
                 return await this.generateImageWithGeminiREST(params, modelId, startTime);
             }
-        } catch (error: any) {
-            console.error("[GeminiProvider] Vertex AI SDK generation failed:", error);
-            throw error;
+            throw fetchError;
         }
     }
 
@@ -236,6 +202,8 @@ export class GeminiProvider {
             metadata: {
                 style: params.style,
                 resolution: params.resolution,
+                engine: "Nanobanana 2.0",
+                imageToImageEnabled: !!(params.imageInputs && params.imageInputs.length > 0)
             },
         }
     }

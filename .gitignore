@@ -75,3 +75,8 @@ drizzle_snapshot/
 tmp/
 presentaciones/
 *.exe
+js/
+token.txt
+tmp-check-models.ts
+arte/*.json
+server/services/providers/token.txt

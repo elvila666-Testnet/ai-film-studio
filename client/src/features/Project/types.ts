@@ -1,5 +1,6 @@
 import {
     CheckCircle2,
+    Crosshair,
     Layout,
     PenTool,
     Video,
@@ -14,7 +15,7 @@ import {
     LucideIcon
 } from "lucide-react";
 
-export type PipelineStage = "bible" | "script" | "breakdown" | "characters" | "production-design" | "cinematography" | "storyboard" | "video" | "editor" | "export" | "admin";
+export type PipelineStage = "bible" | "script" | "breakdown" | "characters" | "production-design" | "cinematography" | "storyboard" | "shot-designer" | "video" | "editor" | "export" | "admin";
 
 export interface Project {
     id: number;
@@ -128,9 +129,10 @@ export const PIPELINE_STAGES: { id: PipelineStage; label: string; description: s
     { id: "production-design", label: "Art Department", description: "Architectural environments, props, and textures.", order: 5, icon: Box },
     { id: "cinematography", label: "Cinematography", description: "Govern lighting, lenses, and Nanobana parameters.", order: 6, icon: Video },
     { id: "storyboard", label: "Storyboard Lab", description: "Generate consistent cinematic frames with AI anchors.", order: 7, icon: Sparkles },
-    { id: "video", label: "Motion Synthesis", description: "High-fidelity video generation via AI Video Engine.", order: 8, icon: Zap },
-    { id: "editor", label: "Studio Editor", description: "Sequence clips and refine temporal synchronization.", order: 9, icon: Music },
-    { id: "export", label: "Final Master", description: "Render, validate, and distribute the completed asset.", order: 10, icon: CheckCircle2 },
+    { id: "shot-designer", label: "Shot Designer", description: "Design and refine individual shots with 4K rendering.", order: 8, icon: Crosshair },
+    { id: "video", label: "Motion Synthesis", description: "High-fidelity video generation via AI Video Engine.", order: 9, icon: Zap },
+    { id: "editor", label: "Studio Editor", description: "Sequence clips and refine temporal synchronization.", order: 10, icon: Music },
+    { id: "export", label: "Final Master", description: "Render, validate, and distribute the completed asset.", order: 11, icon: CheckCircle2 },
 ];
 
 export const MODEL_CATEGORIES = [

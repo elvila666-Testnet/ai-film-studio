@@ -136,10 +136,6 @@ export function LoginPage({ onLogin, isLoading, error }: LoginPageProps) {
                                 "Grant Access"
                             )}
                         </Button>
-                        <div className="text-center pt-4">
-                            <div className="text-[10px] font-mono text-slate-600 uppercase tracking-widest">Test Credentials</div>
-                            <div className="text-[11px] font-mono text-indigo-400/60 mt-2">admin@filmstudio.ai / admin123</div>
-                        </div>
                     </form>
                 </CardContent>
             </Card>

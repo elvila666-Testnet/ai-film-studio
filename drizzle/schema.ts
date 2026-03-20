@@ -597,12 +597,12 @@ export const shots = mysqlTable("shots", {
   order: int("order").notNull(),
   visualDescription: text("visualDescription"),
   audioDescription: text("audioDescription"),
-  cameraAngle: varchar("cameraAngle", { length: 100 }),
-  movement: varchar("movement", { length: 100 }),
+  cameraAngle: varchar("cameraAngle", { length: 255 }),
+  movement: text("movement"),
   // Cinematography Fields
-  lighting: varchar("lighting", { length: 255 }), // e.g., "Golden Hour", "High Key"
-  lens: varchar("lens", { length: 100 }), // e.g., "35mm", "Anamorphic"
-  filmStock: varchar("filmStock", { length: 100 }), // e.g., "Kodak Vision3"
+  lighting: text("lighting"), // e.g., "Golden Hour", "High Key"
+  lens: text("lens"), // e.g., "35mm", "Anamorphic"
+  filmStock: varchar("filmStock", { length: 255 }), // e.g., "Kodak Vision3"
   // Multi-Agent Pipeline Output
   aiBlueprint: json("aiBlueprint"),
   status: varchar("status", { length: 50 }).default("planned"),

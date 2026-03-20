@@ -62,7 +62,20 @@ export const directorRouter = router({
                     try {
                         console.log("[BackgroundTask] Starting auto-casting breakdown...");
                         const normalizedCastingReqs = typeof castingReqs === "string" ? castingReqs : JSON.stringify(castingReqs);
-                        let castingOutput = await breakdownCast(normalizedCastingReqs, input.projectId, content.brief ?? undefined);
+                        
+                        let castingBriefStr: string | undefined = undefined;
+                        if (content.brief) {
+                            try {
+                                const { buildBriefFromTechnicalScript, serializeBriefForDepartment } = await import("../services/agents/directorBrief");
+                                const parsed = JSON.parse(content.brief);
+                                const briefObj = buildBriefFromTechnicalScript(parsed, brandDNAStr);
+                                castingBriefStr = serializeBriefForDepartment(briefObj, "casting");
+                            } catch (e) {
+                                console.error("[BackgroundTask] Failed to build casting brief", e);
+                            }
+                        }
+
+                        let castingOutput = await breakdownCast(normalizedCastingReqs, input.projectId, castingBriefStr);
                         
                         // Check for deviations
                         const deviationCheck = await checkDepartmentDeviations("Casting", normalizedCastingReqs, JSON.stringify(castingOutput), content.brief ?? undefined);
@@ -102,13 +115,15 @@ export const directorRouter = router({
                 // 2. Auto-run cinema pipeline (Cine + PD) + mark both validated
                 (async () => {
                     try {
-                        console.log("[BackgroundTask] Starting auto-cinema pipeline...");
+                        console.log("[BackgroundTask] Starting auto-cinema pipeline with DirectorBrief alignment...");
                         const { runCinemaExecutionPipeline } = await import("../services/cinemaOrchestrator");
                         let result = await runCinemaExecutionPipeline({
                             sceneScript: script,
                             projectId: input.projectId,
                             globalNotes: brandDNAStr,
-                            scaleMode: "Standard Cinematic"
+                            scaleMode: "Standard Cinematic",
+                            technicalScript: technicalScript, // Pass stored technical script for alignment
+                            brandDNA: brandDNAStr,            // Pass brand DNA for brief injection
                         });
 
                         // Check for deviations in Cinematography
@@ -296,10 +311,24 @@ export const directorRouter = router({
             const requirements = await getDepartmentRequirements(input.projectId, "casting");
             const content = await getProjectContent(input.projectId);
 
+            let castingBriefStr: string | undefined = undefined;
+            if (content?.brief) {
+                try {
+                    const { buildBriefFromTechnicalScript, serializeBriefForDepartment } = await import("../services/agents/directorBrief");
+                    const parsed = JSON.parse(content.brief);
+                    const project = await getProject(input.projectId);
+                    const brandDNAStr = project?.brandId ? JSON.stringify(await getBrandContext(project.brandId)) : undefined;
+                    const briefObj = buildBriefFromTechnicalScript(parsed, brandDNAStr);
+                    castingBriefStr = serializeBriefForDepartment(briefObj, "casting");
+                } catch (e) {
+                    console.error("[CastingRouter] Failed to build casting brief", e);
+                }
+            }
+
             const castingOutput = await breakdownCast(
                 requirements,
                 input.projectId,
-                content?.brief ?? undefined,
+                castingBriefStr,
                 input.refinementNotes
             );
             const saved = await saveCastToProject(

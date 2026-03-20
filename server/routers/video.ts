@@ -70,7 +70,10 @@ export const videoRouter = router({
                 return {
                     jobId: input.jobId,
                     status: "error",
-                    message: "Queue system unavailable"
+                    message: "Queue system unavailable",
+                    progress: 0,
+                    url: null,
+                    error: "Queue system unavailable"
                 };
             }
 
@@ -80,7 +83,10 @@ export const videoRouter = router({
                 return {
                     jobId: input.jobId,
                     status: "not_found",
-                    message: "Job not found"
+                    message: "Job not found",
+                    progress: 0,
+                    url: null,
+                    error: "Job not found"
                 };
             }
 

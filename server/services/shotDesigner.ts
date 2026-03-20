@@ -73,12 +73,13 @@ export async function generateShotDesign(
           request.visualStyle
         );
 
-        const startTime = Date.now();
+
 
         // Generate image for this moment
         const params: ImageGenerationParams = {
           prompt,
-          resolution: `${resolution.width}x${resolution.height}`,
+          resolution: `${resolution.width}x${resolution.height}` as ImageGenerationParams["resolution"],
+          quality: "hd",
           count: 1,
           style: request.visualStyle || "cinematic",
           imageInputs: Object.values(request.characterReferences).concat(

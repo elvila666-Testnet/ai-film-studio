@@ -67,10 +67,25 @@ export class ProviderFactory {
   }
 
   /**
+   * Create an image provider instance
+   */
+  static createImageProvider(
+    provider: ImageProvider,
+    apiKey: string,
+    apiUrl?: string
+  ): any {
+    const { ImageProviderFactory } = require("./imageProviders");
+    return ImageProviderFactory.createProvider(provider, apiKey, apiUrl);
+  }
+
+  /**
    * Get enabled image providers sorted by priority
    */
   static getEnabledImageProviders(): ImageProvider[] {
-    return ["replicate"];
+    const providers: ImageProvider[] = [];
+    if (this.registry.image.replicate.enabled) providers.push("replicate");
+    if (this.registry.image.gemini.enabled) providers.push("gemini");
+    return providers;
   }
 
   /**
@@ -102,7 +117,9 @@ export class ProviderFactory {
    * Toggle provider availability
    */
   static isImageProviderAvailable(provider: ImageProvider): boolean {
-    return provider === "replicate" && !!this.registry.image.replicate.apiKey;
+    if (provider === "replicate") return !!this.registry.image.replicate.apiKey;
+    if (provider === "gemini") return this.registry.image.gemini.enabled;
+    return false;
   }
 
   static isVideoProviderAvailable(provider: VideoProvider): boolean {

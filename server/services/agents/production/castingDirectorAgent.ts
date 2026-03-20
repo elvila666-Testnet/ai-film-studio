@@ -39,7 +39,7 @@ const CASTING_FALLBACK: CastingOutput = {
 export async function breakdownCast(
     castingRequirements: string,
     projectId?: number,
-    projectTitle?: string,
+    directorBrief?: string,
     refinementNotes?: string
 ): Promise<CastingOutput> {
     let systemPrompt = `You are the CASTING_DIRECTOR_AGENT.
@@ -58,6 +58,8 @@ MANDATORY PERSONNEL BREAKDOWN:
 WARDROBE & GEAR:
 - Specify exact gear interactions based on the provided script, Brand DNA, and Director's requirements. Do not invent specific brands unless instructed.
 ${refinementNotes ? `\n### REFINEMENT INSTRUCTIONS ###\nThe Director has provided the following feedback on your previous casting breakdown. You MUST strictly incorporate these changes while maintaining character consistency:\n${refinementNotes}\n` : ""}
+
+${directorBrief ? `\n### DIRECTOR'S BRIEF ALIGNMENT ###\nYou MUST align your casting output with the Director's specific directives below:\n${directorBrief}\n` : ""}
 
 Each character must have enough visual specificity to be generated with an AI image model.
 
@@ -96,7 +98,7 @@ Return JSON matching exactly:
             },
             {
                 role: "user",
-                content: `Project: ${projectTitle || "Untitled"}\n\nCasting Requirements from Director:\n${castingRequirements}`
+                content: `Project Casting Task\n\nCasting Requirements from Director:\n${castingRequirements}`
             }
         ],
         response_format: { type: "json_object" }

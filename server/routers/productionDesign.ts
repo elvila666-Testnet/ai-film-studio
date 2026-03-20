@@ -138,7 +138,7 @@ export const productionDesignRouter = router({
             console.log(`[PD_Router] RenderSet Prompt:`, prompt.substring(0, 100));
 
             // Pass set reference image if available for visual anchoring via Vertex AI
-            const imageUrl = await generateSetNano(prompt, input.projectId, ctx.user.id.toString(), set.imageUrl || undefined);
+            const imageUrl = await generateSetNano(prompt, input.projectId, ctx.user.id.toString(), set.referenceImageUrl || undefined);
             console.log(`[PD_Router] RenderSet URL:`, imageUrl);
             
             await pdDb.updatePDSet(input.setId, { imageUrl });

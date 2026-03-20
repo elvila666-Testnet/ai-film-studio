@@ -1,6 +1,28 @@
 import { projectContent, shots, scenes } from "../../../../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { getDb, getProjectContent } from "../../../db";
+
+/**
+ * Fetch already built prompts from the database.
+ */
+export async function getBuiltPrompts(projectId: number): Promise<GridPrompt[] | null> {
+    const db = await getDb();
+    if (!db) return null;
+    
+    const content = await getProjectContent(projectId);
+    if (!content?.storyboardPrompts) return null;
+    
+    try {
+        const raw = typeof content.storyboardPrompts === "string" 
+            ? content.storyboardPrompts 
+            : JSON.stringify(content.storyboardPrompts);
+        return JSON.parse(raw) as GridPrompt[];
+    } catch (e) {
+        console.error("[PromptEngineer] Failed to parse storyboard prompts:", e);
+        return null;
+    }
+}
 
 export interface StoryboardFramePrompt {
     frameNumber: number;    // 1-12 (one per shot)

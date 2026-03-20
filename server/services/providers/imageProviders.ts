@@ -8,6 +8,7 @@ import {
   ImageGenerationResult,
   ImageProvider,
 } from "./types";
+import { GeminiProvider } from "./geminiProvider";
 
 export class DALLEProvider {
   private apiKey: string;
@@ -188,7 +189,7 @@ export class ImageProviderFactory {
     provider: ImageProvider,
     apiKey: string,
     apiUrl?: string
-  ): DALLEProvider | MidjourneyProvider | NanoBananaProvider {
+  ): DALLEProvider | MidjourneyProvider | NanoBananaProvider | GeminiProvider {
     switch (provider) {
       case "dalle":
         return new DALLEProvider(apiKey);
@@ -196,6 +197,8 @@ export class ImageProviderFactory {
         return new MidjourneyProvider(apiKey, apiUrl);
       case "nanobanana":
         return new NanoBananaProvider(apiKey, apiUrl);
+      case "gemini":
+        return new GeminiProvider(apiKey);
       default:
         throw new Error(`Unknown image provider: ${provider}`);
     }

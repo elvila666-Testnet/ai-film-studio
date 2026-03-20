@@ -1,10 +1,9 @@
 import {
-  getReferenceImages, saveReferenceImage, deleteReferenceImage,
   createEditorProject, getEditorProjectsByProjectId, getEditorClips, createEditorClip, updateEditorClip, deleteEditorClip, createEditorTrack, getEditorTracks, createEditorExport, getEditorExports, updateEditorExport, createComment, getClipComments, updateComment, deleteComment, getAnimaticConfig, updateFrameDurations, updateAnimaticAudio, getStoryboardFrameOrder, updateFrameOrder, getFrameHistory, createFrameHistoryVersion, getFrameNotes, saveFrameNotes, deleteFrameNotes,
-  createCharacter, getCharacter, getProjectCharacters, getLockedCharacter, lockCharacter, unlockAllCharacters, updateCharacter, deleteCharacter
+  getStoryboardImages
 } from "../db";
 import { z } from "zod";
-import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
+import { publicProcedure, router } from "../_core/trpc";
 
 export const editorRouter = router({
   projects: router({
@@ -230,7 +229,7 @@ export const editorRouter = router({
       if (!ctx.user) throw new Error("Unauthorized");
       const { projectId, durationPerFrame, fps, resolution, audioUrl, audioVolume, frameDurations } = input;
       const { getDb } = await import("../db");
-      const { projects, scenes, shots, generations } = await import("../../drizzle/schema");
+      const { scenes, shots, generations } = await import("../../drizzle/schema");
       const { eq, inArray, desc } = await import("drizzle-orm");
 
       const db = await getDb();

@@ -2,6 +2,8 @@ import { Plus, Music } from "lucide-react";
 import { Clip } from "@/features/Project/types";
 import { trpc } from "@/lib/trpc";
 
+export type PipelineStage = "bible" | "script" | "breakdown" | "characters" | "production-design" | "cinematography" | "storyboard" | "shot-designer" | "video" | "editor" | "export" | "admin";
+
 interface ManifestSidebarProps {
     projectId: number;
     clips: Clip[];
@@ -18,9 +20,10 @@ export function ManifestSidebar({
     selectedId
 }: ManifestSidebarProps) {
     const projectQuery = trpc.projects.get.useQuery({ id: projectId });
+    const projectData = projectQuery.data?.project;
     const brandQuery = trpc.brand.get.useQuery(
-        { id: projectQuery.data?.brandId || "" },
-        { enabled: !!projectQuery.data?.brandId }
+        { id: projectData?.brandId || "" },
+        { enabled: !!projectData?.brandId }
     );
 
     return (

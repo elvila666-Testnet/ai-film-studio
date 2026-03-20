@@ -57,10 +57,11 @@ export default function ExportTab({ projectId }: ExportTabProps) {
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
 
   const exportXmlMutation = trpc.projects.exportXml.useMutation();
+  const exportNukeMutation = trpc.projects.exportNuke.useMutation();
 
   const renderMutation = trpc.video.render.useMutation({
     onSuccess: (data) => {
-      setCurrentJobId(data.jobId);
+      setCurrentJobId(data.jobId || null);
       toast.success("Master render initiated");
     },
     onError: (error) => {
@@ -68,11 +69,11 @@ export default function ExportTab({ projectId }: ExportTabProps) {
     }
   });
 
-  const { data: jobStatus, isError: isJobError } = trpc.video.status.useQuery(
+  const { data: jobStatus, isError: isJobError } = trpc.video.checkStatus.useQuery(
     { jobId: currentJobId! },
     {
       enabled: !!currentJobId,
-      refetchInterval: (query) => {
+      refetchInterval: (query: any) => {
         const d = query.state.data;
         return (d?.status === 'completed' || d?.status === 'failed') ? false : 2000;
       }
@@ -216,9 +217,8 @@ export default function ExportTab({ projectId }: ExportTabProps) {
           variant="outline"
           className="w-full h-20 rounded-[1.5rem] border-white/10 bg-white/5 hover:bg-white/10 text-white justify-between px-8"
           onClick={async () => {
-            const nukeMutation = trpc.projects.exportNuke.mutateAsync({ projectId });
             toast.promise(
-              nukeMutation,
+              exportNukeMutation.mutateAsync({ projectId }),
               {
                 loading: 'Generating Nuke Script (ACES 1.3)...',
                 success: (data) => {
@@ -258,7 +258,7 @@ export default function ExportTab({ projectId }: ExportTabProps) {
           <div className="space-y-3">
             <div className="flex justify-between text-[10px] font-mono">
               <span className="text-slate-500 uppercase">Matrix Progress</span>
-              <span className="text-primary font-bold">{Math.round(exportProgress)}%</span>
+              <span className="text-primary font-bold">{Math.round(Number(exportProgress))}%</span>
             </div>
             <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
               <div className="h-full bg-primary transition-all duration-500 ease-out" style={{ width: `${exportProgress}%` }} />

@@ -40,6 +40,10 @@ export async function runSoundDesignAgent(
         let systemPrompt = `You are the SOUND_DESIGN_AGENT (Sonic Architecture Authority).
 Your objective is to design the full sonic environment for the scene.
 
+### DIRECTOR'S BRIEF ALIGNMENT ###
+You will receive the Director's structured per-shot audio directives below. These contain SPECIFIC sound/music intent per shot.
+You MUST incorporate the Director's audioNotes faithfully. Your role is to EXPAND and ENRICH them with sonic depth — not to contradict or ignore them.
+
 You must strictly incorporate the Director's 'audioNotes' for each shot while adding sonic depth.
 
 OUTPUT RESPONSIBILITIES:

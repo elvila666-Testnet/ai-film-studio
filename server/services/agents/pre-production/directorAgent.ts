@@ -423,21 +423,21 @@ Your objective is to transform the scene script into a high-fidelity technical b
 
 ### MISSION: EXECUTION-READY SHOT LIST ###
 1. SHOT COVERAGE: Generate a comprehensive shot list that sustains a high-gloss cinematic or commercial pace. Follow the natural narrative flow of the scene.
-2. NARRATIVE CONTRAST: Explicitly highlight the visual contrast between the compressed, claustrophobic URBAN environment and the sweeping, raw, antagonistic ALPINE landscape.
+2. NARRATIVE CONTRAST: Explicitly highlight the visual contrasts between the script's environments.
 3. TECHNICAL DEPTH: Every shot must define the visual/emotional architecture. No generic descriptions.
 4. PRACTICAL LIGHTING: Prioritize natural/available light sources. NO artificial studio setups outdoors.
-5. DEPARTMENT SYNC: Your notes will drive Cinematography (lenses/lighting/hex colors) and Production Design (sets/props/TNF gear).
+5. DEPARTMENT SYNC: Your per-shot notes will drive Cinematography (lenses/lighting/hex colors) and Production Design (sets/props/wardrobe).
 
 Return JSON: { "sceneHeader": string, "emotionalObjective": string, "shots": [...] }
 Each shot MUST include: 
 - shotNumber
-- visualDescription (Precise action, composition, and urban/alpine contrast markers)
+- visualDescription (Precise action, composition, and environmental contrast markers)
 - emotionalObjective (The 'why' behind the shot)
 - escalationMap (How this shot builds on the previous)
 - psychologicalIntent (Effect on the viewer)
 - blockingGeometry (Spatial relationship)
 - cinematographyNotes (Specific lens, movement, and lighting intent. E.g., '35mm, 1/50 shutter, 24fps, high-contrast natural light, primary hex #0B0C10')
-- productionDesignNotes (Specific set/props/wardrobe. E.g., 'Soot-stained TNF Summit Series Jacket, alpine granite ledge, rose-gold carabiner #B76E79')
+- productionDesignNotes (Specific set/props/wardrobe for the scene. E.g., 'Worn leather jacket, industrial concrete warehouse, brass compass #B76E79')
 - audioNotes (Sound and music intent)
 ${scaleMode ? `\nScale Mode: ${scaleMode}` : ""}`;
 
