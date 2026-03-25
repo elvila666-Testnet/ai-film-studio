@@ -190,18 +190,23 @@ export async function breakdownScript(
 
         // Insert new scenes and shots
         for (const scene of technicalScript.scenes) {
-            const [insertedScene] = await db.insert(scenes).values({
+            console.log(`[DirectorAgent] Inserting scene ${scene.sceneNumber}: ${scene.heading}`);
+            const [result] = await db.insert(scenes).values({
                 projectId,
                 order: scene.sceneNumber,
                 title: scene.heading,
                 description: scene.description,
                 status: "draft"
-            }).$returningId();
+            });
 
-            if (insertedScene && scene.shots) {
+            const sceneId = (result as any).insertId;
+            console.log(`[DirectorAgent] Scene inserted. ID=${sceneId}`);
+
+            if (sceneId && scene.shots) {
+                console.log(`[DirectorAgent] Inserting ${scene.shots.length} shots for scene ${sceneId}`);
                 for (const shot of scene.shots) {
                     await db.insert(shots).values({
-                        sceneId: insertedScene.id,
+                        sceneId: sceneId,
                         order: shot.shotNumber,
                         visualDescription: String(shot.visualDescription || ""),
                         cameraAngle: String(shot.cameraAngle || shot.cinematographyNotes || "Medium Shot").substring(0, 255),
@@ -213,6 +218,7 @@ export async function breakdownScript(
                         status: "planned"
                     });
                 }
+                console.log(`[DirectorAgent] Shots inserted for scene ${sceneId}`);
             }
         }
         console.log(`[DirectorAgent] Relational tables synced: ${technicalScript.scenes.length} scenes inserted.`);
