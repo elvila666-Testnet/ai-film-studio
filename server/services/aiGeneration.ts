@@ -19,12 +19,19 @@ function getReplicateProvider() {
 function getProviderFor(modelId?: string) {
   const m = (modelId || "").toLowerCase();
   
-  if (m.includes("flux") || m.includes("seadream") || m.includes("apiyi") || m.includes("banana") || m.includes("nano")) {
+  if (m.includes("gemini-3")) {
+    return geminiProvider;
+  }
+
+  if (m.includes("flux") || m.includes("seadream") || m.includes("apiyi") || m.includes("replicate")) {
     return getReplicateProvider();
   }
   
-  // Directly accommodate user request "Dont use Flux use nanobanana pro"
-  // Route back to GeminiProvider which natively supports Imagen 3
+  // Route "banana" or "nano" to Replicate by default unless it's the Google version
+  if (m.includes("banana") || m.includes("nano")) {
+     return getReplicateProvider();
+  }
+
   return geminiProvider;
 }
 

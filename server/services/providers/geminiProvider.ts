@@ -72,9 +72,15 @@ export class GeminiProvider {
         this.checkAuth();
         const startTime = Date.now();
 
-        console.log(`[GeminiProvider] Nanobanana 2.0: Generating Image with ${modelId} - Prompt: ${params.prompt.substring(0, 100)}...`);
+        console.log(`[GeminiProvider] Nanobanana: Generating Image with ${modelId} - Prompt: ${params.prompt.substring(0, 100)}...`);
 
         try {
+            // Route to new Gemini 3.x Imagery API if applicable (Nano Banana 2 / Pro)
+            if (modelId.includes("gemini-3")) {
+                console.log(`[GeminiProvider] Using Gemini 3.x Imagery API (generateContent)`);
+                return await this.generateImageWithGemini3(params, modelId, startTime);
+            }
+
             // Primary: Try Vertex AI REST API for highest fidelity Imagen 3.0
             console.log(`[GeminiProvider] Using Vertex AI API for image generation`);
             return await this.generateImageWithVertexAI(params, modelId, startTime);
@@ -82,6 +88,96 @@ export class GeminiProvider {
             console.error("[GeminiProvider] Image Generation failed:", error);
             throw new Error(`Image generation failed: ${error.message || String(error)}`);
         }
+    }
+
+    /**
+     * Internal: Generate image using Gemini 3.x Imagery API (generateContent)
+     * Matches the user's brief for "Nano Banana 2" and "Nano Banana Pro"
+     */
+    private async generateImageWithGemini3(
+        params: ImageGenerationParams,
+        modelId: string,
+        startTime: number
+    ): Promise<ImageGenerationResult> {
+        const hasImageRefs = params.imageInputs && params.imageInputs.length > 0;
+        
+        // Build multimodal contents array
+        const parts: any[] = [{ text: params.prompt }];
+        
+        if (hasImageRefs) {
+            // Nano Banana 2/Pro supports multiple image references in the prompt context
+            for (const imgInput of params.imageInputs!) {
+                let base64Data: string;
+                if (imgInput.startsWith('data:')) {
+                    base64Data = imgInput.split(',')[1];
+                } else if (imgInput.startsWith('http')) {
+                    base64Data = await this.downloadImageAsBase64(imgInput);
+                } else {
+                    base64Data = imgInput;
+                }
+                
+                parts.push({
+                    inlineData: {
+                        mimeType: "image/jpeg",
+                        data: base64Data
+                    }
+                });
+            }
+        }
+
+        const payload = {
+            contents: [{ parts }],
+            generationConfig: {
+                responseModalities: ["IMAGE"],
+                // Aspect ratio is typically handled via prompt for this model class, 
+                // but we can try to pass candidateCount if supported in the specific tier
+            }
+        };
+
+        const url = `${this.geminiBaseUrl}/${modelId}:generateContent?key=${this.apiKey}`;
+        console.log(`[GeminiProvider] Calling Gemini 3.x REST API: ${url}`);
+
+        const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Gemini 3 API Error (${response.status}): ${errText}`);
+        }
+
+        const data = await response.json();
+        
+        // Extract IMAGE from candidates
+        const candidate = data.candidates?.[0];
+        if (!candidate || !candidate.content || !candidate.content.parts) {
+            throw new Error("Gemini 3 API returned no valid candidates/parts.");
+        }
+
+        const imagePart = candidate.content.parts.find((p: any) => p.inlineData && p.inlineData.mimeType.startsWith("image/"));
+        if (!imagePart) {
+            throw new Error("Gemini 3 API response did not contain an image part.");
+        }
+
+        const urlResult = `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
+
+        return {
+            provider: "google-genai",
+            model: modelId,
+            url: urlResult,
+            width: 1792, // Placeholder - Gemini 3 models support custom output sizes
+            height: 1024,
+            actualCost: modelId.includes("flash") ? 0.01 : 0.03,
+            processingTime: Date.now() - startTime,
+            metadata: {
+                style: params.style,
+                resolution: params.resolution,
+                engine: modelId.includes("flash") ? "Nano Banana 2" : "Nano Banana Pro (Google)",
+                multimodal: true
+            },
+        };
     }
 
     /**
