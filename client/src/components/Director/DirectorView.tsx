@@ -114,6 +114,14 @@ export function DirectorView({ projectId }: DirectorViewProps) {
         } catch { return null; }
     })();
 
+    const debugShotsMutation = trpc.directorV2.debugShots.useMutation({
+        onSuccess: (data) => {
+            console.log("DEBUG SHOTS:", data);
+            toast.info(`DB Sync Check: ${data.scenes} scenes, ${data.shots} shots found.`);
+        },
+        onError: (e) => toast.error("Debug failed: " + e.message)
+    });
+
     const handleBreakdown = () => {
         if (!scriptApproved) {
             toast.error("⚠️ Script must be approved first. Go to Command Center and approve the script.");
@@ -203,6 +211,17 @@ export function DirectorView({ projectId }: DirectorViewProps) {
                             Approve Technical Script
                         </Button>
                     )}
+                    
+                    {/* Tiny Debug Button at the end */}
+                    <Button 
+                        onClick={() => debugShotsMutation.mutate({ projectId })}
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 opacity-20 hover:opacity-100"
+                        title="Debug DB Sync"
+                    >
+                        <AlertCircle className="w-3 h-3 text-white" />
+                    </Button>
                 </div>
             </div>
 
