@@ -43,41 +43,74 @@ export const storyboardRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       try {
-        const { getLockedCharacter, getBrand, saveStoryboardImage, getProject } = await import("../db");
-        const { buildLockedPrompt } = await import("../services/characterLock");
+        const { getLockedCharacters } = await import("../db/characters");
+        const { getProjectPDSets } = await import("../db/productionDesign");
+        const { saveStoryboardImage, getDb, shots, scenes } = await import("../db");
         const { generateStoryboardImage } = await import("../services/aiGeneration");
+        const { eq, and } = await import("drizzle-orm");
 
-        // 1. Get locked character
-        const lockedChar = await getLockedCharacter(input.projectId);
+        // 1. Fetch exact shot metadata for blueprint
+        const db = await getDb();
+        const [result] = await db.select({ shots }).from(shots)
+            .innerJoin(scenes, eq(shots.sceneId, scenes.id))
+            .where(
+                and(
+                    eq(scenes.projectId, input.projectId),
+                    eq(shots.order, input.shotNumber)
+                )
+            ).limit(1);
 
-        // 2. Get brand product reference (if any)
-        const project = await getProject(input.projectId);
-        const brandId = project?.brandId;
-        const brand = brandId ? await getBrand(brandId) : null;
+        const shotData = result?.shots;
+        const blueprint = shotData?.aiBlueprint || {};
 
-        // 3. Build locked prompt
-        let finalPrompt = input.prompt;
-        if (lockedChar) {
-          const lockConfig = {
-            characterId: lockedChar.id,
-            characterImageUrl: lockedChar.imageUrl,
-            characterDescription: lockedChar.description,
-            productReferenceUrl: (brand?.productReferenceImages as string[])?.[0],
-            brandColorPalette: (brand?.colorPalette as { primary: string; secondary: string; accent: string } | undefined),
-          };
-          const lockedResult = buildLockedPrompt(input.prompt, lockConfig);
-          finalPrompt = lockedResult.fullPrompt;
+        // 2. Fetch Assets
+        const lockedChars = await getLockedCharacters(input.projectId) || [];
+        const projectSets = await getProjectPDSets(input.projectId) || [];
+        const approvedSets = projectSets.filter((s: any) => s.status === "approved" || s.referenceImageUrl);
+
+        // 3. Construct Master Prompt
+        let cinematicPrompt = `8K RAW cinematic photograph. ACTION: ${input.prompt}. `;
+        
+        if (blueprint.directorIntent?.emotionalObjective) {
+            cinematicPrompt += `EMOTION: ${blueprint.directorIntent.emotionalObjective}. `;
+        }
+        if (blueprint.cameraSpecs) {
+            cinematicPrompt += `CINEMATOGRAPHY: ${blueprint.cameraSpecs.shotType}, ${blueprint.cameraSpecs.movementLogic || "static"} movement. Lens: ${blueprint.cameraSpecs.lensStrategy || "35mm"}. Lighting: ${blueprint.cameraSpecs.lightingSpec || "natural"}. `;
         }
 
-        // 4. Generate image with NanoBanana Pro
+        const searchSpace = `${input.prompt} ${blueprint.directorIntent?.castingRequirements || ""}`.toLowerCase();
+        const charsInShot = lockedChars.filter((c: any) => searchSpace.includes(c.name.toLowerCase()));
+        
+        let imageAnchors: string[] = [];
+        if (charsInShot.length > 0) {
+            cinematicPrompt += `CHARACTERS: `;
+            charsInShot.forEach((c: any) => {
+                cinematicPrompt += `[${c.name}: ${c.description}] `;
+                if (c.imageUrl && c.imageUrl !== 'draft') imageAnchors.push(c.imageUrl);
+            });
+        }
+
+        const setSpace = `${blueprint.productionDesign?.environmentalAtmosphere || ""} ${blueprint.productionDesign?.setDressing || ""}`.toLowerCase();
+        const setsInShot = approvedSets.filter((s: any) => setSpace.includes(s.name.toLowerCase()));
+        if (setsInShot.length > 0) {
+            cinematicPrompt += `SET DESIGN: [${setsInShot[0].name}: ${setsInShot[0].description}]. `;
+            if (setsInShot[0].referenceImageUrl) imageAnchors.push(setsInShot[0].referenceImageUrl);
+        }
+
+        const finalAnchors = imageAnchors.slice(0, 3);
+        const targetModel = finalAnchors.length > 0 ? "nano-banana-pro" : "flux-fast";
+
+        // 4. Generate
         const imageUrl = await generateStoryboardImage(
-          finalPrompt,
-          "nanobana-2.0",
+          cinematicPrompt,
+          targetModel,
           input.projectId,
-          ctx.user.id.toString()
+          ctx.user.id.toString(),
+          "1024x1024",
+          finalAnchors
         );
 
-        // 5. Save to storyboardImages
+        // 5. Save
         await saveStoryboardImage(input.projectId, input.shotNumber, imageUrl, input.prompt);
 
         return { imageUrl };
@@ -120,11 +153,7 @@ export const storyboardRouter = router({
 
       await updateStoryboardImageStatus(input.storyboardImageId, "approved");
 
-      const masterUrl = await upscaleImageTo4k(
-        input.imageUrl,
-        input.projectId,
-        ctx.user.id.toString()
-      );
+      const masterUrl = await upscaleImageTo4k(input.imageUrl);
 
       await updateStoryboardImageStatus(input.storyboardImageId, "approved", masterUrl);
 
@@ -138,42 +167,87 @@ export const storyboardRouter = router({
       prompt: z.string(),
     }))
     .mutation(async ({ input, ctx }) => {
-      const { getLockedCharacter, getBrand, saveStoryboardImage, getProject, getStoryboardImageWithConsistency, updateStoryboardImageStatus } = await import("../db");
-      const { buildLockedPrompt } = await import("../services/characterLock");
-      const { generateStoryboardImage } = await import("../services/aiGeneration");
+      try {
+        const { getLockedCharacters } = await import("../db/characters");
+        const { getProjectPDSets } = await import("../db/productionDesign");
+        const { saveStoryboardImage, getDb, shots, scenes, getStoryboardImageWithConsistency, updateStoryboardImageStatus } = await import("../db");
+        const { generateStoryboardImage } = await import("../services/aiGeneration");
+        const { eq, and } = await import("drizzle-orm");
 
-      const lockedChar = await getLockedCharacter(input.projectId);
+        // 1. Fetch exact shot metadata for blueprint
+        const db = await getDb();
+        const [result] = await db.select({ shots }).from(shots)
+            .innerJoin(scenes, eq(shots.sceneId, scenes.id))
+            .where(
+                and(
+                    eq(scenes.projectId, input.projectId),
+                    eq(shots.order, input.shotNumber)
+                )
+            ).limit(1);
 
-      const project = await getProject(input.projectId);
-      const brandId = project?.brandId;
-      const brand = brandId ? await getBrand(brandId) : null;
+        const shotData = result?.shots;
+        const blueprint = shotData?.aiBlueprint || {};
 
-      let finalPrompt = input.prompt;
-      if (lockedChar) {
-        const lockConfig = {
-          characterId: lockedChar.id,
-          characterImageUrl: lockedChar.imageUrl,
-          characterDescription: lockedChar.description,
-          productReferenceUrl: (brand?.productReferenceImages as string[])?.[0],
-          brandColorPalette: (brand?.colorPalette as { primary: string; secondary: string; accent: string } | undefined),
-        };
-        const lockedResult = buildLockedPrompt(input.prompt, lockConfig);
-        finalPrompt = lockedResult.fullPrompt;
+        // 2. Fetch Assets
+        const lockedChars = await getLockedCharacters(input.projectId) || [];
+        const projectSets = await getProjectPDSets(input.projectId) || [];
+        const approvedSets = projectSets.filter((s: any) => s.status === "approved" || s.referenceImageUrl);
+
+        // 3. Construct Master Prompt
+        let cinematicPrompt = `8K RAW cinematic photograph. ACTION: ${input.prompt}. `;
+        
+        if (blueprint.directorIntent?.emotionalObjective) {
+            cinematicPrompt += `EMOTION: ${blueprint.directorIntent.emotionalObjective}. `;
+        }
+        if (blueprint.cameraSpecs) {
+            cinematicPrompt += `CINEMATOGRAPHY: ${blueprint.cameraSpecs.shotType}, ${blueprint.cameraSpecs.movementLogic || "static"} movement. Lens: ${blueprint.cameraSpecs.lensStrategy || "35mm"}. Lighting: ${blueprint.cameraSpecs.lightingSpec || "natural"}. `;
+        }
+
+        const searchSpace = `${input.prompt} ${blueprint.directorIntent?.castingRequirements || ""}`.toLowerCase();
+        const charsInShot = lockedChars.filter((c: any) => searchSpace.includes(c.name.toLowerCase()));
+        
+        let imageAnchors: string[] = [];
+        if (charsInShot.length > 0) {
+            cinematicPrompt += `CHARACTERS: `;
+            charsInShot.forEach((c: any) => {
+                cinematicPrompt += `[${c.name}: ${c.description}] `;
+                if (c.imageUrl && c.imageUrl !== 'draft') imageAnchors.push(c.imageUrl);
+            });
+        }
+
+        const setSpace = `${blueprint.productionDesign?.environmentalAtmosphere || ""} ${blueprint.productionDesign?.setDressing || ""}`.toLowerCase();
+        const setsInShot = approvedSets.filter((s: any) => setSpace.includes(s.name.toLowerCase()));
+        if (setsInShot.length > 0) {
+            cinematicPrompt += `SET DESIGN: [${setsInShot[0].name}: ${setsInShot[0].description}]. `;
+            if (setsInShot[0].referenceImageUrl) imageAnchors.push(setsInShot[0].referenceImageUrl);
+        }
+
+        const finalAnchors = imageAnchors.slice(0, 3);
+        const targetModel = finalAnchors.length > 0 ? "nano-banana-pro" : "flux-fast";
+
+        // 4. Generate
+        const imageUrl = await generateStoryboardImage(
+          cinematicPrompt,
+          targetModel,
+          input.projectId,
+          ctx.user.id.toString(),
+          "1024x1024",
+          finalAnchors
+        );
+
+        // 5. Save
+        await saveStoryboardImage(input.projectId, input.shotNumber, imageUrl, input.prompt);
+        const savedImage = await getStoryboardImageWithConsistency(input.projectId, input.shotNumber);
+        if (savedImage) await updateStoryboardImageStatus(savedImage.id, "draft");
+
+        return { imageUrl };
+      } catch (error: unknown) {
+        console.error(`[storyboardRouter] regenerateSingleFrame failed:`, error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: error instanceof Error ? error.message : "Failed to regenerate frame",
+        });
       }
-
-      const imageUrl = await generateStoryboardImage(
-        finalPrompt,
-        "nanobana-2.0",
-        input.projectId,
-        ctx.user.id.toString()
-      );
-
-      await saveStoryboardImage(input.projectId, input.shotNumber, imageUrl, input.prompt);
-
-      const savedImage = await getStoryboardImageWithConsistency(input.projectId, input.shotNumber);
-      if (savedImage) await updateStoryboardImageStatus(savedImage.id, "draft");
-
-      return { imageUrl };
     }),
 
   generateGrid: protectedProcedure
@@ -193,14 +267,9 @@ export const storyboardRouter = router({
             gridPrompts = await buildStoryboardPrompts(input.projectId, input.visualStyle);
         }
 
-        const { getDb, storyboardImages, saveStoryboardImage, getLockedCharacter } = await import("../db");
+        const { getDb, storyboardImages, saveStoryboardImage } = await import("../db");
         const { eq, gte, and } = await import("drizzle-orm");
         
-        const lockedChar = await getLockedCharacter(input.projectId);
-        const characterRefUrl = lockedChar?.imageUrl && lockedChar.imageUrl !== "draft"
-          ? lockedChar.imageUrl
-          : undefined;
-
         const db = await getDb();
         if (db) {
           await db.delete(storyboardImages).where(
@@ -219,14 +288,16 @@ export const storyboardRouter = router({
           const promptData = gridPrompts[pageIdx];
           const pageNumber = promptData.pageNumber;
           const gridPrompt = promptData.masterPrompt;
+          const visualAnchors = promptData.characterReferenceUrls || [];
 
           let gridImageUrl = "";
           try {
+            // Pass all curated anchors (characters + sets) for visual reference consistency
             gridImageUrl = await generateGridImage(
               gridPrompt,
               input.projectId,
               ctx.user.id.toString(),
-              characterRefUrl
+              visualAnchors
             );
           } catch (err: any) {
             const fs = await import("fs");
@@ -237,7 +308,7 @@ export const storyboardRouter = router({
               `Message: ${errMsg}`,
               `Stack: ${errStack}`,
               `Prompt length: ${gridPrompt.length} chars`,
-              `CharRef: ${characterRefUrl || 'none'}`,
+              `Anchors count: ${visualAnchors.length}`,
             ].join('\n');
             fs.writeFileSync("grid_err.log", errDetail);
             console.error("[Storyboard] ✘ generateGridImage failed:", errMsg);

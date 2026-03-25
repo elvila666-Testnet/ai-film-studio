@@ -32,7 +32,7 @@ export const brandRouter = router({
         description: z.string().optional(),
         negativeConstraints: z.string().optional(),
         brandVoice: z.string().optional(),
-        logoUrl: z.string().url().optional(),
+        logoUrl: z.union([z.string().url(), z.literal('')]).optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -63,7 +63,7 @@ export const brandRouter = router({
         description: z.string().optional(),
         negativeConstraints: z.string().optional(),
         brandVoice: z.string().optional(),
-        logoUrl: z.string().url().optional(),
+        logoUrl: z.union([z.string().url(), z.literal('')]).optional(),
       })
     )
     .mutation(async ({ input }) => {

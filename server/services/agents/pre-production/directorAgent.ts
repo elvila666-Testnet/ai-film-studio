@@ -124,7 +124,9 @@ export async function breakdownScript(
         `- castingRequirements: HIGH-FIDELITY PERSONNEL LIST. MUST reflect exact personnel specs as a SCALAR STRING (no nested objects). Include: 
             1. Principal Leads: Detailed physical/emotional constraints (athletic, deep focus, NO overt emoting). 
             2. Specialized Action Models: Stunt athletes, and Hand/Foot models for product close-ups.
-            3. Background Extras: Definite energy constraint (lethargic, spiritless demeanor) for local contrast.`,
+            3. Background Extras: Definite energy constraint (lethargic, spiritless demeanor) for local contrast.
+            4. Wardrobe & Textures: MUST define exact wardrobe, hero props, fabric textures, skin pores, and STRICT adherence to the Production Design Color Palette for EVERY character.
+            5. Performance: Define specific neuro-physical performance notes (micro-expressions, martial arts backgrounds, stillness).`,
         `- cinematographyRequirements: High-level summary of the visual language (lens style, movement philosophy). MUST BE A STRING.`,
         `- productionDesignRequirements: HIGH-FIDELITY SET & PROP LIST. MUST reflect exact physical specs as a SCALAR STRING. Include:
             1. Unique Sets: Define the architectural soul, materials, and atmospheric weight based on the director's guidelines.

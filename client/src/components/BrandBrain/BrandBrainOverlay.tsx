@@ -77,9 +77,9 @@ export function BrandBrainOverlay({ initialBrandId }: { initialBrandId?: string 
                 visualIdentity: b.visualIdentity || "",
                 targetAudience: b.targetAudience || "",
                 negativeConstraints: b.negativeConstraints || "",
-                colorPalette: typeof b.colorPalette === 'string'
-                    ? b.colorPalette
-                    : JSON.stringify(b.colorPalette || {}, null, 2),
+                colorPalette: Array.isArray(b.colorPalette) 
+                    ? b.colorPalette.join(", ") 
+                    : (typeof b.colorPalette === 'string' ? b.colorPalette : JSON.stringify(b.colorPalette || {})),
             });
         }
     }, [brandQuery.data]);
@@ -109,9 +109,19 @@ export function BrandBrainOverlay({ initialBrandId }: { initialBrandId?: string 
     const handleSave = async () => {
         setIsSaving(true);
         try {
+            let parsedPalette: any = {};
+            const rawPalette = brandData.colorPalette.trim();
+            if (rawPalette) {
+                try {
+                    parsedPalette = JSON.parse(rawPalette);
+                } catch {
+                    parsedPalette = rawPalette.split(",").map(c => c.trim()).filter(Boolean);
+                }
+            }
+
             const data = {
                 ...brandData,
-                colorPalette: JSON.parse(brandData.colorPalette),
+                colorPalette: parsedPalette,
             };
 
             if (selectedBrandId) {
@@ -163,7 +173,9 @@ export function BrandBrainOverlay({ initialBrandId }: { initialBrandId?: string 
                     visualIdentity: dna.aesthetic || dna.visualIdentity || "",
                     targetAudience: dna.targetAudience || "",
                     negativeConstraints: dna.negativeConstraints || "",
-                    colorPalette: JSON.stringify(dna.colorPalette || {}, null, 2),
+                    colorPalette: Array.isArray(dna.colorPalette) 
+                        ? dna.colorPalette.join(", ") 
+                        : (typeof dna.colorPalette === 'string' ? dna.colorPalette : JSON.stringify(dna.colorPalette || {})),
                 });
             }
 
@@ -381,10 +393,26 @@ export function BrandBrainOverlay({ initialBrandId }: { initialBrandId?: string 
                                     </div>
                                 </div>
                                 <div className="col-span-12 md:col-span-5 space-y-2">
-                                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Color Palette (JSON)</label>
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Color Palette (Hex)</label>
+                                        <div className="flex gap-1.5 items-center">
+                                            {brandData.colorPalette.split(",")
+                                                .map(c => c.trim().replace(/['"\[\]]/g, ''))
+                                                .filter(c => /^#([0-9A-F]{3}){1,2}$/i.test(c))
+                                                .map((color, i) => (
+                                                    <div 
+                                                        key={i} 
+                                                        className="w-4 h-4 rounded-[4px] border border-white/20 shadow-sm shadow-black/50 transition-all hover:scale-110" 
+                                                        style={{ backgroundColor: color }}
+                                                        title={color}
+                                                    />
+                                                ))}
+                                        </div>
+                                    </div>
                                     <Input
                                         value={brandData.colorPalette}
                                         onChange={(e) => setBrandData({ ...brandData, colorPalette: e.target.value })}
+                                        placeholder="#000000, #1A1A1A"
                                         className="bg-white/[0.03] border-white/10 font-mono text-[10px]"
                                     />
                                 </div>

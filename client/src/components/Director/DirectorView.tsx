@@ -125,7 +125,23 @@ export function DirectorView({ projectId }: DirectorViewProps) {
     };
 
     return (
-        <div className="space-y-8 animate-fade-in">
+        <div className="space-y-8 animate-fade-in relative">
+            {/* Loading Overlay */}
+            {breakdownMutation.isPending && (
+                <div className="absolute inset-0 z-50 bg-[#020205]/60 backdrop-blur-sm rounded-[2.5rem] flex items-center justify-center border border-primary/20">
+                    <div className="flex flex-col items-center gap-6 bg-black/90 p-12 rounded-3xl border border-primary/30 shadow-2xl flex-shrink-0 animate-pulse">
+                        <Sparkles className="w-16 h-16 text-primary animate-spin" />
+                        <div className="text-center space-y-2">
+                            <h3 className="text-primary font-black uppercase tracking-[0.3em] text-lg">Running Technical Breakdown</h3>
+                            <p className="text-sm text-slate-300 font-mono">Parsing screenplay into departmental tasks...</p>
+                            <p className="text-xs text-slate-500 font-mono mt-2 flex items-center justify-center gap-2">
+                                <Loader2 className="w-3 h-3 animate-spin"/> Generating characters, lighting, & look
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
             {/* Header */}
             <div className="flex justify-between items-end">
                 <div>
@@ -238,17 +254,6 @@ export function DirectorView({ projectId }: DirectorViewProps) {
                                 Generate Technical Script
                             </Button>
 
-                            <Button
-                                onClick={() => requestApproval(0.015, () => buildPromptsMutation.mutate({ projectId }))}
-                                disabled={!hasNewTechnicalScript || buildPromptsMutation.isPending}
-                                className={`h-12 px-8 rounded-2xl font-black italic tracking-tight transition-all ${hasNewTechnicalScript
-                                    ? "bg-white text-black hover:bg-primary hover:text-white shadow-xl shadow-primary/20"
-                                    : "bg-white/5 text-white/20 border border-white/10"
-                                    }`}
-                            >
-                                {buildPromptsMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                                Build Storyboard Prompts
-                            </Button>
                         </div>
                     </div>
 

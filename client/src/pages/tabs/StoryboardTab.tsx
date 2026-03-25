@@ -5,8 +5,6 @@ import { Loader2, Sparkles, Video, X, Maximize2, ChevronLeft, ChevronRight, Clap
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useCostGuard } from "@/components/FinOps/CostGuard";
-import { CinemaPipelineFlow } from "@/components/Director/CinemaPipelineFlow";
-import { StoryboardAgentPanel } from "@/features/Project/StoryboardAgentPanel";
 
 interface StoryboardImage {
   id: number;
@@ -126,30 +124,7 @@ export default function StoryboardTab({ projectId }: StoryboardTabProps) {
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="glass-panel p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Global Instructions</h3>
-            <span className="text-[10px] text-slate-600 font-mono uppercase">
-              3×4 Grid · 16:9 Format · Nanobanana Pro
-            </span>
-          </div>
-          <Textarea
-            placeholder="Add directorial notes for the storyboard grid..."
-            value={globalInstructions}
-            onChange={(e) => setGlobalInstructions(e.target.value)}
-            className="bg-white/5 border-white/10 min-h-[80px] text-sm"
-          />
-        </div>
-        <StoryboardAgentPanel projectId={projectId} onCompleted={() => storyboardQuery.refetch()} />
-      </div>
 
-      {/* Cinema Pipeline Flow Visualization */}
-      <CinemaPipelineFlow
-        isPending={runPipelineMutation.isPending}
-        results={pipelineResults}
-      />
 
       {/* Cinema Pipeline Results */}
       {(runPipelineMutation.isPending || pipelineResults) && (
@@ -241,10 +216,10 @@ export default function StoryboardTab({ projectId }: StoryboardTabProps) {
               onClick={() => setLightboxUrl(currentGridImage.imageUrl)}
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(4, 1fr)',
-                gridTemplateRows: 'repeat(3, 1fr)',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gridTemplateRows: 'repeat(4, 1fr)',
                 gap: '0px',
-                aspectRatio: '16 / 9',
+                aspectRatio: '4 / 3',
                 width: '100%',
               }}
             >

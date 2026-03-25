@@ -2,6 +2,7 @@ import { projectContent, shots, scenes } from "../../../../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { getDb, getProjectContent } from "../../../db";
+import { getLockedCharacters } from "../../../db/characters";
 
 /**
  * Fetch already built prompts from the database.
@@ -91,6 +92,10 @@ export async function buildStoryboardPrompts(
     const pdSpecs = pdData.specs || "Standard production design as per brief.";
     const brandDNA = content.brandDNA || "Professional, cinematic, high-impact.";
 
+    // 2b. Build Visual Identity Anchor from ALL locked characters
+    const lockedChars = await getLockedCharacters(projectId);
+    const visualIdentityAnchor = buildVisualIdentityAnchor(lockedChars);
+
     // 3. Get all scene/shot data
     const sceneList = await db.select().from(scenes).where(eq(scenes.projectId, projectId)).orderBy(scenes.order);
     const allShots: Array<{
@@ -173,7 +178,10 @@ export async function buildStoryboardPrompts(
             brandDNA,
             frames,
             storyIntent,
-            visualContinuityRules
+            visualContinuityRules,
+            visualIdentityAnchor,
+            pageIdx,
+            totalPages
         );
 
         gridPrompts.push({
@@ -273,6 +281,38 @@ ${brandDNA}
 }
 
 /**
+ * Build Visual Identity Anchor from locked characters
+ * Provides concrete physical descriptions to anchor visual consistency across pages
+ */
+function buildVisualIdentityAnchor(
+    lockedChars: Array<{ name: string; description: string; imageUrl: string; isHero: boolean | null }>
+): string {
+    if (!lockedChars || lockedChars.length === 0) {
+        return "";
+    }
+
+    const charDescriptions = lockedChars.map((c, i) => {
+        const role = c.isHero ? "(HERO / PROTAGONIST)" : `(Character ${i + 1})`;
+        return `- **${c.name}** ${role}: ${c.description}. IMMUTABLE — do NOT alter facial structure, skin tone, hair, wardrobe, or body proportions.`;
+    }).join("\n");
+
+    return `
+### 🔒 VISUAL IDENTITY ANCHOR — LOCKED CHARACTERS
+
+The following characters MUST appear with EXACTLY these physical attributes in EVERY frame where they are present.
+Any deviation in facial features, skin tone, hair color/style, wardrobe, or body proportions is STRICTLY FORBIDDEN.
+
+${charDescriptions}
+
+**ENFORCEMENT:**
+- Character identity weight takes ABSOLUTE PRIORITY over artistic interpretation
+- Use exact face reconstruction from reference images
+- Wardrobe must remain identical unless explicitly scripted to change
+- No mustache thickness variation, no hairstyle change, no uniform redesign
+`;
+}
+
+/**
  * Build the master prompt for Nanobanana 2.0 Storyboard
  */
 function buildMasterPrompt(
@@ -283,14 +323,31 @@ function buildMasterPrompt(
     brandDNA: string,
     frames: StoryboardFramePrompt[],
     storyIntent: string,
-    visualContinuityRules: string
+    visualContinuityRules: string,
+    visualIdentityAnchor: string = "",
+    pageIndex: number = 0,
+    totalPages: number = 1
 ): string {
+    // Cross-page continuity header for pages 2+
+    const pageHeader = pageIndex > 0 ? `
+> ⚠️ **CROSS-PAGE CONTINUITY MANDATE (Page ${pageIndex + 1} of ${totalPages})**
+> This is a CONTINUATION of the same storyboard. You MUST maintain EXACTLY the same:
+> - Character faces, skin tone, hair color/style, wardrobe, and body proportions
+> - Set designs, architecture, and environmental details
+> - Color palette, lighting style, and overall cinematographic look
+> - All visual elements established in previous pages
+> Any deviation breaks the storyboard continuity and is UNACCEPTABLE.
+
+---
+` : "";
+
     let prompt = `
 # NANOBANANA 2.0 - STORYBOARD GRID (FIRST IMAGES)
 ## Project: ${projectTitle}
+## Page ${pageIndex + 1} of ${totalPages}
 
 ---
-
+${pageHeader}
 ## ROLE & CONTEXT
 You are an award-winning cinematographer and visual storyteller creating a storyboard grid.
 Your task is to generate the OPENING MOMENT of each shot in a 3×4 grid layout.
@@ -302,7 +359,11 @@ Generate a 3×4 storyboard grid (12 frames total) showing the FIRST IMAGE of eac
 Each frame should be a 16:9 aspect ratio panel in a single unified 16:9 canvas.
 
 ---
+${visualIdentityAnchor ? `
+${visualIdentityAnchor}
 
+---
+` : ""}
 ## STORY INTENT
 ${storyIntent}
 
@@ -348,7 +409,7 @@ ${brandDNA}
 
 ### Image Output
 - Single 16:9 aspect ratio image
-- 3×4 grid layout (12 panels total)
+- 3×4 grid layout (3 columns and 4 rows, 12 panels total)
 - Thin white borders separating frames
 - Hyper-realistic photographic style
 - Cinematic lighting and high detail

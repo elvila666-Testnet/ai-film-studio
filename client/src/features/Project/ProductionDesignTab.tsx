@@ -57,7 +57,7 @@ export default function ProductionDesignTab({ projectId }: ProductionDesignTabPr
         try {
             const result = await validatePDMutation.mutateAsync({
                 projectId,
-                pdOutput: `Validated ${sets.length} sets: ${sets.map(s => s.name).join(", ")}`,
+                pdOutput: `Validated ${sets.length} sets:\n\n` + sets.map(s => `[SET NAME] ${s.name}\n[DESCRIPTION]\n${s.description}\n[PROPS] ${s.props?.map((p: any) => p.name).join(", ")}`).join("\n\n---\n\n"),
                 specs: JSON.stringify(sets),
                 moodboardUrls: [],
                 referenceUrls: sets.map(s => s.referenceImageUrl).filter(Boolean) as string[],

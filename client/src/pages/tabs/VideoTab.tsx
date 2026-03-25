@@ -74,14 +74,6 @@ export default function VideoTab({ projectId }: VideoTabProps) {
             <Brain className="w-3.5 h-3.5 text-primary" /> Prompt Engineer — Pre-flight
           </div>
           <div className="flex flex-wrap gap-3">
-            <Button
-              onClick={handleBuildPrompts}
-              disabled={buildPromptsMutation.isPending || !technicalApproved}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] h-9 uppercase tracking-widest"
-            >
-              {buildPromptsMutation.isPending ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : <Brain className="w-3.5 h-3.5 mr-2" />}
-              {hasPrompts ? "Rebuild Prompts" : "🧠 Build Storyboard Prompts"}
-            </Button>
             {hasPrompts && (
               <Button
                 onClick={handleRenderGrids}

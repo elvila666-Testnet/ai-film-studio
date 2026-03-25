@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Save, FileText, Sparkles } from "lucide-react";
@@ -12,16 +12,61 @@ interface BriefTabProps {
 export default function BriefTab({ projectId }: BriefTabProps) {
   const [brief, setBrief] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const briefRef = useRef(brief);
+  const hasUnsavedChanges = useRef(false);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const projectQuery = trpc.projects.get.useQuery({ id: projectId });
   const utils = trpc.useUtils();
   const updateMutation = trpc.projects.updateContent.useMutation();
 
+  // Keep ref in sync with state
+  useEffect(() => {
+    briefRef.current = brief;
+  }, [brief]);
+
   useEffect(() => {
     if (projectQuery.data?.content?.brief) {
       setBrief(projectQuery.data.content.brief);
+      hasUnsavedChanges.current = false;
     }
   }, [projectQuery.data]);
+
+  // Auto-save function (no toast to avoid noise)
+  const autoSave = useCallback(async (text: string) => {
+    if (!text.trim()) return;
+    try {
+      await updateMutation.mutateAsync({ projectId, brief: text });
+      hasUnsavedChanges.current = false;
+      console.log("[BriefTab] Auto-saved brief");
+    } catch (e) {
+      console.error("[BriefTab] Auto-save failed:", e);
+    }
+  }, [projectId, updateMutation]);
+
+  // Auto-save on unmount (tab switch)
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      if (hasUnsavedChanges.current && briefRef.current.trim()) {
+        // Fire-and-forget save on unmount
+        updateMutation.mutate({ projectId, brief: briefRef.current });
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
+
+  // Handle brief text change with debounced auto-save
+  const handleBriefChange = useCallback((value: string) => {
+    setBrief(value);
+    hasUnsavedChanges.current = true;
+    
+    // Debounce auto-save: 2 seconds after user stops typing
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      autoSave(value);
+    }, 2000);
+  }, [autoSave]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -30,6 +75,7 @@ export default function BriefTab({ projectId }: BriefTabProps) {
         projectId,
         brief,
       });
+      hasUnsavedChanges.current = false;
       utils.projects.get.invalidate({ id: projectId });
       toast.success("Strategic vision captured");
     } catch (error) {
@@ -63,7 +109,7 @@ export default function BriefTab({ projectId }: BriefTabProps) {
             <Textarea
               placeholder="Inject your creative DNA here. Describe the setting, conflict, and soul of the film..."
               value={brief}
-              onChange={(e) => setBrief(e.target.value)}
+              onChange={(e) => handleBriefChange(e.target.value)}
               className="min-h-[500px] w-full bg-transparent border-none focus-visible:ring-0 text-slate-200 text-lg leading-relaxed p-12 resize-none placeholder:text-slate-800"
             />
           </div>

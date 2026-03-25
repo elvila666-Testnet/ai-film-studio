@@ -491,28 +491,73 @@ Ensure all technical shots align with these brand pillars.`;
       const shotList = await db.select().from(shots).where(inArray(shots.sceneId, sceneIds)).orderBy(shots.order);
       if (shotList.length === 0) throw new Error("No shots found for this project. Breakdown the script first.");
 
+      // Fetch Locked Characters and Sets to anchor the visual generation
+      const { getLockedCharacters } = await import("../db/characters");
+      const { getProjectPDSets } = await import("../db/productionDesign");
+      
+      const lockedChars = await getLockedCharacters(input.projectId) || [];
+      const projectSets = await getProjectPDSets(input.projectId) || [];
+      const approvedSets = projectSets.filter((s: any) => s.status === "approved" || s.referenceImageUrl);
+
       const userId = ctx.user.id.toString();
 
-      // 2. Generate Images in Batch (Concurrency Limited)
-      const generateShotAsset = async (shot: { id: number; visualDescription: string }) => {
+      // 2. Generate Images in Batch
+      const generateShotAsset = async (shot: { id: number; visualDescription: string; aiBlueprint: any }) => {
         try {
-          // Use Flux Schnell for batch speed
+          const blueprint = shot.aiBlueprint || {};
+          let cinematicPrompt = `8K RAW cinematic photograph. ACTION: ${shot.visualDescription}. `;
+          
+          if (blueprint.directorIntent?.emotionalObjective) {
+              cinematicPrompt += `EMOTION: ${blueprint.directorIntent.emotionalObjective}. `;
+          }
+
+          if (blueprint.cameraSpecs) {
+              cinematicPrompt += `CINEMATOGRAPHY: ${blueprint.cameraSpecs.shotType}, ${blueprint.cameraSpecs.movementLogic || "static"} movement. Lens: ${blueprint.cameraSpecs.lensStrategy || "35mm"}. Lighting: ${blueprint.cameraSpecs.lightingSpec || "natural"}. `;
+          }
+
+          // Search characters
+          const searchSpace = `${shot.visualDescription} ${blueprint.directorIntent?.castingRequirements || ""}`.toLowerCase();
+          const charsInShot = lockedChars.filter((c: any) => searchSpace.includes(c.name.toLowerCase()));
+          
+          let imageAnchors: string[] = [];
+          if (charsInShot.length > 0) {
+              cinematicPrompt += `CHARACTERS: `;
+              charsInShot.forEach((c: any) => {
+                  cinematicPrompt += `[${c.name}: ${c.description}] `;
+                  if (c.imageUrl && c.imageUrl !== 'draft') imageAnchors.push(c.imageUrl);
+              });
+          }
+
+          // Search Sets
+          const setSpace = `${blueprint.productionDesign?.environmentalAtmosphere || ""} ${blueprint.productionDesign?.setDressing || ""}`.toLowerCase();
+          const setsInShot = approvedSets.filter((s: any) => setSpace.includes(s.name.toLowerCase()));
+          
+          if (setsInShot.length > 0) {
+              cinematicPrompt += `SET DESIGN: [${setsInShot[0].name}: ${setsInShot[0].description}]. `;
+              if (setsInShot[0].referenceImageUrl) imageAnchors.push(setsInShot[0].referenceImageUrl);
+          }
+
+          // Cap anchors to 3 to prevent Replicate overload
+          const finalAnchors = imageAnchors.slice(0, 3);
+          const targetModel = finalAnchors.length > 0 ? "nano-banana-pro" : "flux-fast";
+
           const imageUrl = await generateStoryboardImage(
-            shot.visualDescription,
-            "flux-fast",
+            cinematicPrompt,
+            targetModel,
             input.projectId,
-            userId
+            userId,
+            "1024x1024",
+            finalAnchors
           );
 
-          // Save to generations table
           await db.insert(generations).values({
             shotId: shot.id,
             projectId: input.projectId,
             imageUrl,
-            prompt: shot.visualDescription,
-            model: "flux-fast",
-            qualityTier: "fast",
-            cost: "0.005", // Schnell estimate
+            prompt: cinematicPrompt,
+            model: targetModel,
+            qualityTier: targetModel === "nano-banana-pro" ? "quality" : "fast",
+            cost: targetModel === "nano-banana-pro" ? "0.05" : "0.005",
           });
 
           return { shotId: shot.id, success: true, imageUrl };

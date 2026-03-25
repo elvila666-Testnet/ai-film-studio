@@ -247,8 +247,15 @@ MANDATORY PERSONNEL BREAKDOWN:
 2. SPECIALIZED ACTION MODELS:
    - Identify explicit roles requiring specialized stunt performers entirely based on script action.
    - HAND & FOOT MODELS: For extreme close-ups of script-specific gear manipulation.
-3. BACKGROUND EXTRAS:
+3. WARDROBE, PROPS, & TEXTURES (MANDATORY IN DESCRIPTION):
+   - You MUST define the Wardrobe and Hero Props for every character.
+   - You MUST define the Textural details (e.g., fabric weave, skin pores, gritty vs clean).
+   - You MUST ensure adherence to the overarching Production Design color palette and Brand DNA.
+   - You MUST include performance and emotional action notes (e.g., stillness, micro-expressions, elite martial arts background, hand model precision).
+   - Do NOT omit these details. The Director will reject the casting if Wardrobe, Textures, Color Palette, and Performance are absent.
    - Identify background archetypes and their energy levels to support the scene's dynamic.
+
+${castingContext ? `### DIRECTOR'S AUTHORITATIVE CAST LIST ###\nThe Director has mandated the following personnel. You MUST extract EVERY SINGLE CHARACTER mentioned here into your JSON array without failure:\n${castingContext}\n` : ""}
 
 Return ONLY a JSON array of character objects, no other text.
 ${input.refinementNotes ? `\n### REFINEMENT INSTRUCTIONS ###\nThe Director has provided the following feedback on your previous casting selection. You MUST strictly incorporate these changes:\n${input.refinementNotes}\n` : ""}`;
@@ -266,13 +273,19 @@ ${input.refinementNotes ? `\n### REFINEMENT INSTRUCTIONS ###\nThe Director has p
               content: `Extract principal characters from this screenplay. Return ONLY a JSON array.
 
 SCRIPT:
-${scriptText.substring(0, 4000)}${castingContext}
+${scriptText.substring(0, 4000)}
 
 Response format (ONLY JSON, no other text):
-[{"name":"Character Name","description":"Detailed profile (Age, build, weathered skin, intensity, specific brand gear, athletic mastery)"}]
+[
+  {
+    "name": "Character Name",
+    "description": "[PHYSICALITY] Age, build, weathered skin [WARDROBE/COLORS] You MUST specify the exact clothing, colors (Brand DNA), and fabrics [TEXTURES] Matte skin, premium micro-textures [PROPS] Hero items (e.g. stylus) [PERFORMANCE] Neuro-physical stillness, martial artist's discipline, micro-movements, athletic mastery"
+  }
+]
 
 Rules: 
 - Include ALL valid on-screen characters (Leads, Stunt Doubles, and key Extras).
+- You MUST exhaustively include Wardrobe, Colors, Textures, Props, and Performance in the description exactly as requested.
 - Provide rich visual descriptions.`,
             },
           ],

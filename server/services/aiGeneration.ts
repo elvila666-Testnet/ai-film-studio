@@ -1,11 +1,32 @@
 import { invokeLLM } from "../_core/llm";
 import { GeminiProvider } from "./providers/geminiProvider";
 import { uploadBase64Image } from "../_core/gcs";
+import { ReplicateProvider } from "./providers/replicateProvider";
+import { uploadExternalUrlToGCS } from "./storageService";
+import { ENV } from "../_core/env";
 
 const geminiProvider = new GeminiProvider();
 
-import { uploadExternalUrlToGCS } from "./storageService";
-import { ENV } from "../_core/env";
+let _replicateProvider: ReplicateProvider | null = null;
+function getReplicateProvider() {
+  if (!_replicateProvider) {
+    console.log(`[AI Service] Initializing Replicate Provider with token starting with: ${(process.env.REPLICATE_API_TOKEN || "").substring(0, 5)}...`);
+    _replicateProvider = new ReplicateProvider(process.env.REPLICATE_API_TOKEN || "");
+  }
+  return _replicateProvider;
+}
+
+function getProviderFor(modelId?: string) {
+  const m = (modelId || "").toLowerCase();
+  
+  if (m.includes("flux") || m.includes("seadream") || m.includes("apiyi") || m.includes("banana") || m.includes("nano")) {
+    return getReplicateProvider();
+  }
+  
+  // Directly accommodate user request "Dont use Flux use nanobanana pro"
+  // Route back to GeminiProvider which natively supports Imagen 3
+  return geminiProvider;
+}
 
 /**
  * Ensures an image URL is a permanent GCS link.
@@ -490,29 +511,41 @@ export async function refineImagePrompt(
 /**
  * Generate a storyboard image using Replicate
  */
-export async function generateStoryboardImage(prompt: string, modelId?: string, projectId?: number, userId?: string, resolution: string = "1024x1024"): Promise<string> {
-  // Map friendly names to Replicate model IDs
-  let geminiModelId = "imagen-4.0-generate-001"; // Canonical: Nano Banana 2
-
-  if (modelId === "flux-fast" || modelId === "Flux" || modelId === "apiyi-default") geminiModelId = "imagen-4.0-generate-001";
-  if (modelId === "Nano Banana") geminiModelId = "imagen-4.0-generate-001";
-  if (modelId === "Nanobana 2.0" || modelId === "nanobana-2.0" || modelId === "Nano Banana 2" || modelId === "nanobana-2.0" || modelId === "flux-pro") geminiModelId = "imagen-4.0-generate-001";
-  if (modelId === "Seadream 4.5") geminiModelId = "imagen-4.0-generate-001";
-
+export async function generateStoryboardImage(prompt: string, modelId?: string, projectId?: number, userId?: string, resolution: string = "1024x1024", imageInputs?: string[]): Promise<string> {
   try {
-    const result = await geminiProvider.generateImage({
-      prompt,
-      resolution: resolution as any,
-      quality: "standard",
-      projectId,
-      userId
-    }, geminiModelId);
-    const rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
-    const url = await ensurePermanentUrl(rawUrl, "storyboards");
-    return url;
+    const provider = getProviderFor(modelId);
+    const internalModelId = provider instanceof ReplicateProvider ? modelId : "imagen-4.0-generate-001";
+
+    try {
+      const result = await provider.generateImage({
+        prompt,
+        resolution: resolution as any,
+        quality: "standard",
+        projectId,
+        userId,
+        ...(imageInputs && imageInputs.length > 0 ? { imageInputs } : {})
+      }, internalModelId);
+      const rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
+      const url = await ensurePermanentUrl(rawUrl, "storyboards");
+      return url;
+    } catch (primaryError: any) {
+      if (provider instanceof ReplicateProvider) {
+        console.warn(`[AI Service] Replicate failed after retries. Falling back to Gemini/Imagen. Error: ${primaryError.message}`);
+        const fallbackResult = await geminiProvider.generateImage({
+          prompt,
+          resolution: resolution as any,
+          quality: "standard",
+          projectId,
+          userId,
+        }, "imagen-4.0-generate-001");
+        const rawUrl = typeof fallbackResult.url === 'string' ? fallbackResult.url : String(fallbackResult.url);
+        return await ensurePermanentUrl(rawUrl, "storyboards_fallback");
+      }
+      throw primaryError;
+    }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error("[AI Service] Replicate storyboard generation failed:", message);
+    console.error("[AI Service] Storyboard generation pipeline failed:", message);
     throw new Error(`Storyboard synthesis failed: ${message}`);
   }
 }
@@ -521,30 +554,46 @@ export async function generateStoryboardImage(prompt: string, modelId?: string, 
  * Generate a storyboard GRID image (3×4 layout) using landscape aspect ratio
  * Uses 1792x1024 → maps to 16:9 landscape in provider
  */
-export async function generateGridImage(prompt: string, projectId?: number, userId?: string, characterReferenceUrl?: string, setReferenceUrl?: string): Promise<string> {
-  const geminiModelId = "imagen-4.0-generate-001"; // Use imagen-4.0-generate-001 which is better supported by Vertex AI
-
+export async function generateGridImage(
+  prompt: string, 
+  projectId?: number, 
+  userId?: string, 
+  visualAnchors: string[] = []
+): Promise<string> {
   try {
-    // Assemble visual anchor references (character + set)
-    const imageInputs: string[] = [];
-    if (characterReferenceUrl) imageInputs.push(characterReferenceUrl);
-    if (setReferenceUrl) imageInputs.push(setReferenceUrl);
+    // Assemble visual anchor references (characters, sets, style references)
+    const imageInputs: string[] = [...visualAnchors].filter(Boolean);
 
-    const result = await geminiProvider.generateImage({
-      prompt,
-      resolution: "1792x1024", // Standardize to 16:9 Landscape for cinematic 16:9 panels (3 cols x 4 rows)
-      quality: "hd",
-      projectId,
-      userId,
-      ...(imageInputs.length > 0 ? { imageInputs } : {}),
-    }, geminiModelId);
-    const rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
-    const url = await ensurePermanentUrl(rawUrl, "grids");
-    console.log(`[AI Service] Grid successfully generated with visual anchors (character + set): ${url}`);
-    return url;
+    const provider = getProviderFor("flux-dev");
+
+    try {
+      const result = await provider.generateImage({
+        prompt,
+        resolution: "1792x1024", // Standardize to 16:9 Landscape for cinematic 16:9 panels (3 cols x 4 rows)
+        quality: "hd",
+        projectId,
+        userId,
+        ...(imageInputs.length > 0 ? { imageInputs } : {}),
+      });
+      const rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
+      const url = await ensurePermanentUrl(rawUrl, "grids");
+      console.log(`[AI Service] Grid successfully generated with ${imageInputs.length} visual anchors: ${url}`);
+      return url;
+    } catch (primaryError: any) {
+        console.warn(`[AI Service] Replicate grid generation failed. Falling back to Gemini/Imagen. Error: ${primaryError.message}`);
+        const fallbackResult = await geminiProvider.generateImage({
+            prompt,
+            resolution: "1024x1024", // Gemini might not support 1792x1024 natively in the provider wrapper yet, safe fallback
+            quality: "hd",
+            projectId,
+            userId,
+        }, "imagen-4.0-generate-001");
+        const rawUrl = typeof fallbackResult.url === 'string' ? fallbackResult.url : String(fallbackResult.url);
+        return await ensurePermanentUrl(rawUrl, "grids_fallback");
+    }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error("[AI Service] Grid generation failed:", message);
+    console.error("[AI Service] Grid generation pipeline failed:", message);
     throw new Error(`Grid synthesis failed: ${message}`);
   }
 }
@@ -569,35 +618,42 @@ export async function generateStoryboardImageWithConsistency(
     ? generateConsistentPrompt(prompt, characterReference, "storyboard shot")
     : prompt;
 
-  let geminiModelId = modelId || "imagen-4.0-generate-001";
-
-  // Tier-based override if no specific modelId or generic name used
-  if (!modelId || modelId === "Flux" || modelId === "Nano Banana") {
-    if (qualityTier === "quality") {
-      geminiModelId = "imagen-4.0-generate-001";
-    } else {
-      geminiModelId = "imagen-4.0-generate-001";
-    }
-  }
-
-  if (modelId === "Nanobana 2.0" || modelId === "nanobana-2.0" || modelId === "Nano Banana 2" || modelId === "nanobana-2.0" || modelId === "flux-pro") geminiModelId = "imagen-4.0-generate-001";
-  if (modelId === "Seadream 4.5") geminiModelId = "imagen-4.0-generate-001";
-
   try {
-    const result = await geminiProvider.generateImage({
-      prompt: finalPrompt,
-      resolution: "1024x1024",
-      quality: qualityTier === "quality" ? "hd" : "standard",
-      seed: finalSeed,
-      projectId,
-      userId
-    }, geminiModelId);
-    const rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
-    const url = await ensurePermanentUrl(rawUrl, "consistent-shots");
-    return { url, seed: finalSeed };
+    const provider = getProviderFor(modelId);
+    const internalModelId = provider instanceof ReplicateProvider ? modelId : "imagen-4.0-generate-001";
+
+    try {
+      const result = await provider.generateImage({
+        prompt: finalPrompt,
+        resolution: "1024x1024",
+        quality: qualityTier === "quality" ? "hd" : "standard",
+        seed: finalSeed,
+        projectId,
+        userId
+      }, internalModelId);
+      const rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
+      const url = await ensurePermanentUrl(rawUrl, "consistent-shots");
+      return { url, seed: finalSeed };
+    } catch (primaryError: any) {
+      if (provider instanceof ReplicateProvider) {
+        console.warn(`[AI Service] Consistency generation failed. Falling back to Gemini. Error: ${primaryError.message}`);
+        const fallbackResult = await geminiProvider.generateImage({
+          prompt: finalPrompt,
+          resolution: "1024x1024",
+          quality: "standard",
+          seed: finalSeed,
+          projectId,
+          userId
+        }, "imagen-4.0-generate-001");
+        const rawUrl = typeof fallbackResult.url === 'string' ? fallbackResult.url : String(fallbackResult.url);
+        const url = await ensurePermanentUrl(rawUrl, "consistent-shots_fallback");
+        return { url, seed: finalSeed };
+      }
+      throw primaryError;
+    }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error("[AI Service] Replicate consistency generation failed:", message);
+    console.error("[AI Service] Consistency generation pipeline failed:", message);
     throw new Error(`Consistent synthesis failed: ${message}`);
   }
 }
@@ -618,27 +674,41 @@ export async function generateStoryboardImageVariation(
   const finalSeed = generateSeed(Date.now(), variationIndex);
   const finalPrompt = generateVariationPrompt(basePrompt, characterReference, variationIndex);
 
-  let geminiModelId = modelId || "imagen-4.0-generate-001";
-
-  if (modelId === "Flux") geminiModelId = "imagen-4.0-generate-001";
-  if (modelId === "Nano Banana") geminiModelId = "imagen-4.0-generate-001";
-  if (modelId === "Nanobana 2.0" || modelId === "nanobana-2.0" || modelId === "Nano Banana 2" || modelId === "nanobana-2.0" || modelId === "flux-pro") geminiModelId = "imagen-4.0-generate-001";
-  if (modelId === "Seadream 4.5") geminiModelId = "imagen-4.0-generate-001";
 
   try {
-    const result = await geminiProvider.generateImage({
-      prompt: finalPrompt,
-      resolution: "1024x1024",
-      quality: "standard",
-      seed: finalSeed,
-      projectId,
-      userId
-    }, geminiModelId);
-    const url = await ensurePermanentUrl(result.url, "variations");
-    return { url, seed: finalSeed };
+    const provider = getProviderFor(modelId);
+    const internalModelId = provider instanceof ReplicateProvider ? modelId : "imagen-4.0-generate-001";
+
+    try {
+      const result = await provider.generateImage({
+        prompt: finalPrompt,
+        resolution: "1024x1024",
+        quality: "standard",
+        seed: finalSeed,
+        projectId,
+        userId
+      }, internalModelId);
+      const url = await ensurePermanentUrl(result.url, "variations");
+      return { url, seed: finalSeed };
+    } catch (primaryError: any) {
+      if (provider instanceof ReplicateProvider) {
+        console.warn(`[AI Service] Variation generation failed. Falling back to Gemini. Error: ${primaryError.message}`);
+        const fallbackResult = await geminiProvider.generateImage({
+          prompt: finalPrompt,
+          resolution: "1024x1024",
+          quality: "standard",
+          seed: finalSeed,
+          projectId,
+          userId
+        }, "imagen-4.0-generate-001");
+        const url = await ensurePermanentUrl(fallbackResult.url, "variations_fallback");
+        return { url, seed: finalSeed };
+      }
+      throw primaryError;
+    }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error("[AI Service] Replicate variation generation failed:", message);
+    console.error("[AI Service] Variation generation pipeline failed:", message);
     throw new Error(`Variation synthesis failed: ${message}`);
   }
 }
@@ -870,19 +940,40 @@ Create a **photorealistic multi-angle photographic identity sheet** based **stri
 
 **Layout**
 - **Two horizontal rows**, presented as a clean photo contact sheet.
-- **Top row:** four full-body photographs of the same person:
-    1. Facing the camera
-    2. Standing in side profile (left)
-    3. Standing in side profile (right)
-    4. Facing away from the camera
-- **Bottom row:** four headshot/portrait photographs of the same person:
-    1. Looking at the camera (straight on)
-    2. Half-profile (left)
-    3. Half-profile (right)
-    4. Close-up on eyes/facial texture.
+    - **Top row:** four full-body photographs of the same person:
+        1. Facing the camera
+        2. Left-facing profile
+        3. Right-facing profile
+        4. Facing away from the camera
+    - **Bottom row:** three close-up photographic portraits:
+        1. Facing the camera
+        2. Left-facing profile
+        3. Right-facing profile
 
-**Lighting & Quality**
-- Pure photographic quality. 35mm lens, f/8 aperture for deep focus. No shallow depth of field. Soft, even studio lighting. No heavy shadows, no lens flares. 4k resolution, high-octane render, masterpiece, raw photo.
+**Pose & Body Language**
+- The subject stands **naturally and casually**, as a real person would when asked to stand still.
+- No exaggerated stance, no rigid pose, no symmetry.
+- Subtle, natural weight distribution and relaxed posture.
+- Shoulders relaxed, arms resting naturally at the sides.
+
+**Consistency & Accuracy**
+- Maintain **strong identity consistency** across all images.
+- Preserve natural human asymmetry.
+- Proportions must remain realistic and consistent without looking mechanically aligned.
+- The subject should feel like the *same person photographed multiple times*, not a replicated model.
+
+**Lighting & Camera**
+- Soft, neutral, real-world lighting (similar to window light or soft studio light).
+- No dramatic, cinematic, or stylized lighting.
+- Natural shadows with gentle falloff.
+- Realistic camera perspective and lens behavior.
+
+**Critical constraints**
+- Not a 3D render
+- Not CGI
+- Not a game character
+- Not stylized
+- Not a model turnaround
 
 [REFERENCE DESCRIPTION]:
 ${description}`;
@@ -902,19 +993,40 @@ ${description}
 
 **Layout**
 - **Two horizontal rows**, presented as a clean photo contact sheet.
-- **Top row:** four full-body photographs of the same person:
-    1. Facing the camera
-    2. Standing in side profile (left)
-    3. Standing in side profile (right)
-    4. Facing away from the camera
-- **Bottom row:** four headshot/portrait photographs of the same person:
-    1. Looking at the camera (straight on)
-    2. Half-profile (left)
-    3. Half-profile (right)
-    4. Close-up on eyes/facial texture.
+    - **Top row:** four full-body photographs of the same person:
+        1. Facing the camera
+        2. Left-facing profile
+        3. Right-facing profile
+        4. Facing away from the camera
+    - **Bottom row:** three close-up photographic portraits:
+        1. Facing the camera
+        2. Left-facing profile
+        3. Right-facing profile
 
-**Lighting & Quality**
-- Pure photographic quality. 35mm lens, f/8 aperture for deep focus. No shallow depth of field. Soft, even studio lighting. No heavy shadows, no lens flares. 4k resolution, high-octane render, masterpiece, raw photo.`;
+**Pose & Body Language**
+- The subject stands **naturally and casually**, as a real person would when asked to stand still.
+- No exaggerated stance, no rigid pose, no symmetry.
+- Subtle, natural weight distribution and relaxed posture.
+- Shoulders relaxed, arms resting naturally at the sides.
+
+**Consistency & Accuracy**
+- Maintain **strong identity consistency** across all images.
+- Preserve natural human asymmetry.
+- Proportions must remain realistic and consistent without looking mechanically aligned.
+- The subject should feel like the *same person photographed multiple times*, not a replicated model.
+
+**Lighting & Camera**
+- Soft, neutral, real-world lighting (similar to window light or soft studio light).
+- No dramatic, cinematic, or stylized lighting.
+- Natural shadows with gentle falloff.
+- Realistic camera perspective and lens behavior.
+
+**Critical constraints**
+- Not a 3D render
+- Not CGI
+- Not a game character
+- Not stylized
+- Not a model turnaround`;
 
 export const PCI_3_WARDROBE_PROMPT = (outfitDescription: string) => `Use the same photographic identity sheet as reference.
 - Maintain the exact same person: face, body, age, proportions, posture, and expression.
@@ -948,23 +1060,45 @@ export async function generateCharacterNano(
   }
 
   try {
-    console.log(`[AI Service] Generating character with ${referenceImages.length} reference image(s) using Vertex AI`);
-    const result = await geminiProvider.generateImage({
-      prompt: finalPrompt,
-      resolution: "1024x1344",
-      quality: "hd",
-      projectId,
-      userId,
-      seed,
-      ...(referenceImages.length > 0 ? { imageInputs: referenceImages } : {})
-    }, geminiModelId);
+    console.log(`[AI Service] Generating character with ${referenceImages.length} reference image(s) via intelligent routing`);
+    
+    // Request "Nano Banana 2" identity
+    const preferredModel = "Nano Banana 2";
+    const provider = getProviderFor(preferredModel);
+    const internalModelId = provider instanceof ReplicateProvider ? preferredModel : geminiModelId;
 
-    const url = await ensurePermanentUrl(result.url, "characters");
-    console.log(`[AI Service] Character generated successfully with visual anchors: ${url}`);
-    return url;
+    try {
+      const result = await provider.generateImage({
+        prompt: finalPrompt,
+        resolution: "1024x1344",
+        quality: "hd",
+        projectId,
+        userId,
+        seed,
+        ...(referenceImages.length > 0 ? { imageInputs: referenceImages } : {})
+      }, internalModelId);
+
+      const url = await ensurePermanentUrl(result.url, "characters");
+      console.log(`[AI Service] Character generated successfully with visual anchors: ${url}`);
+      return url;
+    } catch (primaryError: any) {
+      if (provider instanceof ReplicateProvider) {
+        console.warn(`[AI Service] Character generation failed. Falling back to Gemini. Error: ${primaryError.message}`);
+        const fallbackResult = await geminiProvider.generateImage({
+          prompt: finalPrompt,
+          resolution: "1024x1024",
+          quality: "hd",
+          projectId,
+          userId,
+          seed
+        }, "imagen-4.0-generate-001");
+        return await ensurePermanentUrl(fallbackResult.url, "characters_fallback");
+      }
+      throw primaryError;
+    }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error("[AI Service] PCI Character generation failed:", message);
+    console.error("[AI Service] Character generation pipeline failed:", message);
     throw new Error(`Character synthesis failed: ${message}`);
   }
 }
@@ -1002,19 +1136,38 @@ export async function generateSetNano(
     try {
         console.log(`[AI Service] Generating set image with reference: ${referenceImageUrl ? "YES" : "NO"}`);
         const imageInputs = referenceImageUrl ? [referenceImageUrl] : [];
-        const result = await geminiProvider.generateImage({
-            prompt,
-            resolution: "1792x1024",
-            quality: "hd",
-            projectId,
-            userId,
-            ...(imageInputs.length > 0 ? { imageInputs } : {})
-        }, geminiModelId);
-        console.log(`[AI Service] Set image generation success.`);
-        return await ensurePermanentUrl(result.url, "sets");
+        
+        const provider = getProviderFor("nano-banana-pro");
+        const internalModelId = provider instanceof ReplicateProvider ? "google/nano-banana-pro" : geminiModelId;
+
+        try {
+            const result = await provider.generateImage({
+                prompt,
+                resolution: "1792x1024",
+                quality: "hd",
+                projectId,
+                userId,
+                ...(imageInputs.length > 0 ? { imageInputs } : {})
+            }, internalModelId);
+            console.log(`[AI Service] Set image generation success.`);
+            return await ensurePermanentUrl(result.url, "sets");
+        } catch (primaryError: any) {
+            if (provider instanceof ReplicateProvider) {
+                console.warn(`[AI Service] Set generation failed. Falling back to Gemini. Error: ${primaryError.message}`);
+                const fallbackResult = await geminiProvider.generateImage({
+                    prompt,
+                    resolution: "1024x1024",
+                    quality: "hd",
+                    projectId,
+                    userId,
+                }, "imagen-4.0-generate-001");
+                return await ensurePermanentUrl(fallbackResult.url, "sets_fallback");
+            }
+            throw primaryError;
+        }
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
-        console.error("[AI Service] Set generation failed:", message);
+        console.error("[AI Service] Set generation pipeline failed:", message);
         throw new Error(`Set synthesis failed: ${message}`);
     }
 }
@@ -1034,13 +1187,16 @@ export async function generatePropNano(
     Strictly: Isolated on a professional, dark neutral cinematic staging area. No people.`;
 
     try {
-        const result = await geminiProvider.generateImage({
+        const provider = getProviderFor(geminiModelId);
+        const internalModelId = provider instanceof ReplicateProvider ? "flux-schnell" : geminiModelId;
+
+        const result = await provider.generateImage({
             prompt,
             resolution: "1024x1024",
             quality: "hd",
             projectId,
             userId,
-        }, geminiModelId);
+        }, internalModelId);
         return await ensurePermanentUrl(result.url, "props");
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);

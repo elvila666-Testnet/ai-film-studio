@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Trash2, Star, Sparkles, User, ImageIcon, X, Maximize2, CheckCircle2, AlertCircle } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { CharacterTrainingDialog } from "./CharacterTrainingDialog";
 import { useAIProcessing } from "@/lib/aiProcessingContext";
 
 interface CharacterCastingTabProps {
@@ -19,10 +18,38 @@ export default function CharacterCastingTab({ projectId }: CharacterCastingTabPr
   const lockedCharacterQuery = trpc.characters.getLocked.useQuery({ projectId });
   const projectQuery = trpc.projects.get.useQuery({ id: projectId });
 
-  const lockCharacterMutation = trpc.characters.lock.useMutation();
-  const unlockCharacterMutation = trpc.characters.unlock.useMutation();
-  const deleteCharacterMutation = trpc.characters.delete.useMutation();
-  const updateCharacterMutation = trpc.characters.update.useMutation();
+  const utils = trpc.useContext();
+
+  const lockCharacterMutation = trpc.characters.lock.useMutation({
+    onSuccess: () => {
+      utils.characters.list.invalidate({ projectId });
+      utils.characters.getLocked.invalidate({ projectId });
+      toast.success("Character locked for production");
+    }
+  });
+  
+  const unlockCharacterMutation = trpc.characters.unlock.useMutation({
+    onSuccess: () => {
+      utils.characters.list.invalidate({ projectId });
+      utils.characters.getLocked.invalidate({ projectId });
+    }
+  });
+  
+  const deleteCharacterMutation = trpc.characters.delete.useMutation({
+    onSuccess: () => {
+      utils.characters.list.invalidate({ projectId });
+      utils.characters.getLocked.invalidate({ projectId });
+      toast.success("Character removed");
+    }
+  });
+  
+  const updateCharacterMutation = trpc.characters.update.useMutation({
+    onSuccess: () => {
+      utils.characters.list.invalidate({ projectId });
+      utils.characters.getLocked.invalidate({ projectId });
+    }
+  });
+  
   const generateOptionsMutation = trpc.casting.characterLibrary.generateOptions.useMutation();
   const generateCharacterOptionImageMutation = trpc.casting.characterLibrary.generateCharacterOptionImage.useMutation();
 
@@ -97,7 +124,8 @@ export default function CharacterCastingTab({ projectId }: CharacterCastingTabPr
       const charUrls = lockedChars.map(c => c.imageUrl).filter(url => url && url !== "draft");
       const result = await validateCastingMutation.mutateAsync({
         projectId,
-        castingOutput: `Validated ${lockedChars.length} characters: ${lockedChars.map(c => c.name).join(", ")}`,
+        castingOutput: `Validated ${lockedChars.length} characters:\n\n` + 
+          lockedChars.map(c => `[NAME] ${c.name}\n[TRAITS] ${c.traits || 'N/A'}\n[DESCRIPTION (Wardrobe, Props, Performance)]\n${c.description}`).join("\n\n---\n\n"),
         characterUrls: charUrls
       });
       setValidationResult(result);
@@ -131,7 +159,6 @@ export default function CharacterCastingTab({ projectId }: CharacterCastingTabPr
             {isGeneratingOptions ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
             Discover Talent (AI)
           </Button>
-          <CharacterTrainingDialog projectId={projectId} />
         </div>
       </div>
 

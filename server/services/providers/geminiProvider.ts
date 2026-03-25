@@ -5,7 +5,7 @@ import {
     VideoGenerationResult,
 } from "./types";
 import { ENV } from "../../_core/env";
-import { GenerativeModel, VertexAI } from "@google-cloud/aiplatform";
+import { VertexAI } from "@google-cloud/vertexai";
 
 /**
  * Gemini/Vertex AI Provider - Nanobanana 2.0 Edition
@@ -20,7 +20,6 @@ import { GenerativeModel, VertexAI } from "@google-cloud/aiplatform";
 export class GeminiProvider {
     private apiKey: string;
     private projectId: string;
-    private vertexAI: VertexAI | null = null;
     private readonly geminiBaseUrl = "https://generativelanguage.googleapis.com/v1beta/models";
     private readonly vertexBaseUrl = "https://us-central1-aiplatform.googleapis.com/v1/projects"; // Base URL for Vertex AI prediction
 
@@ -30,11 +29,11 @@ export class GeminiProvider {
         
         // Initialize Vertex AI SDK if credentials are available
         try {
-            this.vertexAI = new VertexAI({
+            new VertexAI({
                 project: this.projectId,
                 location: "us-central1",
             });
-            console.log("[GeminiProvider] Vertex AI SDK initialized successfully");
+            console.log("[GeminiProvider] Vertex AI SDK validated successfully");
         } catch (error) {
             console.warn("[GeminiProvider] Vertex AI SDK initialization failed, will use REST API:", error);
         }
@@ -87,38 +86,56 @@ export class GeminiProvider {
 
     /**
      * Internal: Generate image using Vertex AI API
+     * When imageInputs are provided, switches to imagen-3.0-capability-001
+     * (imagen-4.0 does NOT support referenceImages)
      */
     private async generateImageWithVertexAI(
         params: ImageGenerationParams,
         modelId: string,
         startTime: number
     ): Promise<ImageGenerationResult> {
-        // Use Vertex AI endpoint
-        const url = `${this.vertexBaseUrl}/${this.projectId}/locations/us-central1/publishers/google/models/${modelId}:predict`;
-        
-        console.log(`[GeminiProvider] Calling Vertex AI endpoint: ${url}`);
+        const hasImageRefs = params.imageInputs && params.imageInputs.length > 0;
 
-        // Add timeout protection (30 seconds)
+        // imagen-4.0-generate-001 does NOT support referenceImages.
+        // Switch to imagen-3.0-capability-001 when we need image anchors.
+        const effectiveModel = hasImageRefs ? "imagen-3.0-capability-001" : modelId;
+
+        const url = `${this.vertexBaseUrl}/${this.projectId}/locations/us-central1/publishers/google/models/${effectiveModel}:predict`;
+        
+        console.log(`[GeminiProvider] Calling Vertex AI endpoint: ${url} (imageRefs: ${hasImageRefs ? params.imageInputs!.length : 0})`);
+
+        // Add timeout protection (60 seconds for reference image processing)
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        const timeoutId = setTimeout(() => controller.abort(), hasImageRefs ? 60000 : 30000);
 
         try {
-            // Prepare payload
+            // Prepare base instance
+            const instance: Record<string, unknown> = {
+                prompt: params.prompt,
+            };
+
+            if (hasImageRefs) {
+                const imgInput = params.imageInputs![0];
+                let base64Data: string;
+
+                if (imgInput.startsWith('data:')) {
+                    base64Data = imgInput.split(',')[1];
+                } else if (imgInput.startsWith('http')) {
+                    base64Data = await this.downloadImageAsBase64(imgInput);
+                } else {
+                    base64Data = imgInput;
+                }
+
+                // Add the image to the instance for Vertex AI image-to-image
+                instance.image = {
+                    bytesBase64Encoded: base64Data,
+                    mimeType: "image/jpeg"
+                };
+                console.log(`[GeminiProvider] Inserted primary reference image into payload`);
+            }
+
             const payload = {
-                instances: [
-                    {
-                        prompt: params.prompt,
-                        ...(params.imageInputs && params.imageInputs.length > 0 && {
-                            image: {
-                                bytesBase64Encoded: params.imageInputs[0].startsWith('data:') 
-                                    ? params.imageInputs[0].split(',')[1] 
-                                    : (params.imageInputs[0].startsWith('http') 
-                                        ? await this.downloadImageAsBase64(params.imageInputs[0]) 
-                                        : params.imageInputs[0])
-                            }
-                        })
-                    }
-                ],
+                instances: [instance],
                 parameters: {
                     sampleCount: params.count || 1,
                     aspectRatio: this.getAspectRatio(params.resolution),
@@ -147,11 +164,11 @@ export class GeminiProvider {
             });
             
             clearTimeout(timeoutId);
-            return await this.handleVertexAIResponse(response, params, modelId, startTime);
+            return await this.handleVertexAIResponse(response, params, effectiveModel, startTime);
             
-        } catch (fetchError: any) {
+        } catch (fetchError: unknown) {
             clearTimeout(timeoutId);
-            if (fetchError.name === 'AbortError') {
+            if (fetchError instanceof Error && fetchError.name === 'AbortError') {
                 console.log(`[GeminiProvider] Vertex AI timeout, falling back to Gemini REST API...`);
                 return await this.generateImageWithGeminiREST(params, modelId, startTime);
             }
@@ -173,7 +190,14 @@ export class GeminiProvider {
             const errText = await response.text();
             console.error(`[GeminiProvider] Vertex AI Error (${response.status}): ${errText}`);
             
-            // Fall back to Gemini REST API if Vertex AI fails
+            // If we have image references, DO NOT fall back to Gemini REST API because it does not support image-to-image.
+            // Throw the explicit Vertex error so the UI can surface quota/permission issues.
+            const hasImageRefs = params.imageInputs && params.imageInputs.length > 0;
+            if (hasImageRefs) {
+                 throw new Error(`Vertex AI Img2Img Error (${response.status}): ${errText}`);
+            }
+
+            // Fall back to Gemini REST API if Vertex AI fails for text-to-image
             console.log(`[GeminiProvider] Falling back to Gemini REST API...`);
             return await this.generateImageWithGeminiREST(params, modelId, startTime);
         }
@@ -218,8 +242,12 @@ export class GeminiProvider {
         startTime: number
     ): Promise<ImageGenerationResult> {
         try {
-            // Use Imagen 3.0 via REST API
-            const imagenModel = modelId.includes("imagen") ? modelId : "imagen-3.0-generate-001";
+            // Use Imagen 3.0 via REST API (Vertex models 4.0 and capabilities are not in standard free tier)
+            let imagenModel = modelId.includes("imagen") ? modelId : "imagen-3.0-generate-001";
+            if (imagenModel.includes("4.0") || imagenModel.includes("capability")) {
+                imagenModel = "imagen-3.0-generate-001";
+            }
+
             const payload: any = {
                 instances: [
                     {

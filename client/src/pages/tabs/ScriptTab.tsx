@@ -52,6 +52,15 @@ export default function ScriptTab({ projectId }: ScriptTabProps) {
       toast.success("✅ Script approved! Director can now start the technical breakdown.");
     }
   });
+  const unlockScriptMutation = trpc.scriptWriter.unlockScript.useMutation({
+    onSuccess: () => {
+      statusQuery.refetch();
+      toast.success("Script Unlocked. Edit mode enabled.");
+    },
+    onError: (err) => {
+      toast.error(`Failed to unlock script: ${err.message}`);
+    }
+  });
   const updateMutation = trpc.projects.updateContent.useMutation();
 
   const scriptStatus = statusQuery.data?.scriptStatus;
@@ -227,19 +236,13 @@ export default function ScriptTab({ projectId }: ScriptTabProps) {
             </Button>
           ) : (
             <Button
-              onClick={async () => { 
-                try {
-                  await trpc.useUtils().client.scriptWriter.unlockScript.mutate({ projectId });
-                  toast.success("Script Unlocked. Edit mode enabled.");
-                  statusQuery.refetch();
-                } catch {
-                  toast.error("Failed to unlock script");
-                }
-              }}
+              onClick={() => unlockScriptMutation.mutate({ projectId })}
+              disabled={unlockScriptMutation.isPending}
               variant="secondary"
               className="h-12 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/30 rounded-xl px-8 font-black uppercase text-[10px] tracking-widest transition-all"
             >
-              <Unlock className="w-4 h-4 mr-2" /> Edit Mode
+              {unlockScriptMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Unlock className="w-4 h-4 mr-2" />}
+              Edit Mode
             </Button>
           )}
         </div>
@@ -281,6 +284,7 @@ export default function ScriptTab({ projectId }: ScriptTabProps) {
           script={script}
           onScriptChange={setScript}
           isLocked={isApproved}
+          isGenerating={generateScriptMutation.isPending}
         />
         <div className="space-y-6">
           <ScriptRefinementPanel

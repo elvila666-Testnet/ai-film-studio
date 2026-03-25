@@ -75,13 +75,13 @@ ${refinementNotes ? `\n### REFINEMENT INSTRUCTIONS ###\nThe Director has provide
   "sets": [
     {
       "name": "Set Name",
-      "description": "Tactile description...",
-      "atmospherePhilosophy": "Emotional weight...",
-      "imageGenerationPrompt": "Wide-angle set photo prompt...",
+      "description": "[ARCHITECTURE] Exact structural layout [MATERIALS] Specific textures (e.g. aged concrete, brushed steel) [COLOR PALETTE] Exact hex dominance [HERO PROPS] Explicit list of props housed here",
+      "atmospherePhilosophy": "[LIGHTING] Cinematic illumination [EMOTION] The narrative weight of the room",
+      "imageGenerationPrompt": "8K Wide-angle set photo prompt...",
       "props": [
         {
           "name": "Prop Name",
-          "description": "Physical details...",
+          "description": "[MATERIAL] Physical construction [COLOR] Precise hue",
           "symbolism": "Narrative purpose",
           "imageGenerationPrompt": "Macro detail shot prompt..."
         }

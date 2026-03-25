@@ -7,6 +7,7 @@ interface ScreenplayEditorProps {
     script: string;
     onScriptChange: (val: string) => void;
     isLocked: boolean;
+    isGenerating?: boolean;
 }
 
 export function ScreenplayEditor({
@@ -14,7 +15,8 @@ export function ScreenplayEditor({
     onSynopsisChange,
     script,
     onScriptChange,
-    isLocked
+    isLocked,
+    isGenerating
 }: ScreenplayEditorProps) {
     return (
         <div className="lg:col-span-2 space-y-8">
@@ -60,8 +62,18 @@ export function ScreenplayEditor({
                 </div>
                 
                 <div className="relative">
-                    {isLocked && (
-                        <div className="absolute inset-0 z-10 bg-[#020205]/10 backdrop-blur-[2px] transition-all duration-700" />
+                    {(isLocked || isGenerating) && (
+                        <div className="absolute inset-0 z-10 bg-[#020205]/40 backdrop-blur-[2px] transition-all duration-700 flex items-center justify-center">
+                            {isGenerating && (
+                                <div className="flex flex-col items-center gap-4 bg-black/80 p-8 rounded-3xl border border-primary/20 shadow-2xl shadow-primary/20 animate-pulse">
+                                    <Sparkles className="w-10 h-10 text-primary animate-spin" />
+                                    <div className="text-center">
+                                        <h4 className="text-white font-black uppercase tracking-[0.2em] mb-1">Synthesizing Screenplay</h4>
+                                        <p className="text-xs text-primary font-mono select-none">AI is analyzing context...</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     )}
                     <Textarea
                         placeholder="Neural script engine ready. Use the Generator or start typing the screenplay..."
