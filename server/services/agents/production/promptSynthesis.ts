@@ -57,23 +57,39 @@ CORE PRINCIPLES:
 **Visual Continuity Rules:** ${params.visualContinuityRules}
 **Character Anchors:** ${params.visualIdentityAnchor}
 
-# DIRECTOR'S GLOBAL INSTRUCTIONS
+// DIRECTOR'S GLOBAL INSTRUCTIONS
 ${params.globalInstructions || "None provided. Use your best creative judgment based on the brief."}
 
 # STORYBOARD SPECIFICATION (Page ${params.pageIndex + 1} of ${params.totalPages})
 ${params.storyIntent}
 
-# FRAME-BY-FRAME DESCRIPTIONS (3×4 GRID)
-${params.frames.map(f => `### Frame ${f.frameNumber} (Shot ID: ${f.shotId})
+# FRAME-BY-FRAME DESCRIPTIONS (STRICT 3×4 GRID - 12 PANELS)
+${(() => {
+    const fullFrames = [...params.frames];
+    while (fullFrames.length < 12) {
+        fullFrames.push({
+            frameNumber: fullFrames.length + 1,
+            shotId: -1,
+            cameraAngle: "N/A",
+            action: "BLANK SLATE: A clean, empty gray photographic panel. No characters. No action. Just a professional blank framing placeholder to maintain the 3x4 grid structure.",
+            characterRefs: [],
+            moodboardRefs: [],
+            motionPrompt: ""
+        });
+    }
+    return fullFrames.map(f => `### Panel ${f.frameNumber} ${f.shotId === -1 ? "(EMPTY PLACEHOLDER)" : `(Shot ID: ${f.shotId})`}
 - Action: ${f.action}
 - Framing: ${f.cameraAngle}
-`).join("\n")}
+`).join("\n");
+})()}
 
 ---
 TASK: 
 Synthesize all the above into a MASTER PROMPT. 
 - Use the Nanobanana 2.0 structure.
-- Explicitly demand a "3 columns and 4 rows" grid layout.
+- MANDATORY: Demand a "STRICT 3 columns and 4 rows" grid layout on a single 4:3 canvas.
+- IMPORTANT: If a panel is marked as "BLANK SLATE", render it as a solid gray or darkened empty frame.
+- Ensure the total output is exactly 12 panels (3 across, 4 down).
 - Ensure the prompt is rich, photographic, and cinematic.
 - DO NOT return JSON. Return the final prompt ONLY as a raw string.
 `;

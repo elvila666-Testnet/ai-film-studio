@@ -569,7 +569,7 @@ export async function generateGridImage(
     try {
       const result = await provider.generateImage({
         prompt,
-        resolution: "1792x1024", 
+        resolution: "1344x1024", 
         quality: "hd",
         projectId,
         userId,

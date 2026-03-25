@@ -43,7 +43,7 @@ export class ReplicateProvider {
     async generateImage(params: ImageGenerationParams, modelId?: string): Promise<ImageGenerationResult> {
         const startTime = Date.now();
         const hasImageRefs = params.imageInputs && params.imageInputs.length > 0;
-        const isGrid = params.resolution === "1792x1024" || params.resolution === "1024x1792" || params.prompt.toLowerCase().includes("grid");
+        const isGrid = params.resolution === "1792x1024" || params.resolution === "1344x1024" || params.resolution === "1024x1792" || params.prompt.toLowerCase().includes("grid");
 
         // Default to schnëll for fast text-to-image, or dev/pro for high quality/image-to-image
         // If image inputs are provided, we must use a model that supports image_prompt or image-to-image
