@@ -368,4 +368,31 @@ export const directorRouter = router({
                 hasTechnicalScript: !!content?.technicalShots,
             };
         }),
+    debugShots: protectedProcedure
+        .input(z.object({ projectId: z.number() }))
+        .mutation(async ({ input }) => {
+            const db = await getDb();
+            if (!db) return { error: "No DB" };
+            const { scenes, shots } = await import("../../drizzle/schema");
+            const { eq, inArray } = await import("drizzle-orm");
+            const sceneList = await db.select().from(scenes).where(eq(scenes.projectId, input.projectId));
+            
+            console.log(`[DEBUG] Project ${input.projectId}: ${sceneList.length} scenes found.`);
+            
+            if (sceneList.length === 0) return { scenes: 0, shots: 0 };
+            const sceneIds = sceneList.map((s: { id: number }) => s.id);
+            const shotList = await db.select().from(shots).where(inArray(shots.sceneId, sceneIds));
+            
+            console.log(`[DEBUG] Project ${input.projectId}: ${shotList.length} shots found.`);
+            
+            return {
+                scenes: sceneList.length,
+                shots: shotList.length,
+                sceneIdMap: sceneList.map((s: { id: number; order: number }) => ({ 
+                    id: s.id, 
+                    order: s.order, 
+                    shots: shotList.filter((sh: { sceneId: number }) => sh.sceneId === s.id).length 
+                }))
+            };
+        }),
 });
