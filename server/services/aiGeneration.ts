@@ -564,17 +564,17 @@ export async function generateGridImage(
     // Assemble visual anchor references (characters, sets, style references)
     const imageInputs: string[] = [...visualAnchors].filter(Boolean);
 
-    const provider = getProviderFor("flux-dev");
+    const provider = getProviderFor("nano-banana-pro");
 
     try {
       const result = await provider.generateImage({
         prompt,
-        resolution: "1792x1024", // Standardize to 16:9 Landscape for cinematic 16:9 panels (3 cols x 4 rows)
+        resolution: "1792x1024", 
         quality: "hd",
         projectId,
         userId,
         ...(imageInputs.length > 0 ? { imageInputs } : {}),
-      });
+      }, "nano-banana-pro");
       const rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
       const url = await ensurePermanentUrl(rawUrl, "grids");
       console.log(`[AI Service] Grid successfully generated with ${imageInputs.length} visual anchors: ${url}`);
