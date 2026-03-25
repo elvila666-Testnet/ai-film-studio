@@ -203,13 +203,13 @@ export async function breakdownScript(
                     await db.insert(shots).values({
                         sceneId: insertedScene.id,
                         order: shot.shotNumber,
-                        visualDescription: shot.visualDescription,
-                        cameraAngle: shot.cameraAngle || shot.cinematographyNotes || "Medium Shot",
-                        movement: shot.movement || "Static",
-                        lighting: shot.lighting || "Cinematic",
-                        lens: shot.lens || "35mm",
-                        audioDescription: shot.audioNotes || "Ambient",
-                        aiBlueprint: shot,
+                        visualDescription: String(shot.visualDescription || ""),
+                        cameraAngle: String(shot.cameraAngle || shot.cinematographyNotes || "Medium Shot").substring(0, 255),
+                        movement: String(shot.movement || "Static"),
+                        lighting: String(shot.lighting || "Cinematic"),
+                        lens: String(shot.lens || "35mm"),
+                        audioDescription: String(shot.audioNotes || "Ambient"),
+                        aiBlueprint: JSON.stringify(shot),
                         status: "planned"
                     });
                 }
