@@ -212,15 +212,16 @@ export function DirectorView({ projectId }: DirectorViewProps) {
                         </Button>
                     )}
                     
-                    {/* Tiny Debug Button at the end */}
+                    {/* Visible Debug Button */}
                     <Button 
                         onClick={() => debugShotsMutation.mutate({ projectId })}
-                        variant="ghost" 
+                        variant="outline" 
                         size="sm" 
-                        className="h-8 w-8 p-0 opacity-20 hover:opacity-100"
+                        className="h-8 px-2 border-amber-500/50 text-amber-500 hover:bg-amber-500 hover:text-white text-[10px] font-bold uppercase tracking-tighter"
                         title="Debug DB Sync"
                     >
-                        <AlertCircle className="w-3 h-3 text-white" />
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        DB SYNC
                     </Button>
                 </div>
             </div>
