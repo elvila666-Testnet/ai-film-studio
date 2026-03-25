@@ -262,9 +262,9 @@ export const storyboardRouter = router({
         const { getBuiltPrompts, buildStoryboardPrompts } = await import("../services/agents/production/promptEngineerAgent");
         
         let gridPrompts = await getBuiltPrompts(input.projectId);
-        if (!gridPrompts || gridPrompts.length === 0 || input.visualStyle) {
-            console.log("[Storyboard] Building storyboard prompts with visualStyle:", input.visualStyle || "default");
-            gridPrompts = await buildStoryboardPrompts(input.projectId, input.visualStyle);
+        if (!gridPrompts || gridPrompts.length === 0 || input.visualStyle || input.globalInstructions) {
+            console.log("[Storyboard] Building storyboard prompts with visualStyle:", input.visualStyle || "default", "and globalInstructions:", input.globalInstructions || "none");
+            gridPrompts = await buildStoryboardPrompts(input.projectId, input.visualStyle, input.globalInstructions);
         }
 
         const { getDb, storyboardImages, saveStoryboardImage } = await import("../db");
