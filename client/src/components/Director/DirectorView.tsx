@@ -95,8 +95,11 @@ export function DirectorView({ projectId }: DirectorViewProps) {
 
     const scriptStatus = statusQuery.data?.scriptStatus;
     const technicalStatus = statusQuery.data?.technicalScriptStatus;
+    const shotCount = statusQuery.data?.shotCount || 0;
+    
     const scriptApproved = scriptStatus === "approved";
     const technicalApproved = technicalStatus === "approved";
+    const shotsMissing = technicalApproved && shotCount === 0;
 
     const content = projectQuery.data?.content;
     const proposalContentData = (content as any)?.creativeProposal;
@@ -190,14 +193,14 @@ export function DirectorView({ projectId }: DirectorViewProps) {
                         </Button>
                     )}
 
-                    {proposalApproved && !technicalApproved && technicalStatus !== 'pending_review' && (
+                    {proposalApproved && (!technicalApproved || shotsMissing) && technicalStatus !== 'pending_review' && (
                         <Button
                             onClick={handleBreakdown}
                             disabled={breakdownMutation.isPending}
-                            className="bg-primary hover:bg-primary/90 text-white font-bold h-10 px-6 rounded-xl shadow-lg shadow-primary/20"
+                            className={`${shotsMissing ? "bg-amber-600 hover:bg-amber-700" : "bg-primary hover:bg-primary/90"} text-white font-bold h-10 px-6 rounded-xl shadow-lg shadow-primary/20`}
                         >
                             {breakdownMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                            Run Technical Breakdown
+                            {shotsMissing ? "Re-sync Relational Data" : "Run Technical Breakdown"}
                         </Button>
                     )}
 

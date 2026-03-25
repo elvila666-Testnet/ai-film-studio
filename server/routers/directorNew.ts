@@ -362,10 +362,26 @@ export const directorRouter = router({
         .input(z.object({ projectId: z.number() }))
         .query(async ({ input }) => {
             const content = await getProjectContent(input.projectId);
+            const db = await getDb();
+            let sceneCount = 0;
+            let shotCount = 0;
+            if (db) {
+                const { scenes, shots } = await import("../../drizzle/schema");
+                const { eq, inArray } = await import("drizzle-orm");
+                const sceneList = await db.select({ id: scenes.id }).from(scenes).where(eq(scenes.projectId, input.projectId));
+                sceneCount = sceneList.length;
+                if (sceneCount > 0) {
+                    const sceneIds = sceneList.map((s: { id: number }) => s.id);
+                    const shotList = await db.select({ id: shots.id }).from(shots).where(inArray(shots.sceneId, sceneIds));
+                    shotCount = shotList.length;
+                }
+            }
             return {
                 scriptStatus: content?.scriptStatus ?? "draft",
                 technicalScriptStatus: content?.technicalScriptStatus ?? "draft",
                 hasTechnicalScript: !!content?.technicalShots,
+                sceneCount,
+                shotCount
             };
         }),
     debugShots: protectedProcedure
