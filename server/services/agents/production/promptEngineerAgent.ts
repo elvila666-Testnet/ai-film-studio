@@ -6,7 +6,6 @@ import { getLockedCharacters } from "../../../db/characters";
 import { 
     synthesizeMasterPrompt, 
     StoryboardFramePrompt, 
-    SynthesisParams,
     buildFallbackMasterPrompt 
 } from "./promptSynthesis";
 
@@ -87,7 +86,7 @@ export async function buildStoryboardPrompts(
     // 2. Build Visual Identity Anchor from Locked Characters
     const lockedChars = await getLockedCharacters(projectId);
     const visualIdentityAnchor = lockedChars
-        .map(c => `CHARACTER "${c.name}": ${c.description}. FACE REFERENCE: ${c.imageUrl}`)
+        .map((c: any) => `CHARACTER "${c.name}": ${c.description}. FACE REFERENCE: ${c.imageUrl}`)
         .join("\n");
 
     // 3. Collect ALL shots for the project
@@ -107,7 +106,12 @@ export async function buildStoryboardPrompts(
         }
     }
 
-    if (allShots.length === 0) throw new TRPCError({ code: "BAD_REQUEST", message: "No shots found." });
+    if (allShots.length === 0) {
+        throw new TRPCError({ 
+            code: "BAD_REQUEST", 
+            message: "No shots found in project. Please ensure scenes have been approved and the Cinema Pipeline has been run to generate shot blueprints." 
+        });
+    }
 
     // 4. Group into 3x4 Grid Pages (12 shots per page)
     const FRAMES_PER_PAGE = 12;

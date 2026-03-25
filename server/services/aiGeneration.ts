@@ -587,14 +587,15 @@ export async function generateGridImage(
       console.log(`[AI Service] Grid successfully generated with ${imageInputs.length} visual anchors: ${url}`);
       return url;
     } catch (primaryError: any) {
-        console.warn(`[AI Service] Replicate grid generation failed. Falling back to Gemini/Imagen. Error: ${primaryError.message}`);
+        console.warn(`[AI Service] Replicate grid generation failed. Falling back to Google Nano Banana 2. Error: ${primaryError.message}`);
         const fallbackResult = await geminiProvider.generateImage({
             prompt,
-            resolution: "1024x1024", // Gemini might not support 1792x1024 natively in the provider wrapper yet, safe fallback
+            resolution: "1024x1024", 
             quality: "hd",
             projectId,
             userId,
-        }, "imagen-4.0-generate-001");
+            ...(imageInputs.length > 0 ? { imageInputs } : {}),
+        }, "gemini-3.1-flash-image-preview");
         const rawUrl = typeof fallbackResult.url === 'string' ? fallbackResult.url : String(fallbackResult.url);
         return await ensurePermanentUrl(rawUrl, "grids_fallback");
     }
