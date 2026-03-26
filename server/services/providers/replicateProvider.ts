@@ -84,16 +84,16 @@ export class ReplicateProvider {
             }
 
             // Handle image-to-image / anchors
-            if (hasImageRefs) {
+            if (hasImageRefs && params.imageInputs) {
                 if (replicateModel.includes("nano-banana-pro")) {
                     // Nano Banana Pro expects an array of URIs under 'image_input'
+                    // We also set 'image' just in case it supports standard Img2Img
                     input.image_input = params.imageInputs;
+                    input.image = params.imageInputs[0];
+                    input.prompt_strength = 0.60;
                 } else if (!isGrid) {
-                    // Flux Pro Img2Img: ONLY use for single frames, NOT for grids.
-                    // If it's a grid, we want Text-to-Image with the grid layout prompt, 
-                    // and anchors should be used as references (LoRA/etc) not as the canvas.
-                    input.image = params.imageInputs![0];
-                    input.prompt_strength = 0.85;
+                    input.image = params.imageInputs[0];
+                    input.prompt_strength = 0.60;
                 } else {
                     console.log("[ReplicateProvider] Skipping Img2Img for Grid request to preserve layout. Using anchors as semantic context only.");
                 }

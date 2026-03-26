@@ -40,7 +40,13 @@ function getProviderFor(modelId?: string) {
  * If it's a base64 Data URI, uploads it to GCS.
  * If it's a temporary URL (like Replicate), downloads and uploads to GCS.
  */
-export async function ensurePermanentUrl(url: string, folder: string = "generations"): Promise<string> {
+export async function ensurePermanentUrl(input: string | Buffer, folder: string = "generations"): Promise<string> {
+  if (Buffer.isBuffer(input)) {
+    const { uploadBufferToGCS } = await import("../_core/gcs");
+    return await uploadBufferToGCS(input, folder, `image_${Date.now()}.png`);
+  }
+
+  const url = input;
   if (url.startsWith("data:image/")) {
     return await uploadBase64Image(url, folder);
   }
@@ -565,11 +571,11 @@ export async function generateGridImage(
   prompt: string, 
   projectId?: number, 
   userId?: string, 
-  visualAnchors: string[] = []
+  ...visualAnchors: (string | undefined)[]
 ): Promise<string> {
   try {
     // Assemble visual anchor references (characters, sets, style references)
-    const imageInputs: string[] = [...visualAnchors].filter(Boolean);
+    const imageInputs: string[] = visualAnchors.filter((a): a is string => !!a);
 
     const provider = getProviderFor("nano-banana-pro");
 

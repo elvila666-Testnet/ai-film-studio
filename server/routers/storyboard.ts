@@ -9,6 +9,87 @@ export const storyboardRouter = router({
       const { getStoryboardImages } = await import("../db");
       return getStoryboardImages(input.projectId);
     }),
+    
+  getShotsWithState: publicProcedure
+    .input(z.object({ projectId: z.number() }))
+    .query(async ({ input }) => {
+      const { getShotsWithState } = await import("../db/storyboard");
+      return getShotsWithState(input.projectId);
+    }),
+
+  bulkMaterialize: protectedProcedure
+    .input(z.object({ projectId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const { getShotsWithState } = await import("../db/storyboard");
+      const { generateStoryboardImage } = await import("../services/aiGeneration");
+      const { saveStoryboardImage } = await import("../db/storyboard");
+      const { getDb } = await import("../db");
+      const { storyboardImages: sbTable } = await import("../../drizzle/schema");
+      const { eq, and, gte } = await import("drizzle-orm");
+      
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const allShots = await getShotsWithState(input.projectId) as any[];
+      const missingShots = allShots.filter((s: any) => !s.imageUrl);
+      
+      // Fetch grids once for bulk operation
+      const grids = await db.select().from(sbTable).where(
+        and(
+          eq(sbTable.projectId, input.projectId),
+          gte(sbTable.shotNumber, 1000)
+        )
+      ).orderBy(sbTable.shotNumber);
+
+      console.log(`[BulkMaterialize] Processing ${missingShots.length} shots for project ${input.projectId} using ${grids.length} grid pages as anchors.`);
+      
+      const results = await Promise.allSettled(missingShots.map(async (shot: any) => {
+        try {
+          const pageIdx = Math.floor((shot.shotNumber - 1) / 12);
+          const gridForShot = grids[pageIdx];
+          
+          let visualAnchors: string[] = [];
+          let identityInstruction = "";
+          
+          if (gridForShot) {
+              const { cropGridTile } = await import("../services/imageProcessing");
+              const localIdx = (shot.shotNumber - 1) % 12;
+              const row = Math.floor(localIdx / 3) + 1;
+              const col = (localIdx % 3) + 1;
+              
+              try {
+                  const croppedTileUrl = await cropGridTile(gridForShot.imageUrl, row, col, input.projectId);
+                  visualAnchors.push(croppedTileUrl);
+                  identityInstruction = `MATCH-IDENTITY MANDATE: You are UPSCALEING and ENHANCING the provided visual anchor image. Lock composition, subject pose, and lighting to match this reference 100%. No visual changes to characters or environment allowed. `;
+              } catch (cropErr) {
+                  console.warn("[BulkMaterialize] Tile crop failed, falling back to full grid:", cropErr);
+                  visualAnchors.push(gridForShot.imageUrl);
+                  identityInstruction = `MATCH-IDENTITY MANDATE: Replicate Tile at Row ${row}, Column ${col} from the provided Storyboard Grid reference. Match composition, lighting, and subject exactly. `;
+              }
+          }
+
+          const prompt = `8K RAW cinematic photograph. ACTION: ${shot.description || "Production shot"}. ${identityInstruction}`;
+          const url = await generateStoryboardImage(
+            prompt, 
+            "nano-banana-pro", 
+            input.projectId, 
+            ctx.user.id.toString(), 
+            "1024x1024",
+            visualAnchors
+          );
+          await saveStoryboardImage(input.projectId, Number(shot.globalShotNumber), url, prompt);
+          return { shotNumber: shot.globalShotNumber, success: true };
+        } catch (e) {
+          console.error(`[BulkMaterialize] Failed shot ${shot.globalShotNumber}:`, e);
+          return { shotNumber: shot.globalShotNumber, success: false };
+        }
+      }));
+      
+      return { 
+        processed: missingShots.length, 
+        successCount: results.filter(r => r.status === 'fulfilled').length 
+      };
+    }),
 
   saveImage: publicProcedure
     .input(z.object({
@@ -38,38 +119,76 @@ export const storyboardRouter = router({
   generateShot: protectedProcedure
     .input(z.object({
       projectId: z.number(),
-      shotNumber: z.number(),
+      shotNumber: z.number(), // This is the SHOT ID + offset (1,000,000)
       prompt: z.string(),
     }))
     .mutation(async ({ input, ctx }) => {
       try {
         const { getLockedCharacters } = await import("../db/characters");
         const { getProjectPDSets } = await import("../db/productionDesign");
-        const { saveStoryboardImage, getDb, shots, scenes } = await import("../db");
+        const { saveStoryboardImage, getDb } = await import("../db");
+        const { scenes, shots } = await import("../../drizzle/schema");
         const { generateStoryboardImage } = await import("../services/aiGeneration");
         const { eq, and } = await import("drizzle-orm");
 
         // 1. Fetch exact shot metadata for blueprint
         const db = await getDb();
-        const [result] = await db.select({ shots }).from(shots)
-            .innerJoin(scenes, eq(shots.sceneId, scenes.id))
+        const shotId = input.shotNumber > 1000000 ? input.shotNumber - 1000000 : null;
+        
+        const query = db.select({ shots, sceneOrder: scenes.order }).from(shots)
+            .innerJoin(scenes, eq(shots.sceneId, scenes.id)) 
             .where(
                 and(
                     eq(scenes.projectId, input.projectId),
-                    eq(shots.order, input.shotNumber)
+                    shotId ? eq(shots.id, shotId) : eq(shots.order, input.shotNumber)
                 )
             ).limit(1);
-
+            
+        const [result] = await query.catch(() => []);
         const shotData = result?.shots;
-        const blueprint = shotData?.aiBlueprint || {};
+        const shotOrder = shotData?.order || 1;
+        const blueprint = shotData?.aiBlueprint || (typeof shotData?.aiBlueprint === 'string' ? JSON.parse(shotData.aiBlueprint) : {});
 
-        // 2. Fetch Assets
+        // 2. Fetch Storyboard Grid as visual anchor (IMPORTANT FOR IDENTITY)
+        const { storyboardImages: sbTable } = await import("../../drizzle/schema");
+        const { gte } = await import("drizzle-orm");
+        const grids = await db.select().from(sbTable).where(
+          and(
+            eq(sbTable.projectId, input.projectId),
+            gte(sbTable.shotNumber, 1000)
+          )
+        ).orderBy(sbTable.shotNumber);
+
+        // Find which page this shot belongs to (12 shots per page in 3x4 layout)
+        const pageIdx = Math.floor((shotOrder - 1) / 12);
+        const gridForShot = grids[pageIdx];
+        
+        let visualAnchors: string[] = [];
+        let identityInstruction = "";
+        
+        if (gridForShot) {
+            const { cropGridTile } = await import("../services/imageProcessing");
+            const localIdx = (shotOrder - 1) % 12;
+            const row = Math.floor(localIdx / 3) + 1;
+            const col = (localIdx % 3) + 1;
+            try {
+                const croppedTileUrl = await cropGridTile(gridForShot.imageUrl, row, col, input.projectId);
+                visualAnchors.push(croppedTileUrl);
+                identityInstruction = `MATCH-IDENTITY MANDATE: You are UPSCALEING and ENHANCING the provided visual anchor image. Lock composition, subject pose, and lighting to match this reference 100%. No visual changes to characters or environment allowed. `;
+            } catch (cropErr) {
+                console.warn("[Storyboard Router] Tile crop failed, falling back to full grid:", cropErr);
+                visualAnchors.push(gridForShot.imageUrl);
+                identityInstruction = `MATCH-IDENTITY MANDATE: Replicate Tile at Row ${row}, Column ${col} from the provided Storyboard Grid reference. Match composition and subject exactly. `;
+            }
+        }
+
+        // 3. Fetch Locked Assets
         const lockedChars = await getLockedCharacters(input.projectId) || [];
         const projectSets = await getProjectPDSets(input.projectId) || [];
         const approvedSets = projectSets.filter((s: any) => s.status === "approved" || s.referenceImageUrl);
 
-        // 3. Construct Master Prompt
-        let cinematicPrompt = `8K RAW cinematic photograph. ACTION: ${input.prompt}. `;
+        // 4. Construct Master Prompt
+        let cinematicPrompt = `8K RAW cinematic photograph. ACTION: ${input.prompt}. ${identityInstruction} `;
         
         if (blueprint.directorIntent?.emotionalObjective) {
             cinematicPrompt += `EMOTION: ${blueprint.directorIntent.emotionalObjective}. `;
@@ -81,12 +200,12 @@ export const storyboardRouter = router({
         const searchSpace = `${input.prompt} ${blueprint.directorIntent?.castingRequirements || ""}`.toLowerCase();
         const charsInShot = lockedChars.filter((c: any) => searchSpace.includes(c.name.toLowerCase()));
         
-        let imageAnchors: string[] = [];
+        let imageAnchors: string[] = [...visualAnchors];
         if (charsInShot.length > 0) {
             cinematicPrompt += `CHARACTERS: `;
             charsInShot.forEach((c: any) => {
                 cinematicPrompt += `[${c.name}: ${c.description}] `;
-                if (c.imageUrl && c.imageUrl !== 'draft') imageAnchors.push(c.imageUrl);
+                if (c.imageUrl && c.imageUrl !== 'draft' && !imageAnchors.includes(c.imageUrl)) imageAnchors.push(c.imageUrl);
             });
         }
 
@@ -94,13 +213,13 @@ export const storyboardRouter = router({
         const setsInShot = approvedSets.filter((s: any) => setSpace.includes(s.name.toLowerCase()));
         if (setsInShot.length > 0) {
             cinematicPrompt += `SET DESIGN: [${setsInShot[0].name}: ${setsInShot[0].description}]. `;
-            if (setsInShot[0].referenceImageUrl) imageAnchors.push(setsInShot[0].referenceImageUrl);
+            if (setsInShot[0].referenceImageUrl && !imageAnchors.includes(setsInShot[0].referenceImageUrl)) imageAnchors.push(setsInShot[0].referenceImageUrl);
         }
 
         const finalAnchors = imageAnchors.slice(0, 3);
-        const targetModel = finalAnchors.length > 0 ? "nano-banana-pro" : "flux-fast";
+        const targetModel = "nano-banana-pro"; // Strict consistency requires Pro
 
-        // 4. Generate
+        // 5. Generate
         const imageUrl = await generateStoryboardImage(
           cinematicPrompt,
           targetModel,
@@ -147,7 +266,7 @@ export const storyboardRouter = router({
       storyboardImageId: z.number(),
       imageUrl: z.string()
     }))
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ input }) => {
       const { updateStoryboardImageStatus } = await import("../db");
       const { upscaleImageTo4k } = await import("../services/aiGeneration");
 
@@ -170,23 +289,26 @@ export const storyboardRouter = router({
       try {
         const { getLockedCharacters } = await import("../db/characters");
         const { getProjectPDSets } = await import("../db/productionDesign");
-        const { saveStoryboardImage, getDb, shots, scenes, getStoryboardImageWithConsistency, updateStoryboardImageStatus } = await import("../db");
+        const { saveStoryboardImage, getDb, getStoryboardImageWithConsistency, updateStoryboardImageStatus } = await import("../db");
+        const { shots, scenes } = await import("../../drizzle/schema");
         const { generateStoryboardImage } = await import("../services/aiGeneration");
         const { eq, and } = await import("drizzle-orm");
 
         // 1. Fetch exact shot metadata for blueprint
         const db = await getDb();
+        const shotId = input.shotNumber > 1000000 ? input.shotNumber - 1000000 : null;
+
         const [result] = await db.select({ shots }).from(shots)
             .innerJoin(scenes, eq(shots.sceneId, scenes.id))
             .where(
                 and(
                     eq(scenes.projectId, input.projectId),
-                    eq(shots.order, input.shotNumber)
+                    shotId ? eq(shots.id, shotId) : eq(shots.order, input.shotNumber)
                 )
             ).limit(1);
 
         const shotData = result?.shots;
-        const blueprint = shotData?.aiBlueprint || {};
+        const blueprint = shotData?.aiBlueprint || (typeof shotData?.aiBlueprint === 'string' ? JSON.parse(shotData.aiBlueprint) : {});
 
         // 2. Fetch Assets
         const lockedChars = await getLockedCharacters(input.projectId) || [];
@@ -297,7 +419,7 @@ export const storyboardRouter = router({
               gridPrompt,
               input.projectId,
               ctx.user.id.toString(),
-              visualAnchors
+              ...visualAnchors
             );
           } catch (err: any) {
             const fs = await import("fs");

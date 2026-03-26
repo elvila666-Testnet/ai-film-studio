@@ -71,22 +71,30 @@ export async function buildStoryboardPrompts(
     const cineData = JSON.parse(content.cineApprovedOutput || "{}");
     const pdData = JSON.parse(content.pdApprovedOutput || "{}");
 
-    const characterReferenceUrls = castingData.characterUrls || [];
+    // 1.5 Gather all high-fidelity image anchors for the grid
+    const lockedChars = await getLockedCharacters(projectId);
+    const approvedChars = lockedChars.filter((c: any) => c.imageUrl && c.imageUrl !== "draft");
+    const approvedSets = (pdData.referenceUrls || []).filter(Boolean);
+
+    const characterReferenceUrls = [
+        ...(castingData.characterUrls || []),
+        ...approvedChars.map((c: any) => c.imageUrl),
+    ].filter(Boolean);
+
     const moodboardReferenceUrls = [
         ...(cineData.moodboardUrls || []),
         ...(pdData.moodboardUrls || []),
         ...(cineData.referenceUrls || []),
-        ...(pdData.referenceUrls || [])
+        ...approvedSets
     ].filter(Boolean);
 
     const cineSpecs = cineData.specs || "Standard cinematic lighting.";
     const pdSpecs = pdData.specs || "Standard production design.";
     const brandDNA = content.brandDNA || "Professional, cinematic.";
 
-    // 2. Build Visual Identity Anchor from Locked Characters
-    const lockedChars = await getLockedCharacters(projectId);
+    // 2. Build Visual Identity Anchor from Locked Characters (Textual)
     const visualIdentityAnchor = lockedChars
-        .map((c: any) => `CHARACTER "${c.name}": ${c.description}. FACE REFERENCE: ${c.imageUrl}`)
+        .map((c: any) => `CHARACTER "${c.name}": ${c.description}.`)
         .join("\n");
 
     // 3. Collect ALL shots for the project

@@ -365,8 +365,9 @@ export const directorRouter = router({
             const db = await getDb();
             let sceneCount = 0;
             let shotCount = 0;
+            let imageCount = 0;
             if (db) {
-                const { scenes, shots } = await import("../../drizzle/schema");
+                const { scenes, shots, storyboardImages } = await import("../../drizzle/schema");
                 const { eq, inArray } = await import("drizzle-orm");
                 const sceneList = await db.select({ id: scenes.id }).from(scenes).where(eq(scenes.projectId, input.projectId));
                 sceneCount = sceneList.length;
@@ -375,13 +376,15 @@ export const directorRouter = router({
                     const shotList = await db.select({ id: shots.id }).from(shots).where(inArray(shots.sceneId, sceneIds));
                     shotCount = shotList.length;
                 }
+                imageCount = (await db.select({ id: storyboardImages.id }).from(storyboardImages).where(eq(storyboardImages.projectId, input.projectId))).length;
             }
             return {
                 scriptStatus: content?.scriptStatus ?? "draft",
                 technicalScriptStatus: content?.technicalScriptStatus ?? "draft",
                 hasTechnicalScript: !!content?.technicalShots,
                 sceneCount,
-                shotCount
+                shotCount,
+                imageCount
             };
         }),
     debugShots: protectedProcedure

@@ -7,6 +7,7 @@
 import { GeminiProvider } from "./providers/geminiProvider";
 import { generateEnhancedShotPrompt, EnhancedPromptRequest } from "./enhancedPromptGeneration";
 import type { ImageGenerationParams } from "./providers/types";
+import { ensurePermanentUrl } from "./aiGeneration";
 
 export interface ShotDesignRequest {
   projectId: number;
@@ -62,7 +63,8 @@ export async function generateShotDesign(
   const resolution = resolutionMap[request.resolution] || resolutionMap["4k"];
 
   try {
-    for (const moment of request.moments) {
+    // Generate all moments in parallel for speed
+    const momentPromises = request.moments.map(async (moment) => {
       try {
         const prompt = buildShotMomentPrompt(
           request.basePrompt,
@@ -72,8 +74,6 @@ export async function generateShotDesign(
           request.cinematographyStyle,
           request.visualStyle
         );
-
-
 
         // Generate image for this moment
         const params: ImageGenerationParams = {
@@ -88,26 +88,34 @@ export async function generateShotDesign(
         };
 
         const result = await geminiProvider.generateImage(params);
+        const permanentUrl = await ensurePermanentUrl(result.url, "shot-designer");
 
-        moments.push({
+        console.log(
+          `[ShotDesigner] Generated moment ${moment.momentNumber} for shot ${request.shotNumber}: ${permanentUrl.substring(0, 30)}...`
+        );
+
+        return {
           momentNumber: moment.momentNumber,
-          imageUrl: result.url,
+          imageUrl: permanentUrl,
           prompt,
           duration: moment.duration,
           processingTime: result.processingTime,
-        });
-
-        console.log(
-          `[ShotDesigner] Generated moment ${moment.momentNumber} for shot ${request.shotNumber}`
-        );
+        } as GeneratedMoment;
       } catch (momentError) {
         console.error(
           `[ShotDesigner] Failed to generate moment ${moment.momentNumber}:`,
           momentError
         );
-        // Continue with next moment instead of failing entirely
+        return null;
       }
-    }
+    });
+
+    const results = await Promise.all(momentPromises);
+    
+    // Filter out failed moments and add to the list
+    results.forEach(m => {
+      if (m) moments.push(m);
+    });
 
     const totalDuration = moments.reduce((sum, m) => sum + m.duration, 0);
     const status = moments.length === request.moments.length ? "success" : "partial";

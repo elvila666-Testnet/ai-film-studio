@@ -21,8 +21,7 @@ export async function saveStoryboardImage(projectId: number, shotNumber: number,
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // Manual upsert to handle missing unique constraint
-  // We assume default variant 0 for now as previously implemented
+  // Keep old behavior for bulk/initial but handle update carefully
   const existing = await db.select().from(storyboardImages).where(and(
     eq(storyboardImages.projectId, projectId),
     eq(storyboardImages.shotNumber, shotNumber),
@@ -34,6 +33,39 @@ export async function saveStoryboardImage(projectId: number, shotNumber: number,
   } else {
     await db.insert(storyboardImages).values({ projectId, shotNumber, imageUrl, prompt, generationVariant: 0 });
   }
+}
+
+export async function saveNewShotVariant(projectId: number, shotNumber: number, imageUrl: string, prompt: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const versions = await db.select().from(storyboardImages).where(and(
+    eq(storyboardImages.projectId, projectId),
+    eq(storyboardImages.shotNumber, shotNumber)
+  ));
+
+  const maxVariant = Math.max(...versions.map((v: { generationVariant: number | null }) => v.generationVariant || 0), -1);
+
+  await db.insert(storyboardImages).values({ 
+    projectId, 
+    shotNumber, 
+    imageUrl, 
+    prompt, 
+    generationVariant: maxVariant + 1 
+  });
+}
+
+export async function getShotVariants(projectId: number, shotNumber: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db.select()
+    .from(storyboardImages)
+    .where(and(
+      eq(storyboardImages.projectId, projectId),
+      eq(storyboardImages.shotNumber, shotNumber)
+    ))
+    .orderBy(storyboardImages.generationVariant);
 }
 
 export async function updateStoryboardImageVideoUrl(storyboardImageId: number, videoUrl: string) {
@@ -265,6 +297,43 @@ export async function updateStoryboardVideo(
         eq(storyboardImages.shotNumber, shotNumber)
       )
     );
+}
+
+export async function getShotsWithState(projectId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const { scenes, shots, storyboardImages } = await import("../../drizzle/schema");
+  const { eq, and, sql } = await import("drizzle-orm");
+
+  // INDESTRUCTIBLE INDEX: Use shots.id + 1,000,000 to ensure uniqueness and zero overlap with grid (1000+)
+  const globalIdExpr = sql<number>`(${shots.id} + 1000000)`;
+
+  // Fetch all shots for the project by joining through scenes
+  const results = await db.select({
+      shotId: shots.id,
+      sceneId: scenes.id,
+      shotNumber: shots.order,
+      globalShotNumber: globalIdExpr,
+      description: shots.visualDescription,
+      frameId: storyboardImages.id,
+      imageUrl: storyboardImages.imageUrl,
+      masterImageUrl: storyboardImages.masterImageUrl,
+      status: storyboardImages.status,
+      prompt: storyboardImages.prompt,
+      sceneOrder: scenes.order
+    })
+    .from(shots)
+    .innerJoin(scenes, eq(shots.sceneId, scenes.id))
+    .leftJoin(storyboardImages, and(
+      eq(storyboardImages.projectId, projectId),
+      eq(storyboardImages.shotNumber, globalIdExpr),
+      eq(storyboardImages.generationVariant, 0)
+    ))
+    .where(eq(scenes.projectId, projectId))
+    .orderBy(scenes.order, shots.order);
+
+  return results;
 }
 
 export async function deleteStoryboardVideo(

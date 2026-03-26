@@ -33,3 +33,18 @@ export async function uploadBase64Image(base64Data: string, folder: string = "ge
         throw new Error(`Failed to upload image to GCS: ${error.message}`);
     }
 }
+
+/**
+ * Uploads a Buffer to the storage proxy
+ */
+export async function uploadBufferToGCS(buffer: Buffer, folder: string = "generations", customName?: string): Promise<string> {
+    try {
+        const fileName = `${folder}/${customName || uuidv4() + '.png'}`;
+        console.log(`[GCS Proxy] Uploading buffer ${fileName}...`);
+        const { url } = await storagePut(fileName, buffer, "image/png");
+        return url;
+    } catch (error: any) {
+        console.error("[GCS Proxy] Buffer upload failed:", error.message);
+        throw error;
+    }
+}
