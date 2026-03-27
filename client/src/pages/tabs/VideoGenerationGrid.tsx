@@ -16,15 +16,16 @@ export function VideoGenerationGrid({ projectId }: VideoGenerationGridProps) {
     const utils = trpc.useUtils();
 
     const handleAnimate = async (shotNumber: number, motionPrompt: string) => {
-        // High-end video costs $0.15
-        requestApproval(0.15, async () => {
+        // Video costs $0.25 based on server-side estimation (5s duration)
+        requestApproval(0.25, async () => {
             try {
                 await animateFrameMutation.mutateAsync({
                     projectId,
                     shotNumber,
                     motionPrompt,
-                    provider: "veo3", // Switched default to Native Gemini Veo3
-                    characterLocked: true
+                    provider: "veo3",
+                    characterLocked: true,
+                    force: true
                 });
                 toast.success(`Synthesis engine engaged for Shot ${shotNumber}`);
                 utils.storyboard.getImages.invalidate({ projectId });
@@ -36,7 +37,7 @@ export function VideoGenerationGrid({ projectId }: VideoGenerationGridProps) {
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {storyboardQuery.data?.map((shot: { id: number; shotNumber: number; videoUrl?: string; imageUrl?: string; visualDescription: string }) => (
+            {storyboardQuery.data?.map((shot: { id: number; shotNumber: number; videoUrl?: string; imageUrl?: string; visualDescription?: string | null; prompt?: string | null }) => (
                 <div key={shot.id} className="glass-panel group overflow-hidden border-white/5 hover:border-primary/40 hover:shadow-[0_0_40px_-15px_rgba(var(--primary),0.2)] transition-all duration-700 flex flex-col">
                     <div className="aspect-video relative bg-black/40 overflow-hidden">
                         {(animateFrameMutation.isPending && animateFrameMutation.variables?.shotNumber === shot.shotNumber) && (
@@ -85,7 +86,7 @@ export function VideoGenerationGrid({ projectId }: VideoGenerationGridProps) {
                             </div>
                         </div>
                         <Button
-                            onClick={() => handleAnimate(shot.shotNumber, shot.visualDescription)}
+                            onClick={() => handleAnimate(shot.shotNumber, shot.visualDescription || shot.prompt || "Cinematic animation")}
                             disabled={animateFrameMutation.isPending}
                             className={cn(
                                 "w-full h-10 text-[10px] uppercase font-black tracking-[0.2em] transition-all duration-300 rounded-full",

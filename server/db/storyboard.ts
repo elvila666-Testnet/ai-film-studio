@@ -14,7 +14,28 @@ export async function getStoryboardImages(projectId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return db.select().from(storyboardImages).where(eq(storyboardImages.projectId, projectId));
+  const { shots } = await import("../../drizzle/schema");
+  const { eq, sql } = await import("drizzle-orm");
+
+  // Replicate the indestructible index logic to match images to shots
+  const globalIdExpr = sql<number>`(${shots.id} + 1000000)`;
+
+  return db.select({
+    id: storyboardImages.id,
+    projectId: storyboardImages.projectId,
+    shotNumber: storyboardImages.shotNumber,
+    imageUrl: storyboardImages.imageUrl,
+    prompt: storyboardImages.prompt,
+    videoUrl: storyboardImages.videoUrl,
+    characterId: storyboardImages.characterId,
+    createdAt: storyboardImages.createdAt,
+    visualDescription: shots.visualDescription,
+    status: storyboardImages.status,
+    masterImageUrl: storyboardImages.masterImageUrl
+  })
+  .from(storyboardImages)
+  .leftJoin(shots, eq(globalIdExpr, storyboardImages.shotNumber))
+  .where(eq(storyboardImages.projectId, projectId));
 }
 
 export async function saveStoryboardImage(projectId: number, shotNumber: number, imageUrl: string, prompt: string) {

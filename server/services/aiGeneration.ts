@@ -571,8 +571,11 @@ export async function generateGridImage(
   prompt: string, 
   projectId?: number, 
   userId?: string, 
+  pageNumber: number = 1,
   ...visualAnchors: (string | undefined)[]
 ): Promise<string> {
+    const { burnPanelNumbers } = await import("./imageProcessing");
+    const axios = (await import("axios")).default;
   try {
     // Assemble visual anchor references (characters, sets, style references)
     const imageInputs: string[] = visualAnchors.filter((a): a is string => !!a);
@@ -589,8 +592,13 @@ export async function generateGridImage(
         ...(imageInputs.length > 0 ? { imageInputs } : {}),
       }, "nano-banana-pro");
       const rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
-      const url = await ensurePermanentUrl(rawUrl, "grids");
-      console.log(`[AI Service] Grid successfully generated with ${imageInputs.length} visual anchors: ${url}`);
+      
+      // NEW: Burn in the panel numbers
+      const response = await axios.get(rawUrl, { responseType: 'arraybuffer' });
+      const burnedBuffer = await burnPanelNumbers(Buffer.from(response.data), pageNumber);
+      
+      const url = await ensurePermanentUrl(burnedBuffer, "grids");
+      console.log(`[AI Service] Grid successfully generated with ${imageInputs.length} visual anchors and BURNINS: ${url}`);
       return url;
     } catch (primaryError: any) {
         console.warn(`[AI Service] Replicate grid generation failed. Falling back to Google Nano Banana 2. Error: ${primaryError.message}`);
@@ -601,9 +609,14 @@ export async function generateGridImage(
             projectId,
             userId,
             ...(imageInputs.length > 0 ? { imageInputs } : {}),
-        }, "gemini-3.1-flash-image-preview");
+        }, "imagen-3.0-generate-001");
         const rawUrl = typeof fallbackResult.url === 'string' ? fallbackResult.url : String(fallbackResult.url);
-        return await ensurePermanentUrl(rawUrl, "grids_fallback");
+        
+        // NEW: Burn in the panel numbers for fallback too
+        const response = await axios.get(rawUrl, { responseType: 'arraybuffer' });
+        const burnedBuffer = await burnPanelNumbers(Buffer.from(response.data), pageNumber);
+        
+        return await ensurePermanentUrl(burnedBuffer, "grids_fallback");
     }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

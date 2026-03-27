@@ -55,12 +55,12 @@ export const storyboardRouter = router({
               const { cropGridTile } = await import("../services/imageProcessing");
               const localIdx = (shot.shotNumber - 1) % 12;
               const row = Math.floor(localIdx / 3) + 1;
-              const col = (localIdx % 3) + 1;
+              const col = (row === 2) ? 3 - (localIdx % 3) : (localIdx % 3) + 1;
               
               try {
-                  const croppedTileUrl = await cropGridTile(gridForShot.imageUrl, row, col, input.projectId);
+                  const croppedTileUrl = await cropGridTile(gridForShot.imageUrl, row, col);
                   visualAnchors.push(croppedTileUrl);
-                  identityInstruction = `MATCH-IDENTITY MANDATE: You are UPSCALEING and ENHANCING the provided visual anchor image. Lock composition, subject pose, and lighting to match this reference 100%. No visual changes to characters or environment allowed. `;
+                  identityInstruction = `IDENTITY_LOCK MANDATE: RENDER frame #${shot.shotNumber} from the provided reference. This is a PIXEL-STRICT UPSCALE. Match 100% composition, camera angle, and subject pose. Remove all grid lines and burnins. NO VARIATIONS. `;
               } catch (cropErr) {
                   console.warn("[BulkMaterialize] Tile crop failed, falling back to full grid:", cropErr);
                   visualAnchors.push(gridForShot.imageUrl);
@@ -146,7 +146,18 @@ export const storyboardRouter = router({
             
         const [result] = await query.catch(() => []);
         const shotData = result?.shots;
-        const shotOrder = shotData?.order || 1;
+        
+        // NEW: Calculate Global Shot Order (Index in project) for accurate grid mapping
+        // Previous logic used scene-local order which caused misalignment after Scene 1.
+        const allProjectShots = await db.select({ id: shots.id })
+            .from(shots)
+            .innerJoin(scenes, eq(shots.sceneId, scenes.id))
+            .where(eq(scenes.projectId, input.projectId))
+            .orderBy(scenes.order, shots.order);
+            
+        const globalShotOrder = allProjectShots.findIndex((s: any) => s.id === (shotId || shotData?.id)) + 1;
+        const shotOrder = globalShotOrder || 1;
+        
         const blueprint = shotData?.aiBlueprint || (typeof shotData?.aiBlueprint === 'string' ? JSON.parse(shotData.aiBlueprint) : {});
 
         // 2. Fetch Storyboard Grid as visual anchor (IMPORTANT FOR IDENTITY)
@@ -170,11 +181,11 @@ export const storyboardRouter = router({
             const { cropGridTile } = await import("../services/imageProcessing");
             const localIdx = (shotOrder - 1) % 12;
             const row = Math.floor(localIdx / 3) + 1;
-            const col = (localIdx % 3) + 1;
+            const col = (row === 2) ? 3 - (localIdx % 3) : (localIdx % 3) + 1;
             try {
-                const croppedTileUrl = await cropGridTile(gridForShot.imageUrl, row, col, input.projectId);
+                const croppedTileUrl = await cropGridTile(gridForShot.imageUrl, row, col);
                 visualAnchors.push(croppedTileUrl);
-                identityInstruction = `MATCH-IDENTITY MANDATE: You are UPSCALEING and ENHANCING the provided visual anchor image. Lock composition, subject pose, and lighting to match this reference 100%. No visual changes to characters or environment allowed. `;
+                identityInstruction = `IDENTITY_LOCK MANDATE: RENDER frame #${shotOrder} from the provided reference. This is a PIXEL-STRICT UPSCALE. Match 100% composition, camera angle, and subject pose. Remove all grid lines and burnins. NO VARIATIONS. `;
             } catch (cropErr) {
                 console.warn("[Storyboard Router] Tile crop failed, falling back to full grid:", cropErr);
                 visualAnchors.push(gridForShot.imageUrl);
@@ -419,6 +430,7 @@ export const storyboardRouter = router({
               gridPrompt,
               input.projectId,
               ctx.user.id.toString(),
+              pageIdx + 1, // Pass pageNumber for visual burnins
               ...visualAnchors
             );
           } catch (err: any) {

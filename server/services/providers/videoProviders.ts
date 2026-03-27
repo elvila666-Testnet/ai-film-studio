@@ -324,24 +324,51 @@ export class Veo3Provider {
 
   async generateVideo(params: VideoGenerationParams): Promise<VideoGenerationResult> {
     const startTime = Date.now();
-    const modelId = "veo-2.0-generate-001";
+    const modelId = params.model || "veo-3.1-generate-preview";
 
     try {
-      // 1. Start long-running operation
-      const response = await fetch(`${this.apiUrl}/models/${modelId}:predict?key=${this.apiKey}`, {
+      // Veo 3.1 requires base64 inlineData for image inputs in instances
+      let imageInstance = {};
+      if (params.keyframeUrl) {
+          const axios = (await import("axios")).default;
+          const imageRes = await axios.get(params.keyframeUrl, { responseType: 'arraybuffer' });
+          const base64 = Buffer.from(imageRes.data).toString('base64');
+          imageInstance = {
+              image: {
+                  inlineData: {
+                      mimeType: "image/png",
+                      data: base64
+                  }
+              }
+          };
+      }
+
+      const jsonBody = {
+          instances: [{ 
+              prompt: params.prompt,
+              ...imageInstance
+          }],
+          parameters: {
+            aspectRatio: params.resolution === "1080p" ? "16:9" : "1:1",
+            resolution: params.resolution === "4k" ? "4k" : (params.resolution === "1080p" ? "1080p" : "720p"),
+            videoOptions: {
+                fps: params.fps || 24,
+                duration: params.duration || 5
+            }
+          }
+      };
+
+      console.log(`[Veo3] Submitting request to ${modelId}:`, JSON.stringify(jsonBody, null, 2));
+
+      const response = await fetch(`${this.apiUrl}/models/${modelId}:predictLongRunning?key=${this.apiKey}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          instances: [{ prompt: params.prompt }],
-          parameters: {
-            ...(params.input_image_url && { image: { image_url: params.input_image_url } }),
-            sampleCount: 1,
-            aspectRatio: params.resolution === "1080p" ? "16:9" : "1:1",
-          }
-        }),
+        body: JSON.stringify(jsonBody),
       });
 
       if (!response.ok) {
+        const errText = await response.text();
+        console.error(`[Veo3] API Error (${response.status}): ${errText} at ${this.apiUrl}/models/${modelId}:predict`);
         throw new Error(`Veo3 API error: ${response.status} ${response.statusText}`);
       }
 
@@ -397,7 +424,7 @@ export class Veo3Provider {
     const prediction = data.predictions?.[0] || data[0];
     const videoUrl = prediction.bytesBase64Encoded
       ? `data:video/mp4;base64,${prediction.bytesBase64Encoded}`
-      : prediction.videoUrl || "https://storage.googleapis.com/ai-film-studio-assets/placeholder.mp4";
+      : prediction.videoUrl || prediction.uri || "https://storage.googleapis.com/ai-film-studio-assets/placeholder.mp4";
 
     return {
       provider: "veo3",
@@ -416,19 +443,104 @@ export class Veo3Provider {
     };
   }
 
-  private parseResolution(resolution: string): [number, number] {
-    switch (resolution) {
-      case "720p": return [1280, 720];
-      case "1080p": return [1920, 1080];
-      case "4k": return [3840, 2160];
-      default: return [1280, 720];
+}
+
+/**
+ * Replicate Video Provider
+ */
+export class ReplicateVideoProvider {
+  private apiKey: string;
+
+  constructor(apiKey: string) {
+    this.apiKey = apiKey;
+  }
+
+  async generateVideo(params: VideoGenerationParams): Promise<VideoGenerationResult> {
+    const startTime = Date.now();
+    const modelId = params.model || "minimax/video-01"; // Default to Minimax on Replicate
+    
+    // Determine the Replicate model identifier
+    // Note: Replicate uses the official 'minimax/video-01' path.
+    let replicateModel = modelId;
+    if (modelId === "minimax/video-01") replicateModel = "minimax/video-01:019747a177259169f448c4ae807469a4c51952e4a838de36f78d38e235e97576";
+
+    try {
+      console.log(`[ReplicateVideoProvider] Generating video with ${replicateModel}`);
+      
+      const response = await fetch("https://api.replicate.com/v1/predictions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Token ${this.apiKey}`,
+        },
+        body: JSON.stringify({
+          version: replicateModel.includes(":") ? replicateModel.split(":")[1] : undefined,
+          model: !replicateModel.includes(":") ? replicateModel : undefined,
+          input: {
+            prompt: params.prompt,
+            first_frame_image: params.keyframeUrl,
+            prompt_optimizer: true,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Replicate Video API error: ${response.status} ${errorText}`);
+      }
+
+      const prediction = await response.json();
+      
+      // We need to poll for completion
+      const videoUrl = await this.pollPrediction(prediction.id);
+
+      return {
+        provider: "replicate",
+        model: replicateModel,
+        url: videoUrl,
+        duration: params.duration,
+        width: 1280,
+        height: 720,
+        fps: 24,
+        fileSize: 0,
+        actualCost: 0.15, // Approx cost for cinematic video
+        processingTime: Date.now() - startTime,
+        metadata: {
+          predictionId: prediction.id,
+        },
+      };
+    } catch (error) {
+      throw new Error(`Replicate video generation failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
-  private calculateCost(duration: number, resolution: string): number {
-    const minutes = duration / 60;
-    const baseCost = resolution === "1080p" ? 0.18 : 0.12;
-    return baseCost * minutes;
+  private async pollPrediction(id: string): Promise<string> {
+    const maxAttempts = 60; // 5 minutes
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 5000)); // Poll every 5s
+
+      const response = await fetch(`https://api.replicate.com/v1/predictions/${id}`, {
+        headers: {
+          Authorization: `Token ${this.apiKey}`,
+        },
+      });
+
+      if (!response.ok) continue;
+
+      const data = await response.json();
+      if (data.status === "succeeded") {
+        // Replicate video returns an array or a string for the output
+        return Array.isArray(data.output) ? data.output[0] : data.output;
+      }
+
+      if (data.status === "failed") {
+        throw new Error(`Replicate prediction failed: ${data.error}`);
+      }
+
+      console.log(`[ReplicateVideoProvider] Polling: ${data.status}...`);
+    }
+
+    throw new Error("Replicate video generation timed out (Max 5 mins).");
   }
 }
 
@@ -452,6 +564,8 @@ export class VideoProviderFactory {
         return new WHANProvider(apiKey, apiUrl);
       case "veo3":
         return new Veo3Provider(apiKey, apiUrl);
+      case "replicate":
+        return new ReplicateVideoProvider(apiKey);
       default:
         throw new Error(`Unknown video provider: ${provider}`);
     }

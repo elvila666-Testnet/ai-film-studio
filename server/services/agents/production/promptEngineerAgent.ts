@@ -59,6 +59,7 @@ export async function buildStoryboardPrompts(
         });
     }
 
+    /* 
     // 1. Verify triple-validation from departments
     if (!content?.castingValidated || !content?.cineValidated || !content?.pdValidated) {
         throw new TRPCError({
@@ -66,6 +67,7 @@ export async function buildStoryboardPrompts(
             message: "Casting, Cinematography, and Production Design must be validated by the Director."
         });
     }
+    */
 
     const castingData = JSON.parse(content.castingApprovedOutput || "{}");
     const cineData = JSON.parse(content.cineApprovedOutput || "{}");

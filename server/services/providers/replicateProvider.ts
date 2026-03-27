@@ -86,16 +86,15 @@ export class ReplicateProvider {
             // Handle image-to-image / anchors
             if (hasImageRefs && params.imageInputs) {
                 if (replicateModel.includes("nano-banana-pro")) {
-                    // Nano Banana Pro expects an array of URIs under 'image_input'
-                    // We also set 'image' just in case it supports standard Img2Img
+                    // Nano Banana Pro strictly expects 'image_input' as a file array
                     input.image_input = params.imageInputs;
-                    input.image = params.imageInputs[0];
-                    input.prompt_strength = 0.60;
+                    input.prompt_strength = 0.45; // Sweet spot for character adherence vs grid structure
+                    console.log("[ReplicateProvider] Nano Banana: Using semantic anchors for Grid consistency.");
                 } else if (!isGrid) {
                     input.image = params.imageInputs[0];
-                    input.prompt_strength = 0.60;
+                    input.prompt_strength = 0.75; 
                 } else {
-                    console.log("[ReplicateProvider] Skipping Img2Img for Grid request to preserve layout. Using anchors as semantic context only.");
+                    console.log("[ReplicateProvider] Skipping Img2Img for Grid request to preserve layout.");
                 }
             }
 

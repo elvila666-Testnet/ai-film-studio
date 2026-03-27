@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, publicProcedure } from "../_core/trpc";
 import { addVideoExportJob, getVideoQueue } from "../queue/videoQueue";
 import path from "path";
@@ -130,7 +131,7 @@ export const videoRouter = router({
         .input(z.object({
             projectId: z.number(),
             shotNumber: z.number(),
-            motionPrompt: z.string(),
+            motionPrompt: z.string().optional(),
             provider: z.enum(["veo3", "sora", "replicate", "gemini", "flow", "kling", "whan"]).default("replicate"),
             modelId: z.string().optional(),
             duration: z.number().default(4),
@@ -152,7 +153,7 @@ export const videoRouter = router({
 
             if (!provider) {
                 // Default to Replicate if not specified
-                provider = "replicate";
+                provider = "veo3";
             }
 
             // Get API Key
@@ -182,24 +183,29 @@ export const videoRouter = router({
                 eq(storyboardImages.shotNumber, input.shotNumber)
             )).limit(1);
 
-            if (shot[0]) {
-                imageUrl = shot[0].imageUrl;
-                // If characterLocked, inject character consistency rules into motion prompt
-                if (input.characterLocked) {
-                    const { buildMotionPrompt } = await import("../services/characterLock");
-                    const { getLockedCharacter } = await import("../db");
-                    const lockedChar = await getLockedCharacter(input.projectId);
-                    if (lockedChar) {
-                        prompt = buildMotionPrompt(input.motionPrompt, {
-                            characterId: lockedChar.id,
-                            characterImageUrl: lockedChar.imageUrl,
-                            characterDescription: lockedChar.description,
-                        });
-                    }
-                }
+            if (!shot[0] || !shot[0].imageUrl) {
+                console.warn(`[VideoRouter] Shot ${input.shotNumber} not found for project ${input.projectId}`);
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: `Shot #${input.shotNumber} not found. Please materialize the storyboard frame first.`
+                });
             }
 
-            if (!imageUrl) throw new Error("Storyboard image not found for this shot");
+            imageUrl = shot[0].imageUrl;
+            
+            // If characterLocked, inject character consistency rules into motion prompt
+            if (input.characterLocked) {
+                const { buildMotionPrompt } = await import("../services/characterLock");
+                const { getLockedCharacter } = await import("../db");
+                const lockedChar = await getLockedCharacter(input.projectId);
+                if (lockedChar) {
+                    prompt = buildMotionPrompt(prompt, {
+                        id: lockedChar.id,
+                        imageUrl: lockedChar.imageUrl,
+                        description: lockedChar.description,
+                    } as any);
+                }
+            }
 
             // 3b. Estimate & Validate Cost (Financial Control)
             const { estimateCost, validateCost } = await import("../services/pricingService");
@@ -216,13 +222,9 @@ export const videoRouter = router({
             });
             const videoId = videoEntry[0].insertId;
 
-            // 5. Generate (Async - ideally queued, but direct for now)
-            // We run this without awaiting to return quickly, or await depending on UX.
-            // For now, let's await to ensure it works, or fire-and-forget.
-            // Fire-and-forget is better for UI responsiveness, but we need to handle errors.
-            // Let's await for simplicity in V1 specific requirement verification.
+            // 5. Generate (Async)
             try {
-                console.log(`[VideoRouter] Calling generateVideo for shot ${input.shotNumber}`);
+                console.log(`[VideoRouter] Calling generateVideo for shot ${input.shotNumber} with provider ${provider}`);
                 const result = await videoProvider.generateVideo({
                     prompt,
                     keyframeUrl: imageUrl,
@@ -275,7 +277,10 @@ export const videoRouter = router({
                 await db.update(generatedVideos)
                     .set({ status: "failed", error: error.message })
                     .where(eq(generatedVideos.id, videoId));
-                throw new Error(`Video generation failed: ${error.message}`);
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `Video generation failed: ${error.message || String(error)}`
+                });
             }
         }),
 
