@@ -593,34 +593,56 @@ export async function generateGridImage(
       }, "nano-banana-pro");
       const rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
       
-      // NEW: Burn in the panel numbers
-      const response = await axios.get(rawUrl, { responseType: 'arraybuffer' });
-      const burnedBuffer = await burnPanelNumbers(Buffer.from(response.data), pageNumber);
+      const responseData = await axios.get(rawUrl, { responseType: 'arraybuffer' });
+      const burnedBuffer = await burnPanelNumbers(Buffer.from(responseData.data), pageNumber);
       
       const url = await ensurePermanentUrl(burnedBuffer, "grids");
-      console.log(`[AI Service] Grid successfully generated with ${imageInputs.length} visual anchors and BURNINS: ${url}`);
+      console.log(`[AI Service] Grid successfully generated with ${imageInputs.length} visual anchors: ${url}`);
       return url;
     } catch (primaryError: any) {
-        console.warn(`[AI Service] Replicate grid generation failed. Falling back to Google Nano Banana 2. Error: ${primaryError.message}`);
-        const fallbackResult = await geminiProvider.generateImage({
-            prompt,
-            resolution: "1024x1024", 
-            quality: "hd",
-            projectId,
-            userId,
-            ...(imageInputs.length > 0 ? { imageInputs } : {}),
-        }, "imagen-3.0-generate-001");
-        const rawUrl = typeof fallbackResult.url === 'string' ? fallbackResult.url : String(fallbackResult.url);
+        console.warn(`[AI Service] PRIMARY Grid Generation Failed (Model: nano-banana-pro). Error: ${primaryError.message}. Triggering GOOGLE FALLBACK...`);
         
-        // NEW: Burn in the panel numbers for fallback too
-        const response = await axios.get(rawUrl, { responseType: 'arraybuffer' });
-        const burnedBuffer = await burnPanelNumbers(Buffer.from(response.data), pageNumber);
-        
-        return await ensurePermanentUrl(burnedBuffer, "grids_fallback");
+        try {
+          const fallbackResult = await geminiProvider.generateImage({
+              prompt,
+              resolution: "1024x1024", 
+              quality: "hd",
+              projectId,
+              userId,
+              ...(imageInputs.length > 0 ? { imageInputs } : {}),
+          }, "imagen-3.0-generate-001");
+          const rawUrl = typeof fallbackResult.url === 'string' ? fallbackResult.url : String(fallbackResult.url);
+          
+          const responseData = await axios.get(rawUrl, { responseType: 'arraybuffer' });
+          const burnedBuffer = await burnPanelNumbers(Buffer.from(responseData.data), pageNumber);
+          
+          return await ensurePermanentUrl(burnedBuffer, "grids_fallback");
+        } catch (secondaryError: any) {
+           console.warn(`[AI Service] GOOGLE FALLBACK WITH ANCHORS FAILED: ${secondaryError.message}. Retrying WITHOUT anchors as last resort...`);
+           
+           try {
+              const lastResortResult = await geminiProvider.generateImage({
+                  prompt,
+                  resolution: "1024x1024", 
+                  quality: "standard",
+                  projectId,
+                  userId,
+              }, "imagen-3.0-generate-001");
+              const rawUrl = typeof lastResortResult.url === 'string' ? lastResortResult.url : String(lastResortResult.url);
+              
+              const responseData = await axios.get(rawUrl, { responseType: 'arraybuffer' });
+              const burnedBuffer = await burnPanelNumbers(Buffer.from(responseData.data), pageNumber);
+              
+              return await ensurePermanentUrl(burnedBuffer, "grids_last_resort");
+           } catch (finalError: any) {
+              console.error(`[AI Service] ALL Grid Providers and fallbacks failed. Final Error: ${finalError.message}`);
+              throw finalError;
+           }
+        }
     }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error("[AI Service] Grid generation pipeline failed:", message);
+    console.error("[AI Service] Final Grid generation pipeline shutdown:", message);
     throw new Error(`Grid synthesis failed: ${message}`);
   }
 }

@@ -215,7 +215,9 @@ export class GeminiProvider {
                 parameters: {
                     sampleCount: params.count || 1,
                     aspectRatio: this.getAspectRatio(params.resolution),
-                    outputOptions: { mimeType: "image/jpeg" }
+                    outputOptions: { mimeType: "image/jpeg" },
+                    safetySetting: "block_only_high", 
+                    personGeneration: "allow_adult", 
                 }
             };
 
@@ -308,7 +310,13 @@ export class GeminiProvider {
         const data = await response.json();
 
         if (!data.predictions || data.predictions.length === 0) {
-            throw new Error("Vertex AI returned no predictions for image generation.");
+            console.error(`[GeminiProvider] Vertex AI Blocked/No Predictions!`);
+            console.error(`[GeminiProvider] Full Response Body:`, JSON.stringify(data, null, 2));
+            console.error(`[GeminiProvider] Blocked Prompt Sample:`, params.prompt.substring(0, 500));
+            
+            // Check for safety attributes
+            const safetyDesc = data.predictions?.[0]?.safetyAttributes?.categories?.join(", ") || "Safety filter (Google-side)";
+            throw new Error(`Vertex AI Grid synthesis failed (likely safety-blocked). Prompt sample: ${params.prompt.substring(0, 50)}... ${safetyDesc}. Please simplify your scene description or remove potentially sensitive terms.`);
         }
 
         const base64Image = data.predictions[0].bytesBase64Encoded;

@@ -137,7 +137,7 @@ export class ReplicateProvider {
                 }
             };
         } catch (error: any) {
-            console.error("[ReplicateProvider] Generation failed:", error.message);
+            console.error(`[ReplicateProvider] Critical Failure with model ${replicateModel}:`, error.message);
             throw error; // Re-throw the already sanitized error from withRetry
         }
     }
