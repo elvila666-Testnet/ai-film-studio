@@ -210,6 +210,16 @@ export class GeminiProvider {
                 prompt: params.prompt,
             };
 
+            const payload: any = {
+                instances: [instance],
+                parameters: {
+                    sampleCount: params.count || 1,
+                    aspectRatio: this.getAspectRatio(params.resolution),
+                    outputOptions: { mimeType: "image/jpeg" }
+                }
+            };
+
+            // If we have an image reference, use the modern referenceImages structure for Imagen 3 Editing
             if (hasImageRefs) {
                 const imgInput = params.imageInputs![0];
                 let base64Data: string;
@@ -222,22 +232,19 @@ export class GeminiProvider {
                     base64Data = imgInput;
                 }
 
-                // Add the image to the instance for Vertex AI image-to-image
-                instance.image = {
-                    bytesBase64Encoded: base64Data,
-                    mimeType: "image/jpeg"
-                };
-                console.log(`[GeminiProvider] Inserted primary reference image into payload`);
+                payload.instances[0].referenceImages = [
+                    {
+                        referenceId: 1,
+                        referenceType: "REFERENCE_TYPE_RAW",
+                        referenceImage: {
+                            bytesBase64Encoded: base64Data
+                        }
+                    }
+                ];
+                // Remove the old 'image' field if it was there
+                delete payload.instances[0].image;
+                console.log(`[GeminiProvider] Using referenceImages structure for Imagen 3 Editing`);
             }
-
-            const payload = {
-                instances: [instance],
-                parameters: {
-                    sampleCount: params.count || 1,
-                    aspectRatio: this.getAspectRatio(params.resolution),
-                    outputOptions: { mimeType: "image/jpeg" }
-                }
-            };
 
             // Vertex AI requires an OAuth token, not a Gemini API key (AIza...)
             let accessToken = this.apiKey;
@@ -424,7 +431,8 @@ export class GeminiProvider {
             const payload = {
                 instances: [{ prompt: params.prompt }],
                 parameters: {
-                    ...(params.input_image_url && { image: { image_url: params.input_image_url } })
+                    ...(params.input_image_url && { image: { image_url: params.input_image_url } }),
+                    aspectRatio: params.resolution === "1080p" ? "16:9" : "1:1",
                 }
             };
 

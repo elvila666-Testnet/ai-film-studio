@@ -87,9 +87,10 @@ ${(() => {
 TASK: 
 Synthesize all the above into a MASTER PROMPT. 
 - Use the Nanobanana 2.0 structure.
-- MANDATORY: Demand a "STRICT 3 columns and 4 rows" grid layout on a single 4:3 canvas.
-- IMPORTANT: If a panel is marked as "BLANK SLATE", render it as a solid gray or darkened empty frame.
-- Ensure the total output is exactly 12 panels (3 across, 4 down).
+- MANDATORY: Demand a "STRICT 3 columns and 4 rows" grid layout on a single 4:3 canvas image.
+- DO NOT return 4 columns or 3 rows. The layout must be exactly 3 vertical columns.
+- Each of the 12 panels must be a CINEMATIC 16:9 ratio rectangle with professional cinematic photographic framing.
+- Ensure each panel is clearly defined by thin white or dark border lines.
 - Ensure the prompt is rich, photographic, and cinematic.
 - DO NOT return JSON. Return the final prompt ONLY as a raw string.
 `;
@@ -113,7 +114,7 @@ Synthesize all the above into a MASTER PROMPT.
         
         if (!synthesizedPrompt.toLowerCase().includes("3x4") && !synthesizedPrompt.toLowerCase().includes("3 columns") && !synthesizedPrompt.toLowerCase().includes("grid")) {
             console.warn("[Prompt Synthesis] LLM ignored grid layout requirement. Appending manually.");
-            return synthesizedPrompt + "\n\n### MANDATORY GRID LAYOUT\n- Single 16:9 image containing a 3x4 grid (3 columns, 4 rows).";
+            return synthesizedPrompt + "\n\n### MANDATORY GRID LAYOUT\n- Single 4:3 image containing a STRICT 3x4 grid (3 columns, 4 rows).\n- Each frame must be a 16:9 cinematic rectangle.";
         }
 
         return synthesizedPrompt;
@@ -159,8 +160,9 @@ ${params.frames.map(f => `### Frame ${f.frameNumber} (Shot ${f.frameNumber})
 `).join("\n")}
 
 ### Image Output
-- Single 16:9 aspect ratio image
-- 3×4 grid layout (3 columns and 4 rows, 12 panels total)
+- Single 4:3 aspect ratio image (standard portrait/vertical storyboard page)
+- STRICT 3×4 grid layout (exactly 3 columns and 4 rows, 12 panels total)
+- EACH panel must be a cinematic 16:9 widescreen rectangle.
 - Thin white borders separating frames
 - Hyper-realistic photographic style
 - Cinematic lighting and high detail

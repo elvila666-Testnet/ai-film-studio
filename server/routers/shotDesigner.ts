@@ -39,6 +39,7 @@ export const shotDesignerRouter = router({
         ),
         cinematographyStyle: z.string().optional(),
         visualStyle: z.string().optional(),
+        storyboardImageUrl: z.string().optional(),
       })
     )
     .mutation(async ({ input }) => {
@@ -46,6 +47,16 @@ export const shotDesignerRouter = router({
         const { generateShotDesign, validateShotDesignRequest } = await import(
           "../services/shotDesigner"
         );
+
+        // Fetch storyboard frame if not provided but exists in DB
+        let currentStoryboardUrl = input.storyboardImageUrl;
+        if (!currentStoryboardUrl) {
+          const db = await getDb();
+          if (db) {
+            const frame = await db.select().from(storyboardImages).where(and(eq(storyboardImages.projectId, input.projectId), eq(storyboardImages.shotNumber, input.shotNumber))).limit(1);
+            if (frame[0]) currentStoryboardUrl = frame[0].imageUrl || undefined;
+          }
+        }
 
         // Validate request
         const validation = validateShotDesignRequest(input);
@@ -57,7 +68,10 @@ export const shotDesignerRouter = router({
         }
 
         // Generate shot design
-        const result = await generateShotDesign(input);
+        const result = await generateShotDesign({
+            ...input,
+            storyboardImageUrl: currentStoryboardUrl
+        });
 
         if (result.status === "failed") {
           throw new TRPCError({
@@ -410,6 +424,7 @@ Output: One ultra-sharp 4K UHD frame (16:9).
         setReferences,
         resolution: "4k",
         moments: momentsList,
+        storyboardImageUrl: frame.imageUrl || undefined,
       });
 
       // 5. Save results

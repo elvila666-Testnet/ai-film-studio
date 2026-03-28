@@ -106,7 +106,7 @@ export default function Timeline({
           isSolo: false,
           isLocked: false,
           isVisible: true,
-          height: 80,
+          height: 60,
         }))
       );
     }
@@ -525,7 +525,7 @@ export default function Timeline({
   }, [draggedClipId, dragStartX, dragStartTime, clips, pixelsPerSecond, snapToGrid, gridSize]);
 
   return (
-    <div className="w-full bg-slate-900 rounded-lg p-4 space-y-4">
+    <div className="w-full h-full bg-slate-900 rounded-lg p-2 flex flex-col gap-2 overflow-hidden">
       {/* Timeline Header with Controls */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -684,7 +684,7 @@ export default function Timeline({
         {/* Tracks */}
         <div className="flex">
           {/* Track Controls */}
-          <div className="w-48 bg-slate-700 border-r border-slate-600 flex-shrink-0 overflow-y-auto max-h-96">
+          <div className="w-48 bg-slate-700 border-r border-slate-600 flex-shrink-0 overflow-y-auto">
             {tracks.length === 0 ? (
               <div className="p-4 text-center text-slate-400 text-sm">
                 No tracks yet. Add one to get started.
@@ -767,7 +767,7 @@ export default function Timeline({
           </div>
 
           {/* Timeline Content */}
-          <div className="flex-1 overflow-x-auto max-h-96">
+          <div className="flex-1 overflow-x-auto">
             <div className="flex flex-col">
               {tracks.map((track) => (
                 <div
@@ -848,15 +848,7 @@ export default function Timeline({
         </div>
       </div>
 
-      {/* Timeline Info */}
-      <div className="text-xs text-slate-400 space-y-1">
-        <p>• Click on timeline to seek</p>
-        <p>• Use zoom controls (−/+) to adjust timeline scale (0.25x - 5x)</p>
-        <p>• Click track controls to mute, hide, or lock tracks</p>
-        <p>• Drag clips from Media panel to timeline to add them</p>
-        <p>• Hover over clips to see trim handles (white edges) - drag to trim duration</p>
-        <p>• Click "Cut" button to split clip at playhead position</p>
-      </div>
+
     </div>
   );
 }

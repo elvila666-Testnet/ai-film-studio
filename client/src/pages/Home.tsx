@@ -298,23 +298,26 @@ export function Home() {
           userRole={user?.role}
         />
 
-        <main className="flex-1 overflow-y-auto bg-studio-gradient relative">
-          <div className="p-10 max-w-7xl mx-auto">
-            <div className="animate-fade-in">
-              {currentStage === "bible" && <BrandIntelligenceTab projectId={selectedProjectId!} />}
-              {currentStage === "script" && <ScriptTab projectId={selectedProjectId!} />}
-              {currentStage === "breakdown" && <DirectorView projectId={selectedProjectId!} />}
-              {currentStage === "characters" && <CharacterCastingTab projectId={selectedProjectId!} />}
-              {currentStage === "production-design" && <ProductionDesignTab projectId={selectedProjectId!} />}
-              {currentStage === "cinematography" && <CinematographyTab projectId={selectedProjectId!} />}
-              {currentStage === "storyboard" && <StoryboardTab projectId={selectedProjectId!} />}
-              {currentStage === "shot-designer" && <ShotDesignerTab projectId={selectedProjectId!} />}
-              {currentStage === "video" && <VideoTab projectId={selectedProjectId!} />}
-              {currentStage === "editor" && <EditorTab projectId={selectedProjectId!} />}
-              {currentStage === "export" && <ExportTab projectId={selectedProjectId!} />}
-              {currentStage === "admin" && <AdminPanel />}
+        <main className={`flex-1 ${currentStage === "editor" ? "overflow-hidden" : "overflow-y-auto"} bg-studio-gradient relative`}>
+          {currentStage === "editor" ? (
+            <EditorTab projectId={selectedProjectId!} />
+          ) : (
+            <div className="p-10 max-w-7xl mx-auto">
+              <div className="animate-fade-in">
+                {currentStage === "bible" && <BrandIntelligenceTab projectId={selectedProjectId!} />}
+                {currentStage === "script" && <ScriptTab projectId={selectedProjectId!} />}
+                {currentStage === "breakdown" && <DirectorView projectId={selectedProjectId!} />}
+                {currentStage === "characters" && <CharacterCastingTab projectId={selectedProjectId!} />}
+                {currentStage === "production-design" && <ProductionDesignTab projectId={selectedProjectId!} />}
+                {currentStage === "cinematography" && <CinematographyTab projectId={selectedProjectId!} />}
+                {currentStage === "storyboard" && <StoryboardTab projectId={selectedProjectId!} />}
+                {currentStage === "shot-designer" && <ShotDesignerTab projectId={selectedProjectId!} />}
+                {currentStage === "video" && <VideoTab projectId={selectedProjectId!} />}
+                {currentStage === "export" && <ExportTab projectId={selectedProjectId!} />}
+                {currentStage === "admin" && <AdminPanel />}
+              </div>
             </div>
-          </div>
+          )}
         </main>
 
         {selectedProjectId && selectedProjectId !== -1 && (

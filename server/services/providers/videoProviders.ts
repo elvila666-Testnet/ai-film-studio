@@ -315,32 +315,50 @@ export class WHANProvider {
 
 export class Veo3Provider {
   private apiKey: string;
-  private apiUrl: string;
+  private projectId: string;
+  private readonly vertexBaseUrl = "https://us-central1-aiplatform.googleapis.com/v1";
 
-  constructor(apiKey: string, apiUrl: string = "https://generativelanguage.googleapis.com/v1beta") {
+  constructor(apiKey: string, _apiUrl?: string) {
     this.apiKey = apiKey;
-    this.apiUrl = apiUrl;
+    this.projectId = process.env.GCP_PROJECT_ID || "ai-film-studio-485900";
+  }
+
+  /**
+   * Acquire OAuth2 access token for Vertex AI.
+   * On Cloud Run the service account is automatic; locally it uses ADC.
+   */
+  private async getAccessToken(): Promise<string> {
+    const { GoogleAuth } = await import("google-auth-library");
+    const auth = new GoogleAuth({ scopes: "https://www.googleapis.com/auth/cloud-platform" });
+    const client = await auth.getClient();
+    const tokenResponse = await client.getAccessToken();
+    if (!tokenResponse.token) {
+      throw new Error("Failed to obtain GCP access token for Vertex AI");
+    }
+    return tokenResponse.token;
   }
 
   async generateVideo(params: VideoGenerationParams): Promise<VideoGenerationResult> {
     const startTime = Date.now();
-    const modelId = params.model || "veo-3.1-generate-preview";
+    const modelId = params.model || "veo-3.0-generate-001";
 
     try {
-      // Veo 3.1 requires base64 inlineData for image inputs in instances
-      let imageInstance = {};
+      // 1. Prepare image instance if keyframe is provided
+      let imageInstance: Record<string, unknown> = {};
       if (params.keyframeUrl) {
           const axios = (await import("axios")).default;
           const imageRes = await axios.get(params.keyframeUrl, { responseType: 'arraybuffer' });
           const base64 = Buffer.from(imageRes.data).toString('base64');
+          // Vertex AI requires mimeType alongside bytesBase64Encoded
+          const contentType = (imageRes.headers['content-type'] as string) || "image/jpeg";
+          const mimeType = contentType.split(';')[0].trim(); // Strip charset if present
           imageInstance = {
               image: {
-                  inlineData: {
-                      mimeType: "image/png",
-                      data: base64
-                  }
+                  bytesBase64Encoded: base64,
+                  mimeType: mimeType
               }
           };
+          console.log(`[Veo3] Image downloaded: ${base64.length} chars, mimeType: ${mimeType}`);
       }
 
       const jsonBody = {
@@ -349,43 +367,49 @@ export class Veo3Provider {
               ...imageInstance
           }],
           parameters: {
-            aspectRatio: params.resolution === "1080p" ? "16:9" : "1:1",
-            resolution: params.resolution === "4k" ? "4k" : (params.resolution === "1080p" ? "1080p" : "720p"),
-            videoOptions: {
-                fps: params.fps || 24,
-                duration: params.duration || 5
-            }
+            sampleCount: 1,
+            aspectRatio: "16:9",
+            personGeneration: "allow_adult",
+            storageUri: `gs://${process.env.GCS_BUCKET_NAME || "ai-film-studio-assets"}/veo-output/`,
           }
       };
 
-      console.log(`[Veo3] Submitting request to ${modelId}:`, JSON.stringify(jsonBody, null, 2));
+      // 2. Get OAuth token (Vertex AI requires Bearer token, not API key)
+      const accessToken = await this.getAccessToken();
+      const url = `${this.vertexBaseUrl}/projects/${this.projectId}/locations/us-central1/publishers/google/models/${modelId}:predictLongRunning`;
 
-      const response = await fetch(`${this.apiUrl}/models/${modelId}:predictLongRunning?key=${this.apiKey}`, {
+      console.log(`[Veo3] Submitting to Vertex AI: ${url}`);
+      console.log(`[Veo3] Payload:`, JSON.stringify({ ...jsonBody, instances: [{ prompt: jsonBody.instances[0].prompt.substring(0, 80) + "...", hasImage: !!params.keyframeUrl }] }, null, 2));
+
+      const response = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
         body: JSON.stringify(jsonBody),
       });
 
       if (!response.ok) {
         const errText = await response.text();
-        console.error(`[Veo3] API Error (${response.status}): ${errText} at ${this.apiUrl}/models/${modelId}:predict`);
+        console.error(`[Veo3] Vertex AI Error (${response.status}): ${errText}`);
         throw new Error(`Veo3 API error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      const operationName = data.name; // LRO operation name
+      const operationName = data.name; // LRO operation name (e.g., "projects/.../operations/...")
 
       if (!operationName) {
-        // If it's lucky and returned it immediately (unlikely for Veo)
+        // Immediate result (unlikely for video)
         if (data.predictions?.[0]?.bytesBase64Encoded) {
           return this.formatResult(data, params, startTime);
         }
         throw new Error("Veo3 did not return an operation name or immediate result.");
       }
 
-      // 2. Poll for completion
+      // 3. Poll the LRO for completion
       console.log(`[Veo3] Started LRO: ${operationName}. Polling...`);
-      const resultData = await this.pollOperation(operationName);
+      const resultData = await this.pollOperation(operationName, accessToken);
 
       return this.formatResult(resultData, params, startTime);
     } catch (error) {
@@ -393,16 +417,34 @@ export class Veo3Provider {
     }
   }
 
-  private async pollOperation(operationName: string): Promise<any> {
+  private async pollOperation(operationName: string, accessToken: string): Promise<Record<string, unknown>> {
     const maxAttempts = 60; // 5 minutes with 5s delay
     const delayMs = 5000;
+
+    // Extract modelId from operation name: "projects/.../models/MODEL_ID/operations/..."
+    const modelMatch = operationName.match(/models\/([^/]+)/);
+    const modelId = modelMatch?.[1] || "veo-2.0-generate-001";
+    const fetchUrl = `${this.vertexBaseUrl}/projects/${this.projectId}/locations/us-central1/publishers/google/models/${modelId}:fetchPredictOperation`;
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       await new Promise(resolve => setTimeout(resolve, delayMs));
 
-      const response = await fetch(`${this.apiUrl}/${operationName}?key=${this.apiKey}`);
+      const response = await fetch(fetchUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ operationName }),
+      });
+
       if (!response.ok) {
         console.warn(`[Veo3] Poll failed (${response.status}). Retrying...`);
+        // Re-acquire token if it may have expired (after ~30 min)
+        if (response.status === 401 && attempt > 0) {
+          console.log(`[Veo3] Token may have expired, re-acquiring...`);
+          accessToken = await this.getAccessToken();
+        }
         continue;
       }
 
@@ -411,31 +453,46 @@ export class Veo3Provider {
         if (data.error) {
           throw new Error(`Veo3 LRO failed: ${data.error.message}`);
         }
-        return data.response;
+        console.log(`[Veo3] LRO completed after ${attempt + 1} polls.`);
+        return data.response || data;
       }
 
-      console.log(`[Veo3] Still processing ${operationName} (attempt ${attempt + 1}/${maxAttempts})...`);
+      console.log(`[Veo3] Still processing (attempt ${attempt + 1}/${maxAttempts})...`);
     }
 
-    throw new Error("Veo3 generation timed out.");
+    throw new Error("Veo3 generation timed out (5 min).");
   }
 
-  private formatResult(data: any, params: VideoGenerationParams, startTime: number): VideoGenerationResult {
-    const prediction = data.predictions?.[0] || data[0];
-    const videoUrl = prediction.bytesBase64Encoded
-      ? `data:video/mp4;base64,${prediction.bytesBase64Encoded}`
-      : prediction.videoUrl || prediction.uri || "https://storage.googleapis.com/ai-film-studio-assets/placeholder.mp4";
+  private formatResult(data: Record<string, unknown>, params: VideoGenerationParams, startTime: number): VideoGenerationResult {
+    // Veo returns: { videos: [{ gcsUri: "gs://...", mimeType: "video/mp4" }], raiMediaFilteredCount: 0 }
+    const videos = (data as Record<string, unknown>).videos as Array<Record<string, string>> | undefined;
+
+    let videoUrl = "";
+    if (videos?.[0]?.gcsUri) {
+      // Convert gs:// URI to public HTTPS URL
+      const gcsUri = videos[0].gcsUri;
+      videoUrl = gcsUri.replace("gs://", "https://storage.googleapis.com/");
+      console.log(`[Veo3] Video stored at: ${gcsUri} -> ${videoUrl}`);
+    } else {
+      // Fallback: check for bytesBase64Encoded or other fields
+      const predictions = (data as Record<string, unknown>).predictions as Array<Record<string, unknown>> | undefined;
+      const prediction = predictions?.[0] || (data as Record<string, unknown>);
+      const bytesBase64 = prediction.bytesBase64Encoded as string | undefined;
+      videoUrl = bytesBase64
+        ? `data:video/mp4;base64,${bytesBase64}`
+        : (prediction.videoUri as string) || (prediction.uri as string) || "";
+    }
 
     return {
       provider: "veo3",
-      model: "veo-2.0",
+      model: params.model || "veo-3.0-generate-001",
       url: videoUrl,
       duration: params.duration,
       width: 1280,
       height: 720,
       fps: 24,
       fileSize: 0,
-      actualCost: 0.18, // Fixed for now
+      actualCost: 0.18,
       processingTime: Date.now() - startTime,
       metadata: {
         resolution: params.resolution,
@@ -563,6 +620,7 @@ export class VideoProviderFactory {
       case "whan":
         return new WHANProvider(apiKey, apiUrl);
       case "veo3":
+      case "gemini":
         return new Veo3Provider(apiKey, apiUrl);
       case "replicate":
         return new ReplicateVideoProvider(apiKey);

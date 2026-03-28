@@ -149,12 +149,8 @@ export const videoRouter = router({
 
             // 1. Determine Provider & Model
             let provider = input.provider as VideoProvider;
-            let modelId = input.modelId || "minimax/video-01";
+            let modelId: string = input.modelId || (provider === "veo3" ? "veo-3.0-generate-001" : "minimax/video-01");
 
-            if (!provider) {
-                // Default to Replicate if not specified
-                provider = "veo3";
-            }
 
             // Get API Key
             const config = await db.select().from(modelConfigs).where(and(
@@ -163,6 +159,10 @@ export const videoRouter = router({
             )).limit(1);
 
             let apiKey = config[0]?.apiKey || "";
+            if (!modelId && config[0]?.modelId) {
+                modelId = config[0].modelId;
+            }
+
             if (!apiKey) {
                 if (provider === "replicate") apiKey = process.env.REPLICATE_API_TOKEN || "";
                 else if (provider === "sora") apiKey = process.env.SORA_API_KEY || "";
@@ -348,9 +348,207 @@ export const videoRouter = router({
                         .where(eq(generatedVideos.id, videoId));
                 });
 
-                triggeredCount++;
+                    triggeredCount++;
             }
 
             return { success: true, triggered: triggeredCount, message: `Started generation for ${triggeredCount} shots` };
-        })
+        }),
+
+    // ─── Video Version History (for version switching) ────────────────
+    getVideoHistory: publicProcedure
+        .input(z.object({
+            projectId: z.number(),
+            shotNumber: z.number(),
+        }))
+        .query(async ({ input }) => {
+            const db = await getDb();
+            if (!db) throw new Error("Database not available");
+
+            // Get all storyboard image variants for this shot (includes videoUrl)
+            const { getShotVariants } = await import("../db/storyboard");
+            const variants = await getShotVariants(input.projectId, input.shotNumber);
+
+            // Also get all generated_videos entries for this project
+            const { desc } = await import("drizzle-orm");
+            const videos = await db.select()
+                .from(generatedVideos)
+                .where(and(
+                    eq(generatedVideos.projectId, input.projectId),
+                    eq(generatedVideos.status, "completed")
+                ))
+                .orderBy(desc(generatedVideos.createdAt));
+
+            return {
+                variants: variants.map((v: { id: number; imageUrl: string | null; videoUrl: string | null; prompt: string | null; generationVariant: number | null; createdAt: Date }) => ({
+                    id: v.id,
+                    imageUrl: v.imageUrl,
+                    videoUrl: v.videoUrl,
+                    prompt: v.prompt,
+                    variant: v.generationVariant,
+                    createdAt: v.createdAt,
+                })),
+                videos: videos.map((v: typeof generatedVideos.$inferSelect) => ({
+                    id: v.id,
+                    videoUrl: v.videoUrl,
+                    modelId: v.modelId,
+                    status: v.status,
+                    createdAt: v.createdAt,
+                })),
+            };
+        }),
+
+    // ─── Director Revision: Full Pipeline (Image → Video) ─────────────
+    directorRevision: publicProcedure
+        .input(z.object({
+            projectId: z.number(),
+            shotNumber: z.number(),
+            directorNotes: z.string().min(1),
+            regenerateImage: z.boolean().default(true),
+            regenerateVideo: z.boolean().default(true),
+        }))
+        .mutation(async ({ input, ctx }) => {
+            const db = await getDb();
+            if (!db) throw new Error("Database not available");
+
+            const userId = (ctx.user as { id: number } | undefined)?.id?.toString() || "system";
+            let newImageUrl: string | undefined;
+
+            console.log(`[DirectorRevision] Shot ${input.shotNumber}: "${input.directorNotes}"`);
+
+            // ─── Phase 1: Regenerate Storyboard Image with Director Notes ───
+            if (input.regenerateImage) {
+                try {
+                    console.log(`[DirectorRevision] Phase 1: Regenerating storyboard frame...`);
+
+                    // Get current frame
+                    const currentFrame = await db.select().from(storyboardImages).where(and(
+                        eq(storyboardImages.projectId, input.projectId),
+                        eq(storyboardImages.shotNumber, input.shotNumber)
+                    )).limit(1);
+
+                    const basePrompt = currentFrame[0]?.prompt || "Cinematic shot";
+                    const parentImageUrl = currentFrame[0]?.imageUrl || undefined;
+
+                    // Build director-enhanced prompt
+                    const refinedPrompt = `DIRECTOR REVISION: ${input.directorNotes}\n\nOriginal brief: ${basePrompt}\n\nMaintain visual continuity. Only modify what the director has requested. Technical Style: 8K RAW cinematic photograph.`;
+
+                    // Get character/set anchors for consistency
+                    const { getLockedCharacters } = await import("../db/characters");
+                    const lockedChars = await getLockedCharacters(input.projectId) || [];
+                    const imageAnchors: string[] = [];
+                    if (parentImageUrl) imageAnchors.push(parentImageUrl);
+                    if (lockedChars.length > 0 && lockedChars[0].imageUrl) {
+                        imageAnchors.push(lockedChars[0].imageUrl);
+                    }
+
+                    // Generate new image
+                    const { generateStoryboardImage } = await import("../services/aiGeneration");
+                    newImageUrl = await generateStoryboardImage(
+                        refinedPrompt,
+                        "nano-banana-pro",
+                        input.projectId,
+                        userId,
+                        "1344x768",
+                        imageAnchors.slice(0, 3)
+                    );
+
+                    // Save as new variant + update current
+                    const { saveNewShotVariant } = await import("../db/storyboard");
+                    await saveNewShotVariant(input.projectId, input.shotNumber, newImageUrl, refinedPrompt);
+
+                    // Also update the main storyboard entry
+                    await db.update(storyboardImages)
+                        .set({ imageUrl: newImageUrl, prompt: refinedPrompt, videoUrl: null })
+                        .where(and(
+                            eq(storyboardImages.projectId, input.projectId),
+                            eq(storyboardImages.shotNumber, input.shotNumber),
+                            eq(storyboardImages.generationVariant, 0)
+                        ));
+
+                    console.log(`[DirectorRevision] Phase 1 complete: ${newImageUrl}`);
+                } catch (err: unknown) {
+                    const message = err instanceof Error ? err.message : String(err);
+                    console.error(`[DirectorRevision] Phase 1 failed:`, message);
+                    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Image regeneration failed: ${message}` });
+                }
+            }
+
+            // ─── Phase 2: Re-Animate the Shot ───────────────────────────────
+            let videoUrl: string | undefined;
+            if (input.regenerateVideo) {
+                try {
+                    console.log(`[DirectorRevision] Phase 2: Re-animating shot...`);
+
+                    // Get the frame to animate (use new image if available)
+                    const frameToAnimate = await db.select().from(storyboardImages).where(and(
+                        eq(storyboardImages.projectId, input.projectId),
+                        eq(storyboardImages.shotNumber, input.shotNumber)
+                    )).limit(1);
+
+                    const keyframeUrl = newImageUrl || frameToAnimate[0]?.imageUrl;
+                    if (!keyframeUrl) {
+                        throw new Error("No keyframe image available for animation");
+                    }
+
+                    const motionPrompt = `${frameToAnimate[0]?.prompt || "Cinematic scene"}\n\n[DIRECTOR NOTES]: ${input.directorNotes}`;
+
+                    // Create video provider
+                    const provider = ProviderFactory.createVideoProvider("veo3", "");
+                    const modelId = "veo-3.0-generate-001";
+
+                    const result = await provider.generateVideo({
+                        prompt: motionPrompt,
+                        keyframeUrl,
+                        duration: 8,
+                        resolution: "720p",
+                        fps: 24,
+                    }, modelId);
+
+                    // Secure asset
+                    const { ensurePermanentUrl } = await import("../services/aiGeneration");
+                    videoUrl = await ensurePermanentUrl(result.url, "videos");
+
+                    // Update storyboard
+                    await db.update(storyboardImages)
+                        .set({ videoUrl })
+                        .where(and(
+                            eq(storyboardImages.projectId, input.projectId),
+                            eq(storyboardImages.shotNumber, input.shotNumber)
+                        ));
+
+                    // Log to generated_videos
+                    await db.insert(generatedVideos).values({
+                        projectId: input.projectId,
+                        provider: "veo3",
+                        modelId,
+                        status: "completed",
+                        videoUrl,
+                    });
+
+                    // Log cost
+                    const { usageLedger } = await import("../../drizzle/schema");
+                    await db.insert(usageLedger).values({
+                        projectId: input.projectId,
+                        userId,
+                        actionType: "DIRECTOR_REVISION_VIDEO",
+                        modelId,
+                        quantity: 1,
+                        cost: "0.18" as unknown as number,
+                    });
+
+                    console.log(`[DirectorRevision] Phase 2 complete: ${videoUrl}`);
+                } catch (err: unknown) {
+                    const message = err instanceof Error ? err.message : String(err);
+                    console.error(`[DirectorRevision] Phase 2 failed:`, message);
+                    // Non-fatal: image was still regenerated
+                }
+            }
+
+            return {
+                success: true,
+                imageUrl: newImageUrl,
+                videoUrl,
+                message: `Director revision complete for Shot ${input.shotNumber}`,
+            };
+        }),
 });

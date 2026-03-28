@@ -442,9 +442,11 @@ MIDJOURNEY_API_KEY=your_key
 - [x] **Phase 10: Brand Asset Library** - Deployed `brandAssets` table and `BrandAssetLibrary` UI for PDF/IMG/URL management. Integrated with Brand Brain discovery.
 - [x] **Phase 11: Premium UI Overhaul** - Refactored Brand Intelligence, Art Department (PD), and Cinematography tabs into high-fidelity, modular components. Implemented Glassmorphism design system and modular shot-level manifests.
 - [x] **Phase 12: Storyboard Grid & Layout** - Standardized 3x4 grid generation at 4:3 aspect ratio (1344x1024) to prevent cropping. Implemented strict 12-panel padding with placeholder support in `PromptSynthesis`. Enhanced `ReplicateProvider` for multi-image referencing with Nano Banana Pro.
+- [x] **Phase 13: Veo3 Vertex AI Integration** — Migrated `Veo3Provider` from broken Generative Language API to official Vertex AI `predictLongRunning` endpoint with OAuth service account auth. Implemented `fetchPredictOperation` LRO polling. Aligned payload with Google's spec (`image.mimeType`, `storageUri`, `personGeneration`). Video generation confirmed operational.
 
 ## Next Steps
 
 1. **VFX Supervisor Integration:** Deepening the Nuke script generation features.
-2. **Global Logic Hardening:** Further investigating the 500 errors in High-Fidelity pipelines reported by production.
+2. **Veo 3.1 Upgrade:** Migrate to `veo-3.1-generate-001` for 1080p/4K resolution and audio support.
+3. **Video Pipeline UX:** Add progress indicators for LRO polling and multi-shot batch animation.
 

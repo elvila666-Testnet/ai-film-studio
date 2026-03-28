@@ -17,6 +17,7 @@ export interface ShotDesignRequest {
   setReferences: Record<string, string>; // Set name -> image URL
   resolution: "1080p" | "2k" | "4k";
   moments: ShotMoment[];
+  storyboardImageUrl?: string; // Optional storyboard frame to maintain consistency
   cinematographyStyle?: string;
   visualStyle?: string;
 }
@@ -82,9 +83,11 @@ export async function generateShotDesign(
           quality: "hd",
           count: 1,
           style: request.visualStyle || "cinematic",
-          imageInputs: Object.values(request.characterReferences).concat(
-            Object.values(request.setReferences)
-          ),
+          imageInputs: [
+            ...(request.storyboardImageUrl ? [request.storyboardImageUrl] : []),
+            ...Object.values(request.characterReferences),
+            ...Object.values(request.setReferences)
+          ],
         };
 
         const result = await geminiProvider.generateImage(params);

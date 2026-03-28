@@ -68,12 +68,14 @@ export class ReplicateProvider {
             const [width, height] = params.resolution.split("x").map(Number);
             const ratio = width / height;
             let aspectRatio = "1:1";
-            if (ratio > 1.7) aspectRatio = "16:9";
+            if (ratio > 2.2) aspectRatio = "21:9";
+            else if (ratio > 1.7) aspectRatio = "16:9";
+            else if (ratio < 0.45) aspectRatio = "9:21";
             else if (ratio < 0.6) aspectRatio = "9:16";
-            else if (ratio > 1.2) aspectRatio = "3:2";
-            else if (ratio < 0.8) aspectRatio = "2:3";
-            else if (ratio > 1.1) aspectRatio = "4:3";
-            else if (ratio < 0.9) aspectRatio = "3:4";
+            else if (ratio > 1.4) aspectRatio = "3:2";
+            else if (ratio < 0.7) aspectRatio = "2:3";
+            else if (ratio > 1.2) aspectRatio = "4:3";
+            else if (ratio < 0.8) aspectRatio = "3:4";
 
             input.aspect_ratio = aspectRatio;
             input.output_format = "jpg";
@@ -88,8 +90,8 @@ export class ReplicateProvider {
                 if (replicateModel.includes("nano-banana-pro")) {
                     // Nano Banana Pro strictly expects 'image_input' as a file array
                     input.image_input = params.imageInputs;
-                    input.prompt_strength = 0.45; // Sweet spot for character adherence vs grid structure
-                    console.log("[ReplicateProvider] Nano Banana: Using semantic anchors for Grid consistency.");
+                    input.prompt_strength = isGrid ? 0.30 : 0.45; // Lower for grids to maintain layout
+                    console.log(`[ReplicateProvider] Nano Banana: Using anchors with strength ${input.prompt_strength}`);
                 } else if (!isGrid) {
                     input.image = params.imageInputs[0];
                     input.prompt_strength = 0.75; 
