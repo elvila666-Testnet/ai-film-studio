@@ -76,8 +76,8 @@ export class GeminiProvider {
 
         try {
             // Route to new Gemini 3.x Imagery API if applicable (Nano Banana 2 / Pro)
-            if (modelId.includes("gemini-3")) {
-                console.log(`[GeminiProvider] Using Gemini 3.x Imagery API (generateContent)`);
+            if (modelId.includes("gemini-3") || modelId.toLowerCase().includes("banana") || modelId.toLowerCase().includes("nano")) {
+                console.log(`[GeminiProvider] Using High-Fidelity Gemini Multimodal API (generateContent) for ${modelId}`);
                 return await this.generateImageWithGemini3(params, modelId, startTime);
             }
 
@@ -215,9 +215,7 @@ export class GeminiProvider {
                 parameters: {
                     sampleCount: params.count || 1,
                     aspectRatio: this.getAspectRatio(params.resolution),
-                    outputOptions: { mimeType: "image/jpeg" },
-                    safetySetting: "block_only_high", 
-                    personGeneration: "allow_adult", 
+                    outputOptions: { mimeType: "image/jpeg" }
                 }
             };
 

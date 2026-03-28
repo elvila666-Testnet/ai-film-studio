@@ -181,7 +181,7 @@ export const storyboardRouter = router({
             const { cropGridTile } = await import("../services/imageProcessing");
             const localIdx = (shotOrder - 1) % 12;
             const row = Math.floor(localIdx / 3) + 1;
-            const col = (row === 2) ? 3 - (localIdx % 3) : (localIdx % 3) + 1;
+            const col = (localIdx % 3) + 1;
             try {
                 const croppedTileUrl = await cropGridTile(gridForShot.imageUrl, row, col);
                 visualAnchors.push(croppedTileUrl);

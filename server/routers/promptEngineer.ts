@@ -3,7 +3,7 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { logUsage } from "../services/ledgerService";
 import { estimateCost } from "../services/pricingService";
-import { buildStoryboardPrompts } from "../services/agents/production/promptEngineerAgent";
+import { buildStoryboardPrompts, getBuiltPrompts } from "../services/agents/production/promptEngineerAgent";
 import { generateGridImage } from "../services/aiGeneration";
 import { saveStoryboardImage } from "../db";
 
@@ -50,7 +50,8 @@ export const promptEngineerRouter = router({
                             gp.masterPrompt,
                             input.projectId,
                             ctx.user.id.toString(),
-                            gp.characterReferenceUrls[0]
+                            gp.pageNumber,
+                            gp.characterReferenceUrls
                         );
                         const shotNumber = 1000 + gp.pageNumber - 1;
                         await saveStoryboardImage(input.projectId, shotNumber, imageUrl, gp.masterPrompt);

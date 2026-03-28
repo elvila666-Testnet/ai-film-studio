@@ -27,10 +27,7 @@ function getProviderFor(modelId?: string) {
     return getReplicateProvider();
   }
   
-  // Route "banana" or "nano" to Replicate by default unless it's the Google version
-  if (m.includes("banana") || m.includes("nano")) {
-     return getReplicateProvider();
-  }
+  return geminiProvider;
 
   return geminiProvider;
 }
@@ -572,13 +569,13 @@ export async function generateGridImage(
   projectId?: number, 
   userId?: string, 
   pageNumber: number = 1,
-  ...visualAnchors: (string | undefined)[]
+  visualAnchors: string[] = []
 ): Promise<string> {
     const { burnPanelNumbers } = await import("./imageProcessing");
     const axios = (await import("axios")).default;
   try {
     // Assemble visual anchor references (characters, sets, style references)
-    const imageInputs: string[] = visualAnchors.filter((a): a is string => !!a);
+    const imageInputs: string[] = visualAnchors;
 
     const provider = getProviderFor("nano-banana-pro");
 
@@ -605,7 +602,7 @@ export async function generateGridImage(
         try {
           const fallbackResult = await geminiProvider.generateImage({
               prompt,
-              resolution: "1024x1024", 
+              resolution: "1344x1024", 
               quality: "hd",
               projectId,
               userId,

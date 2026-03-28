@@ -91,11 +91,10 @@ Generate a SINGLE high-fidelity 16:9 image containing a RIGID 3×4 STORYBOARD GR
 The grid MUST consist of EXACTLY 12 IDENTICAL RECTANGULAR PANELS arranged in 3 rows and 4 columns.
 
 [GEOMETRIC CONSTRAINTS - NON-NEGOTIABLE]
-- GRID LAYOUT: 4 columns across, 3 rows down.
-- CELL SYMMETRY: Every single cell MUST have the EXACT SAME dimensions (448px x 341px).
-- NO MASONRY: Disable all dynamic or flexible layouts. All horizontal and vertical lines must be perfectly straight and continuous across the entire sheet.
-- BORDERS: Use a thin 2px solid black or dark gray divider between all cells to ensure clear separation.
+- GRID LAYOUT: 3 columns across, 4 rows down.
+- CELL SYMMETRY: Every single cell MUST have the EXACT SAME dimensions.
 - ASPECT RATIO: Each individual cell MUST be a perfect 16:9 cinematic frame.
+- CANVAS: The entire grid must be contained within a single 4:3 aspect ratio canvas.
 
 [INTEGRATED TECHNICAL LABELS]
 - MANDATORY: Render a small, legible text label in the BOTTOM-LEFT corner of EVERY cell.
@@ -118,7 +117,7 @@ The grid MUST consist of EXACTLY 12 IDENTICAL RECTANGULAR PANELS arranged in 3 r
 
             parsed.shots.forEach((s, index) => {
                 const shotNum = index + 1;
-                masterPrompt += `PANEL ${shotNum} (Row ${Math.floor(index/4)+1}, Col ${(index%4)+1}): [${s.cameraAngle}] - ${s.action}${s.assignedSet ? ` (Set: ${s.assignedSet})` : ""}. Label this cell as "SHOT ${shotNum}".\n`;
+                masterPrompt += `PANEL ${shotNum} (Row ${Math.floor(index/3)+1}, Col ${(index%3)+1}): [${s.cameraAngle}] - ${s.action}${s.assignedSet ? ` (Set: ${s.assignedSet})` : ""}. Label this cell as "SHOT ${shotNum}".\n`;
             });
 
             // Build detailed visual descriptions from character and set references
@@ -155,7 +154,13 @@ ${projectSets.map((s: any) => `- ${s.name}: ${s.description}`).join('\n')}`;
                     console.log(`[StoryboardAgent] Triggering 3x4 Grid Generation...`);
                     // NOTE: We pass characterReferenceUrl and setReferenceUrl for logging/tracking,
                     // but the actual visual consistency is enforced via detailed prompt descriptions.
-                    const imageUrl = await generateGridImage(masterPrompt, input.projectId, ctx.user.id.toString(), characterReferenceUrl, setReferenceUrl);
+                    const imageUrl = await generateGridImage(
+                        masterPrompt, 
+                        input.projectId, 
+                        ctx.user.id.toString(), 
+                        1, 
+                        [characterReferenceUrl, setReferenceUrl].filter(Boolean) as string[]
+                    );
                     await saveStoryboardImage(input.projectId, uniqueShotNumber, imageUrl, masterPrompt);
                     console.log(`[StoryboardAgent] Grid Materialized -> ${imageUrl}`);
                 } catch (err) {
