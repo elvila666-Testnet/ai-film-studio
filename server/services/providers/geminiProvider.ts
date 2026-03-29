@@ -76,7 +76,7 @@ export class GeminiProvider {
 
         try {
             // Route to new Gemini 3.x Imagery API if applicable (Nano Banana 2 / Pro)
-            if (modelId.includes("gemini-3") || modelId.toLowerCase().includes("banana") || modelId.toLowerCase().includes("nano")) {
+            if (modelId.includes("gemini-3")) {
                 console.log(`[GeminiProvider] Using High-Fidelity Gemini Multimodal API (generateContent) for ${modelId}`);
                 return await this.generateImageWithGemini3(params, modelId, startTime);
             }
@@ -215,35 +215,35 @@ export class GeminiProvider {
                 parameters: {
                     sampleCount: params.count || 1,
                     aspectRatio: this.getAspectRatio(params.resolution),
-                    outputOptions: { mimeType: "image/jpeg" }
+                    outputOptions: { mimeType: "image/jpeg" },
+                    safetySetting: "block_only_high", 
+                    personGeneration: "allow_adult", 
                 }
             };
 
             // If we have an image reference, use the modern referenceImages structure for Imagen 3 Editing
             if (hasImageRefs) {
-                const imgInput = params.imageInputs![0];
-                let base64Data: string;
+                const imageRefsPromises = params.imageInputs!.map(async (imgInput, idx) => {
+                    let base64Data: string;
+                    if (imgInput.startsWith('data:')) {
+                        base64Data = imgInput.split(',')[1];
+                    } else if (imgInput.startsWith('http')) {
+                        base64Data = await this.downloadImageAsBase64(imgInput);
+                    } else {
+                        base64Data = imgInput;
+                    }
 
-                if (imgInput.startsWith('data:')) {
-                    base64Data = imgInput.split(',')[1];
-                } else if (imgInput.startsWith('http')) {
-                    base64Data = await this.downloadImageAsBase64(imgInput);
-                } else {
-                    base64Data = imgInput;
-                }
-
-                payload.instances[0].referenceImages = [
-                    {
-                        referenceId: 1,
+                    return {
+                        referenceId: idx + 1,
                         referenceType: "REFERENCE_TYPE_RAW",
                         referenceImage: {
                             bytesBase64Encoded: base64Data
                         }
-                    }
-                ];
-                // Remove the old 'image' field if it was there
-                delete payload.instances[0].image;
-                console.log(`[GeminiProvider] Using referenceImages structure for Imagen 3 Editing`);
+                    };
+                });
+
+                payload.instances[0].referenceImages = await Promise.all(imageRefsPromises);
+                console.log(`[GeminiProvider] Injected ${payload.instances[0].referenceImages.length} reference images into Imagen 3 payload`);
             }
 
             // Vertex AI requires an OAuth token, not a Gemini API key (AIza...)
