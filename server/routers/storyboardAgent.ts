@@ -94,7 +94,9 @@ The grid MUST consist of EXACTLY 12 IDENTICAL RECTANGULAR PANELS arranged in 3 r
 - GRID LAYOUT: 3 columns across, 4 rows down.
 - CELL SYMMETRY: Every single cell MUST have the EXACT SAME dimensions.
 - ASPECT RATIO: Each individual cell MUST be a perfect 16:9 cinematic frame.
-- CANVAS: The entire grid must be contained within a single 4:3 aspect ratio canvas.
+- NO MASONRY: Disable all dynamic or flexible layouts. All horizontal and vertical lines must be perfectly straight and continuous.
+- BORDERS: Use a thin 2px solid black or dark gray divider between all cells to ensure clear separation.
+- STYLE: Photorealistic cinematic render, cinematic lighting, ultra-detailed 8k resolution. No sketches.
 
 [INTEGRATED TECHNICAL LABELS]
 - MANDATORY: Render a small, legible text label in the BOTTOM-LEFT corner of EVERY cell.

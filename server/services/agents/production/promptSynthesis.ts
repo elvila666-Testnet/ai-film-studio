@@ -84,14 +84,12 @@ ${(() => {
 })()}
 
 ---
-TASK: 
 Synthesize all the above into a MASTER PROMPT. 
 - Use the Nanobanana 2.0 structure.
 - MANDATORY: Demand a "STRICT 3 columns and 4 rows" grid layout on a single 4:3 canvas image.
-- DO NOT return 4 columns or 3 rows. The layout must be exactly 3 vertical columns.
-- Each of the 12 panels must be a CINEMATIC 16:9 ratio rectangle with professional cinematic photographic framing.
-- Ensure each panel is clearly defined by thin white or dark border lines.
-- Ensure the prompt is rich, photographic, and cinematic.
+- NO MASONRY: All rows and columns must be perfectly aligned with straight, continuous 2px dividers.
+- CELL ASPECT: Each individual frame must be a CINEMATIC 16:9 ratio rectangle with professional cinematic photographic framing.
+- STYLE: Highly detailed photorealistic cinematic renders, cinematic lighting, 8k resolution. No sketches.
 - DO NOT return JSON. Return the final prompt ONLY as a raw string.
 `;
 
