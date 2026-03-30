@@ -577,7 +577,8 @@ export async function generateGridImage(
     // Assemble visual anchor references (characters, sets, style references)
     const imageInputs: string[] = visualAnchors;
 
-    const provider = getProviderFor("nano-banana-pro");
+    // For Storyboard Grids, we primarily use the Replicate API as requested
+    const provider = getReplicateProvider();
 
     try {
       const result = await provider.generateImage({
