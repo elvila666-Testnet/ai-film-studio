@@ -314,12 +314,10 @@ export class WHANProvider {
 }
 
 export class Veo3Provider {
-  private apiKey: string;
   private projectId: string;
   private readonly vertexBaseUrl = "https://us-central1-aiplatform.googleapis.com/v1";
 
-  constructor(apiKey: string, _apiUrl?: string) {
-    this.apiKey = apiKey;
+  constructor(_apiKey: string, _apiUrl?: string) {
     this.projectId = process.env.GCP_PROJECT_ID || "ai-film-studio-485900";
   }
 
@@ -602,6 +600,145 @@ export class ReplicateVideoProvider {
 }
 
 /**
+ * KIE.ai Video Provider
+ * Supports Seedance 2.0, Kling 3.0, and Wan 2.6
+ */
+export class KieProvider {
+  private apiKey: string;
+  private apiUrl: string;
+
+  constructor(apiKey: string, apiUrl: string = "https://api.kie.ai") {
+    this.apiKey = apiKey;
+    this.apiUrl = apiUrl;
+  }
+
+  async generateVideo(params: VideoGenerationParams): Promise<VideoGenerationResult> {
+    const startTime = Date.now();
+    
+    // Map model from params.model to KIE marketplace endpoint
+    let endpoint = "";
+    const model = params.model || "kie-seedance-2-0";
+
+    switch (model) {
+      case "kie-seedance-2-0":
+        endpoint = "/market/bytedance/seedance-2";
+        break;
+      case "kie-kling-3-0":
+        endpoint = "/market/kling/kling-3-0";
+        break;
+      case "kie-wan-2-6":
+        endpoint = "/market/wan/2-6-image-to-video";
+        break;
+      default:
+        endpoint = "/market/bytedance/seedance-2";
+    }
+
+    try {
+      console.log(`[KieProvider] Submitting task to ${endpoint}`);
+      const body = {
+        prompt: params.prompt,
+        image_url: params.keyframeUrl || params.input_image_url,
+      };
+
+      const response = await fetch(`${this.apiUrl}${endpoint}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`KIE API submission failed (${response.status}): ${errText}`);
+      }
+
+      const data = await response.json();
+      const taskId = data.task_id;
+
+      if (!taskId) {
+        throw new Error("KIE API did not return a task_id");
+      }
+
+      console.log(`[KieProvider] Task ${taskId} created for model ${model}. Polling...`);
+      
+      // Poll for result
+      const result = await this.pollTask(taskId);
+      const [width, height] = this.parseResolution(params.resolution);
+
+      return {
+        provider: "kie",
+        model: model,
+        url: result.video_url || result.url || "",
+        duration: params.duration,
+        width,
+        height,
+        fps: params.fps || 24,
+        fileSize: 0,
+        actualCost: 0.15, // Approx cost, service-specific
+        processingTime: Date.now() - startTime,
+        metadata: {
+          taskId,
+          status: result.status || result.state,
+        },
+      };
+    } catch (error) {
+      throw new Error(`KIE generation failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private async pollTask(taskId: string): Promise<any> {
+    const maxAttempts = 120; // 10 minutes total
+    const delayMs = 5000;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+
+      try {
+        const response = await fetch(`${this.apiUrl}/market/common/get-task-detail?task_id=${taskId}`, {
+          headers: {
+            Authorization: `Bearer ${this.apiKey}`,
+          },
+        });
+
+        if (!response.ok) {
+          console.warn(`[KieProvider] Poll attempt ${attempt + 1} failed with status ${response.status}`);
+          continue;
+        }
+
+        const data = await response.json();
+        const status = (data.status || data.state || "").toLowerCase();
+
+        if (status === "succeeded" || status === "completed" || status === "success") {
+          return data;
+        }
+
+        if (status === "failed" || status === "error") {
+          throw new Error(data.error_message || data.msg || "KIE task reported failure status");
+        }
+
+        console.log(`[KieProvider] Task ${taskId} status: ${status} (attempt ${attempt + 1}/${maxAttempts})`);
+      } catch (err: any) {
+        if (err.message.includes("KIE task reported failure")) throw err;
+        console.warn(`[KieProvider] Polling error: ${err.message}. Retrying...`);
+      }
+    }
+
+    throw new Error(`KIE task ${taskId} timed out after 10 minutes.`);
+  }
+
+  private parseResolution(resolution: string): [number, number] {
+    switch (resolution) {
+      case "720p": return [1280, 720];
+      case "1080p": return [1920, 1080];
+      case "4k": return [3840, 2160];
+      default: return [1280, 720];
+    }
+  }
+}
+
+/**
  * Video Provider Factory
  */
 export class VideoProviderFactory {
@@ -624,6 +761,8 @@ export class VideoProviderFactory {
         return new Veo3Provider(apiKey, apiUrl);
       case "replicate":
         return new ReplicateVideoProvider(apiKey);
+      case "kie":
+        return new KieProvider(apiKey, apiUrl);
       default:
         throw new Error(`Unknown video provider: ${provider}`);
     }

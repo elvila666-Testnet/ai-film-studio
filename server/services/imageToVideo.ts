@@ -65,7 +65,7 @@ export async function generateImageToVideo(
       provider: "gemini",
       taskId: "",
       status: "failed",
-      error: error.message || String(error),
+      error: (error as Error).message || String(error),
     };
   }
 }

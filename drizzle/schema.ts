@@ -81,6 +81,7 @@ export const projectContent = mysqlTable("projectContent", {
 
   pdValidated: boolean("pdValidated").default(false),
   pdApprovedOutput: mediumtext("pdApprovedOutput"), // JSON: { specs, referenceUrls[], moodboardUrls[] }
+  proposalDirectorNotes: mediumtext("proposalDirectorNotes"), // Notes for the creative proposal revision
 
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -606,6 +607,8 @@ export const shots = mysqlTable("shots", {
   // Multi-Agent Pipeline Output
   aiBlueprint: longtext("aiBlueprint"), // Storing JSON as longtext to avoid length limits
   status: varchar("status", { length: 50 }).default("planned"),
+  directorNotes: text("directorNotes"), // Human director notes for shot revision
+  isApproved: boolean("isApproved").default(false).notNull(), // Approval status
   referenceImageUrl: longtext("referenceImageUrl"), // User-uploaded or AI-rendered reference
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
@@ -624,6 +627,8 @@ export const productionDesignSets = mysqlTable("productionDesignSets", {
   imageUrl: longtext("imageUrl"), // The master rendered set photo
   referenceImageUrl: longtext("referenceImageUrl"), // User-uploaded reference
   status: varchar("status", { length: 50 }).default("draft"),
+  directorNotes: text("directorNotes"), // Director's revision notes
+  isApproved: boolean("isApproved").default(false).notNull(), // Set approval status
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { router, publicProcedure } from "../_core/trpc";
-const generateAsset = async (...args: any[]): Promise<any> => { throw new Error("Native Gemini Migration: Replicate Generator is deprecated"); };
+const generateAsset = async (..._args: any[]): Promise<any> => { throw new Error("Native Gemini Migration: Replicate Generator is deprecated"); };
 import { estimateCost, validateCost } from "../services/pricingService";
 import { getDb } from "../db";
 import { generations } from "../../drizzle/schema";

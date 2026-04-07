@@ -16,14 +16,16 @@ export const shootingRouter = router({
         .input(z.object({
             projectId: z.number(),
             storyboardImageId: z.number(),
-            provider: z.enum(["sora", "flow", "kling", "whan", "veo3", "replicate"]).default("flow"),
+            provider: z.enum(["sora", "flow", "kling", "whan", "veo3", "replicate", "kie"]).default("flow"),
+            modelId: z.string().optional(),
             durationSeconds: z.number().default(5),
             isApproved: z.boolean().default(false),
         }))
         .mutation(async ({ input, ctx }) => {
             // FinOps Guard
             if (!input.isApproved) {
-                const estimatedCost = estimateCost(input.provider === "veo3" ? "veo3" : "sora", input.durationSeconds);
+                const modelId = input.modelId || (input.provider === "kie" ? "kie-seedance-2-0" : input.provider === "veo3" ? "veo3" : "sora");
+                const estimatedCost = estimateCost(modelId, input.durationSeconds);
                 throw new TRPCError({
                     code: "PRECONDITION_FAILED",
                     message: `Financial Guardrail: Estimated $${estimatedCost.toFixed(3)} to render this shot with ${input.provider}. Confirm to proceed.`,
@@ -38,19 +40,28 @@ export const shootingRouter = router({
             const videoPrompt = await buildVideoPrompt(ingredients);
 
             // Spin up the video provider
-            const apiKey = process.env.REPLICATE_API_KEY ?? process.env.FAL_API_KEY ?? "";
-            const provider = ProviderFactory.createVideoProvider(input.provider as Parameters<typeof ProviderFactory.createVideoProvider>[0], apiKey);
+            let apiKey = "";
+            if (input.provider === "kie") {
+                apiKey = process.env.KIE_API_KEY || "";
+            } else if (input.provider === "veo3") {
+                apiKey = process.env.BUILT_IN_FORGE_API_KEY || "";
+            } else {
+                apiKey = process.env.REPLICATE_API_KEY || process.env.REPLICATE_API_TOKEN || "";
+            }
+
+            const provider = ProviderFactory.createVideoProvider(input.provider as any, apiKey || "");
             if (!provider) {
                 throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Provider ${input.provider} not available.` });
             }
 
             const result = await provider.generateVideo({
                 prompt: videoPrompt,
-                imageUrl: ingredients.keyframeUrl,
+                keyframeUrl: ingredients.keyframeUrl,
                 duration: input.durationSeconds,
                 resolution: "1920x1080",
                 projectId: input.projectId,
                 userId: ctx.user.id.toString(),
+                model: input.modelId || (input.provider === "kie" ? "kie-seedance-2-0" : undefined),
             });
 
             // Save video URL back to storyboard frame
@@ -64,7 +75,8 @@ export const shootingRouter = router({
                     ));
             }
 
-            const cost = estimateCost(input.provider === "veo3" ? "veo3" : "sora", input.durationSeconds);
+            const modelUsed = input.modelId || (input.provider === "kie" ? "kie-seedance-2-0" : input.provider === "veo3" ? "veo3" : "sora");
+            const cost = estimateCost(modelUsed, input.durationSeconds);
             await logUsage(input.projectId, ctx.user.id.toString(), input.provider, cost, "SHOOTING_RENDER");
 
             return { success: true, videoUrl: result.url };
@@ -74,7 +86,7 @@ export const shootingRouter = router({
     renderAll: protectedProcedure
         .input(z.object({
             projectId: z.number(),
-            provider: z.enum(["sora", "flow", "kling", "whan", "veo3", "replicate"]).default("flow"),
+            provider: z.enum(["sora", "flow", "kling", "whan", "veo3", "replicate", "kie"]).default("flow"),
             isApproved: z.boolean().default(false),
         }))
         .mutation(async ({ input }) => {

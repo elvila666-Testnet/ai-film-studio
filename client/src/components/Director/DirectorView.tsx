@@ -1,8 +1,10 @@
 import { trpc } from "../../lib/trpc";
-import { Layout, Sparkles, Loader2, CheckCircle2, AlertCircle, Lock, Users, Camera, Paintbrush } from "lucide-react";
+import { Layout, Sparkles, Loader2, CheckCircle2, AlertCircle, Lock, Users, Camera, Paintbrush, MessageSquare, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useCostGuard } from "@/components/FinOps/CostGuard";
+import { VoiceInput } from "@/components/ui/VoiceInput";
 
 interface DirectorViewProps {
     projectId: number;
@@ -14,9 +16,6 @@ function StatusBadge({ status }: { status?: string | null }) {
     return <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest bg-green-500/20 text-green-400 border border-green-500/30 flex items-center gap-1"><CheckCircle2 className="w-2.5 h-2.5" /> Approved</span>;
 }
 
-/**
- * Defensive helper to prevent React Error #31 (objects as children).
- */
 function renderSafe(val: any): React.ReactNode {
     if (!val) return "—";
     if (typeof val === "string") return val;
@@ -43,11 +42,6 @@ export function DirectorView({ projectId }: DirectorViewProps) {
     const statusQuery = trpc.directorV2.getStatus.useQuery({ projectId });
     const validationStatusQuery = trpc.directorV2.getDeptValidationStatus.useQuery({ projectId }, {
         refetchInterval: 5000
-    });
-
-    const buildPromptsMutation = trpc.promptEngineer.buildPrompts.useMutation({
-        onSuccess: (data) => toast.success(data.message),
-        onError: (e) => toast.error(e.message)
     });
 
     const breakdownMutation = trpc.directorV2.breakdownScript.useMutation({
@@ -93,43 +87,32 @@ export function DirectorView({ projectId }: DirectorViewProps) {
         onError: (e) => toast.error(e.message)
     });
 
-    const scriptStatus = statusQuery.data?.scriptStatus;
-    const technicalStatus = statusQuery.data?.technicalScriptStatus;
-    const shotCount = statusQuery.data?.shotCount || 0;
-    
-    const scriptApproved = scriptStatus === "approved";
-    const technicalApproved = technicalStatus === "approved";
-    const shotsMissing = technicalApproved && shotCount === 0;
+    const saveProposalNotesMutation = trpc.directorV2.saveProposalNotes.useMutation({
+        onSuccess: () => {
+            projectQuery.refetch();
+            toast.success("Proposal notes saved.");
+        }
+    });
+
+    const updateShotFeedbackMutation = trpc.directorNew.updateShotFeedback.useMutation({
+        onSuccess: () => {
+            toast.success("Shot updated.");
+            statusQuery.refetch();
+        }
+    });
+
+    const shotsQuery = trpc.director.getFullProductionLayout.useQuery({ projectId }, {
+        enabled: !!(statusQuery.data?.technicalScriptStatus === "approved")
+    });
 
     const content = projectQuery.data?.content;
     const proposalContentData = (content as any)?.creativeProposal;
     const proposalContent = typeof proposalContentData === 'string' ? JSON.parse(proposalContentData) : proposalContentData;
     const proposalStatus = (content as any)?.proposalStatus;
     const proposalApproved = proposalStatus === "approved";
-
-    const hasNewTechnicalScript = !!(content as any)?.technicalScript;
-
-    // Parse technical script from content
-    const technicalScript = (() => {
-        try {
-            const raw = (projectQuery.data?.content as any)?.technicalShots;
-            return raw ? JSON.parse(raw) : null;
-        } catch { return null; }
-    })();
-
-    const debugShotsMutation = trpc.directorV2.debugShots.useMutation({
-        onSuccess: (data) => {
-            console.log("DEBUG SHOTS:", data);
-            toast.info(`DB Sync Check: ${data.scenes} scenes, ${data.shots} shots found.`);
-        },
-        onError: (e) => toast.error("Debug failed: " + e.message)
-    });
+    const technicalStatus = statusQuery.data?.technicalScriptStatus;
 
     const handleBreakdown = () => {
-        if (!scriptApproved) {
-            toast.error("⚠️ Script must be approved first. Go to Command Center and approve the script.");
-            return;
-        }
         requestApproval(0.05, async () => {
             await breakdownMutation.mutateAsync({ projectId });
         });
@@ -137,7 +120,6 @@ export function DirectorView({ projectId }: DirectorViewProps) {
 
     return (
         <div className="space-y-8 animate-fade-in relative">
-            {/* Loading Overlay */}
             {breakdownMutation.isPending && (
                 <div className="absolute inset-0 z-50 bg-[#020205]/60 backdrop-blur-sm rounded-[2.5rem] flex items-center justify-center border border-primary/20">
                     <div className="flex flex-col items-center gap-6 bg-black/90 p-12 rounded-3xl border border-primary/30 shadow-2xl flex-shrink-0 animate-pulse">
@@ -145,15 +127,11 @@ export function DirectorView({ projectId }: DirectorViewProps) {
                         <div className="text-center space-y-2">
                             <h3 className="text-primary font-black uppercase tracking-[0.3em] text-lg">Running Technical Breakdown</h3>
                             <p className="text-sm text-slate-300 font-mono">Parsing screenplay into departmental tasks...</p>
-                            <p className="text-xs text-slate-500 font-mono mt-2 flex items-center justify-center gap-2">
-                                <Loader2 className="w-3 h-3 animate-spin"/> Generating characters, lighting, & look
-                            </p>
                         </div>
                     </div>
                 </div>
             )}
             
-            {/* Header */}
             <div className="flex justify-between items-end">
                 <div>
                     <h2 className="production-node-title flex items-center gap-3">
@@ -164,13 +142,7 @@ export function DirectorView({ projectId }: DirectorViewProps) {
                     <p className="production-label text-primary">Technical Script Breakdown</p>
                 </div>
                 <div className="flex gap-3">
-                    {!scriptApproved && (
-                        <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 text-[10px] font-bold uppercase tracking-widest">
-                            <AlertCircle className="w-3.5 h-3.5" /> Approve Script First
-                        </div>
-                    )}
-                    
-                    {scriptApproved && proposalStatus !== 'approved' && (
+                    {proposalStatus !== 'approved' && (
                         <Button
                             onClick={() => generateProposalMutation.mutate({ projectId })}
                             disabled={generateProposalMutation.isPending}
@@ -182,7 +154,7 @@ export function DirectorView({ projectId }: DirectorViewProps) {
                         </Button>
                     )}
 
-                    {scriptApproved && proposalStatus === 'pending_review' && (
+                    {proposalStatus === 'pending_review' && (
                         <Button
                             onClick={() => approveProposalMutation.mutate({ projectId })}
                             disabled={approveProposalMutation.isPending}
@@ -193,14 +165,14 @@ export function DirectorView({ projectId }: DirectorViewProps) {
                         </Button>
                     )}
 
-                    {proposalApproved && (!technicalApproved || shotsMissing) && technicalStatus !== 'pending_review' && (
+                    {proposalApproved && technicalStatus !== 'approved' && technicalStatus !== 'pending_review' && (
                         <Button
                             onClick={handleBreakdown}
                             disabled={breakdownMutation.isPending}
-                            className={`${shotsMissing ? "bg-amber-600 hover:bg-amber-700" : "bg-primary hover:bg-primary/90"} text-white font-bold h-10 px-6 rounded-xl shadow-lg shadow-primary/20`}
+                            className="bg-primary hover:bg-primary/90 text-white font-bold h-10 px-6 rounded-xl shadow-lg shadow-primary/20"
                         >
                             {breakdownMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                            {shotsMissing ? "Re-sync Relational Data" : "Run Technical Breakdown"}
+                            Run Technical Breakdown
                         </Button>
                     )}
 
@@ -214,185 +186,147 @@ export function DirectorView({ projectId }: DirectorViewProps) {
                             Approve Technical Script
                         </Button>
                     )}
-                    
-                    {/* Visible Debug Button */}
-                    <Button 
-                        onClick={() => debugShotsMutation.mutate({ projectId })}
-                        variant="outline" 
-                        size="sm" 
-                        className="h-8 px-2 border-amber-500/50 text-amber-500 hover:bg-amber-500 hover:text-white text-[10px] font-bold uppercase tracking-tighter"
-                        title="Debug DB Sync"
-                    >
-                        <AlertCircle className="w-3 h-3 mr-1" />
-                        DB SYNC
-                    </Button>
                 </div>
             </div>
 
-            {/* Creative Proposal Display */}
             {proposalContent && (
-                 <div className="glass-panel p-6 rounded-[1.5rem] border border-cyan-500/20 bg-cyan-500/5 space-y-4">
-                     <h3 className="text-sm font-black uppercase tracking-[0.2em] text-cyan-400 flex items-center gap-2">
-                         <Layout className="w-4 h-4" /> Creative Proposal
-                     </h3>
-                     <div className="text-xs text-slate-300 leading-relaxed max-h-48 overflow-y-auto pr-2">
-                         {renderSafe(proposalContent)}
-                     </div>
-                 </div>
-            )}
-
-            {/* Approved unlock banner */}
-            {technicalApproved && (
-                <div className="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/20 rounded-2xl">
-                    <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0" />
-                    <p className="text-sm text-green-300 font-medium">
-                        Technical script approved. Casting Director, Cinematography, and Production Design are now unlocked.
-                        Casting &amp; visual look are being generated in the background — check the respective tabs shortly.
-                    </p>
-                </div>
-            )}
-
-            {/* Production Readiness & Storyboard Gate */}
-            {technicalApproved && (
-                <div className="glass-panel p-6 rounded-[2.5rem] border border-primary/20 bg-primary/5 space-y-6">
-                    <div className="flex justify-between items-center px-2">
-                        <div>
-                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white flex items-center gap-2">
-                                <Lock className="w-4 h-4 text-primary" /> Production Readiness
+                <div className="space-y-4">
+                    <div className="glass-panel p-8 rounded-[2rem] border border-cyan-500/30 bg-cyan-500/[0.03] shadow-2xl shadow-cyan-500/10">
+                        <div className="flex justify-between items-start mb-6">
+                            <h3 className="text-sm font-black uppercase tracking-[0.3em] text-cyan-400 flex items-center gap-3">
+                                <Layout className="w-5 h-5" />
+                                Master Creative Proposal
                             </h3>
-                            <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">
-                                Validate departments and build Technical Script to unlock Storyboards.
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Button
-                                onClick={() => requestApproval(0.015, () => generateTechnicalScriptMutation.mutate({ projectId }))}
-                                disabled={!validationStatusQuery.data?.castingValidated || !validationStatusQuery.data?.cineValidated || !validationStatusQuery.data?.pdValidated || generateTechnicalScriptMutation.isPending}
-                                className={`h-12 px-6 rounded-2xl font-black transition-all ${(!hasNewTechnicalScript && validationStatusQuery.data?.castingValidated && validationStatusQuery.data?.cineValidated && validationStatusQuery.data?.pdValidated)
-                                    ? "bg-primary text-white hover:bg-primary/90 shadow-xl shadow-primary/20"
-                                    : "bg-white/5 text-white/20 border border-white/10"
-                                    }`}
-                            >
-                                {generateTechnicalScriptMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                                Generate Technical Script
-                            </Button>
-
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className={`p-4 rounded-3xl border transition-all ${validationStatusQuery.data?.castingValidated ? "bg-green-500/10 border-green-500/20" : "bg-white/[0.02] border-white/5 opacity-50"}`}>
-                            <div className="flex items-center justify-between mb-2">
-                                <Users className={`w-4 h-4 ${validationStatusQuery.data?.castingValidated ? "text-green-400" : "text-slate-500"}`} />
-                                {validationStatusQuery.data?.castingValidated ? <CheckCircle2 className="w-4 h-4 text-green-400" /> : <Loader2 className="w-3 h-3 text-slate-600 animate-spin" />}
-                            </div>
-                            <div className="text-[10px] font-bold uppercase tracking-widest text-white">Casting</div>
-                            <div className={`text-[9px] mt-1 font-medium ${validationStatusQuery.data?.castingValidated ? "text-green-400/70" : "text-slate-500"}`}>
-                                {validationStatusQuery.data?.castingValidated ? "Validated & Ready" : "Processing in background…"}
-                            </div>
+                            <StatusBadge status={proposalStatus} />
                         </div>
 
-                        <div className={`p-4 rounded-3xl border transition-all ${validationStatusQuery.data?.cineValidated ? "bg-green-500/10 border-green-500/20" : "bg-white/[0.02] border-white/5 opacity-50"}`}>
-                            <div className="flex items-center justify-between mb-2">
-                                <Camera className={`w-4 h-4 ${validationStatusQuery.data?.cineValidated ? "text-green-400" : "text-slate-500"}`} />
-                                {validationStatusQuery.data?.cineValidated ? <CheckCircle2 className="w-4 h-4 text-green-400" /> : <Loader2 className="w-3 h-3 text-slate-600 animate-spin" />}
-                            </div>
-                            <div className="text-[10px] font-bold uppercase tracking-widest text-white">Cinematography</div>
-                            <div className={`text-[9px] mt-1 font-medium ${validationStatusQuery.data?.cineValidated ? "text-green-400/70" : "text-slate-500"}`}>
-                                {validationStatusQuery.data?.cineValidated ? "Validated & Ready" : "Processing in background…"}
-                            </div>
-                        </div>
-
-                        <div className={`p-4 rounded-3xl border transition-all ${validationStatusQuery.data?.pdValidated ? "bg-green-500/10 border-green-500/20" : "bg-white/[0.02] border-white/5 opacity-50"}`}>
-                            <div className="flex items-center justify-between mb-2">
-                                <Paintbrush className={`w-4 h-4 ${validationStatusQuery.data?.pdValidated ? "text-green-400" : "text-slate-500"}`} />
-                                {validationStatusQuery.data?.pdValidated ? <CheckCircle2 className="w-4 h-4 text-green-400" /> : <Loader2 className="w-3 h-3 text-slate-600 animate-spin" />}
-                            </div>
-                            <div className="text-[10px] font-bold uppercase tracking-widest text-white">Production Design</div>
-                            <div className={`text-[9px] mt-1 font-medium ${validationStatusQuery.data?.pdValidated ? "text-green-400/70" : "text-slate-500"}`}>
-                                {validationStatusQuery.data?.pdValidated ? "Validated & Ready" : "Processing in background…"}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Department requirement summaries */}
-            {technicalScript && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="glass-panel p-4 rounded-2xl border border-blue-500/20 bg-blue-500/5 space-y-2">
-                        <div className="flex items-center gap-2 text-blue-400 text-[10px] font-bold uppercase tracking-widest">
-                            <Users className="w-3.5 h-3.5" /> Casting Requirements
-                        </div>
-                        <div className="text-xs text-slate-300 leading-relaxed overflow-y-auto max-h-40 pr-1 scrollbar-thin">
-                            {renderSafe(technicalScript.castingRequirements)}
-                        </div>
-                    </div>
-                    <div className="glass-panel p-4 rounded-2xl border border-purple-500/20 bg-purple-500/5 space-y-2">
-                        <div className="flex items-center gap-2 text-purple-400 text-[10px] font-bold uppercase tracking-widest">
-                            <Camera className="w-3.5 h-3.5" /> Cinematography
-                        </div>
-                        <div className="text-xs text-slate-300 leading-relaxed overflow-y-auto max-h-40 pr-1 scrollbar-thin">
-                            {renderSafe(technicalScript.cinematographyRequirements)}
-                        </div>
-                    </div>
-                    <div className="glass-panel p-4 rounded-2xl border border-orange-500/20 bg-orange-500/5 space-y-2">
-                        <div className="flex items-center gap-2 text-orange-400 text-[10px] font-bold uppercase tracking-widest">
-                            <Paintbrush className="w-3.5 h-3.5" /> Production Design
-                        </div>
-                        <div className="text-xs text-slate-300 leading-relaxed overflow-y-auto max-h-40 pr-1 scrollbar-thin">
-                            {renderSafe(technicalScript.productionDesignRequirements)}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Scene List (Flat) */}
-            {technicalScript?.scenes && (
-                <div className="space-y-8">
-                    {technicalScript.scenes.map((scene: any) => (
-                        <div key={scene.sceneNumber} className="glass-panel rounded-3xl overflow-hidden border border-white/10 bg-black/20">
-                            <div className="p-6 border-b border-white/5 bg-white/5 flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center font-black text-primary border border-primary/20">
-                                        {scene.sceneNumber}
+                        <div className="grid grid-cols-1 gap-6 mb-8">
+                            {Object.entries(proposalContent).map(([key, value]) => (
+                                <div key={key} className="space-y-3 p-6 rounded-3xl bg-white/[0.03] border border-white/5 hover:border-cyan-500/30 transition-all group shadow-lg">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-1.5 h-4 bg-cyan-500 rounded-full" />
+                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400">{key.replace(/([A-Z])/g, ' $1').trim()}</div>
                                     </div>
-                                    <div className="text-left">
-                                        <div className="text-sm font-bold text-white uppercase tracking-widest">{scene.heading || `Scene ${scene.sceneNumber}`}</div>
-                                        <div className="text-xs text-slate-400 mt-1">{scene.description}</div>
+                                    <div className="text-sm text-slate-100 leading-relaxed font-medium pl-3 border-l-2 border-white/5 group-hover:border-cyan-500/20 transition-colors">
+                                        {typeof value === 'object' ? (
+                                            <pre className="text-xs font-mono bg-black/20 p-3 rounded-xl overflow-x-auto whitespace-pre-wrap">
+                                                {JSON.stringify(value, null, 2)}
+                                            </pre>
+                                        ) : (
+                                            <p className="whitespace-pre-wrap">{String(value)}</p>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="mt-8 pt-8 border-t border-white/5 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                    <MessageSquare className="w-3.5 h-3.5" />
+                                    Director's Revision Notes
+                                </div>
+                                <VoiceInput onResult={(text) => {
+                                    const el = document.getElementById('proposal-notes') as HTMLTextAreaElement;
+                                    if (el) el.value = (el.value + " " + text).trim();
+                                }} />
+                            </div>
+                            <Textarea 
+                                id="proposal-notes"
+                                placeholder="Add specific notes to refine the creative proposal..."
+                                className="min-h-[120px] bg-black/40 border-white/5 focus:border-cyan-500/50 rounded-2xl text-xs text-slate-300 transition-all font-mono p-4"
+                                defaultValue={(content as any)?.proposalDirectorNotes || ""}
+                                onBlur={(e) => saveProposalNotesMutation.mutate({ projectId, notes: e.target.value })}
+                            />
+                            <p className="text-[9px] text-slate-500 italic uppercase tracking-wider">Notes save automatically. Guidance for the next iteration.</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {technicalStatus === "approved" && shotsQuery.data && (
+                <div className="space-y-12">
+                     <div className="flex items-center justify-between px-2">
+                        <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white flex items-center gap-3">
+                            <Camera className="w-5 h-5 text-primary" />
+                            Approved Shot Breakdown
+                        </h3>
+                    </div>
+
+                    {shotsQuery.data.map((scene: any) => (
+                        <div key={scene.id} className="glass-panel rounded-[2.5rem] overflow-hidden border border-white/10 bg-black/40 shadow-2xl">
+                            <div className="p-8 border-b border-white/5 bg-gradient-to-r from-primary/10 to-transparent flex items-center justify-between">
+                                <div className="flex items-center gap-6">
+                                    <div className="w-14 h-14 rounded-2xl bg-primary/20 flex items-center justify-center font-black text-xl text-primary border border-primary/30 shadow-lg">
+                                        {scene.order}
+                                    </div>
+                                    <div className="text-left space-y-1">
+                                        <div className="text-lg font-black text-white uppercase tracking-tight">{scene.title || `Scene ${scene.order}`}</div>
+                                        <div className="text-xs text-slate-400 max-w-2xl">{scene.description}</div>
                                     </div>
                                 </div>
                             </div>
-                            <div className="p-6">
-                                <div className="grid gap-6">
-                                    {scene.shots?.map((shot: any) => (
-                                        <div key={shot.shotNumber} className="flex gap-4 bg-white/[0.03] p-5 rounded-2xl border border-white/5">
-                                            <div className="w-8 h-8 flex items-center justify-center bg-black/40 rounded-lg text-xs font-mono font-bold text-primary border border-white/5 flex-shrink-0">
-                                                {shot.shotNumber}
+
+                            <div className="p-8 space-y-8">
+                                {scene.shots?.map((shot: any) => (
+                                    <div key={shot.id} className={`group flex flex-col md:flex-row gap-8 p-8 rounded-[2rem] border transition-all duration-500 ${shot.isApproved ? "bg-emerald-500/5 border-emerald-500/20 shadow-[0_0_40px_-15px_rgba(16,185,129,0.1)]" : "bg-white/[0.02] border-white/5 hover:bg-white/[0.04] shadow-xl"}`}>
+                                        <div className="flex flex-col items-center gap-4">
+                                            <div className={`w-12 h-12 flex items-center justify-center rounded-2xl text-sm font-black border transition-all duration-500 ${shot.isApproved ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400" : "bg-black/40 border-white/10 text-primary"}`}>
+                                                {shot.order}
                                             </div>
-                                            <div className="flex-1 space-y-2 min-w-0">
-                                                <p className="text-sm text-slate-200 leading-snug">{renderSafe(shot.visualDescription)}</p>
-                                                <p className="text-xs text-slate-500 italic">{renderSafe(shot.emotionalObjective)}</p>
-                                                <div className="flex flex-wrap gap-2 pt-1">
-                                                    {shot.cinematographyNotes && <span className="text-[10px] bg-purple-500/10 text-purple-400 px-2 py-1 rounded font-bold uppercase">{renderSafe(shot.cinematographyNotes)}</span>}
-                                                    {shot.castingRequirements && <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-1 rounded font-bold uppercase">{renderSafe(shot.castingRequirements)}</span>}
+                                            <Button
+                                                size="sm"
+                                                variant={shot.isApproved ? "default" : "outline"}
+                                                className={`rounded-full w-12 h-12 p-0 transition-all duration-500 ${shot.isApproved ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20" : "border-white/10 text-slate-500 hover:text-emerald-400 hover:border-emerald-500/30"}`}
+                                                onClick={() => updateShotFeedbackMutation.mutate({ 
+                                                    shotId: shot.id, 
+                                                    isApproved: !shot.isApproved 
+                                                })}
+                                            >
+                                                {shot.isApproved ? <ThumbsUp className="w-5 h-5" /> : <ThumbsUp className="w-5 h-5" />}
+                                            </Button>
+                                        </div>
+
+                                        <div className="flex-1 space-y-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="space-y-4">
+                                                    <div className="space-y-2">
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-primary/50">Visual Description</span>
+                                                        <p className="text-xs text-slate-200 leading-relaxed font-medium">{shot.visualDescription}</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400/50 flex items-center gap-2">
+                                                                <MessageSquare className="w-3 h-3" />
+                                                                Director Feedback
+                                                            </span>
+                                                            <VoiceInput onResult={(text) => {
+                                                                const el = document.getElementById(`shot-notes-${shot.id}`) as HTMLTextAreaElement;
+                                                                if (el) el.value = (el.value + " " + text).trim();
+                                                            }} />
+                                                        </div>
+                                                        <Textarea 
+                                                            id={`shot-notes-${shot.id}`}
+                                                            placeholder="Add specific comments for this shot..."
+                                                            className="min-h-[80px] bg-black/40 border-white/5 focus:border-primary/50 rounded-2xl text-[11px] text-slate-300 transition-all font-mono resize-none focus:ring-1 focus:ring-primary/20 p-4"
+                                                            defaultValue={shot.directorNotes || ""}
+                                                            onBlur={(e) => updateShotFeedbackMutation.mutate({ 
+                                                                shotId: shot.id, 
+                                                                notes: e.target.value 
+                                                            })}
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     ))}
-                </div>
-            )}
-
-            {(!technicalScript && !breakdownMutation.isPending) && (
-                <div className="py-20 text-center glass-panel rounded-[2rem] border-dashed border-white/10 opacity-30">
-                    <Layout className="w-12 h-12 mx-auto mb-4" />
-                    <p className="text-sm font-bold uppercase tracking-widest italic">
-                        {scriptApproved ? "Run Technical Breakdown to begin." : "Approve the script in Command Center first."}
-                    </p>
                 </div>
             )}
         </div>

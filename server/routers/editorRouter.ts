@@ -3,6 +3,7 @@ import {
   getStoryboardImages
 } from "../db";
 import { z } from "zod";
+import { TimelineClip } from "../../shared/types";
 import { publicProcedure, router } from "../_core/trpc";
 
 export const editorRouter = router({
@@ -108,6 +109,39 @@ export const editorRouter = router({
           await updateEditorClip(update.clipId, { startTime: update.startTime });
         }
         return { success: true, count: input.updates.length };
+      }),
+
+    split: publicProcedure
+      .input(z.object({
+        clipId: z.number(),
+        splitTime: z.number(), // Offset from clip start in ms
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { getEditorClip, createEditorClip, updateEditorClip } = await import("../db/editor");
+        const originalClip = await getEditorClip(input.clipId);
+        if (!originalClip) throw new Error("Clip not found");
+
+        const leftDuration = input.splitTime;
+        const rightDuration = (originalClip.duration || 0) - input.splitTime;
+
+        if (leftDuration <= 0 || rightDuration <= 0) {
+          throw new Error("Split point must be within clip duration");
+        }
+
+        // 1. Update left part
+        await updateEditorClip(input.clipId, { duration: leftDuration });
+
+        // 2. Create right part
+        const result = await createEditorClip({
+          ...originalClip,
+          id: undefined, // New ID
+          startTime: (originalClip.startTime || 0) + leftDuration,
+          duration: rightDuration,
+          order: (originalClip.order || 0) + 1,
+          fileName: `${originalClip.fileName} (Part 2)`
+        } as any);
+
+        return { success: true, newClipId: (result as any).insertId || 0 };
       }),
   }),
 

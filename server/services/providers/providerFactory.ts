@@ -9,7 +9,8 @@ import {
   ProviderConfig,
   ProviderRegistry,
 } from "./types";
-// Note: FlowProvider, SoraProvider, KlingProvider, WHANProvider are available but not used directly here yet
+import { VideoProviderFactory } from "./videoProviders";
+import { ImageProviderFactory } from "./imageProviders";
 
 export class ProviderFactory {
   private static registry: ProviderRegistry = {
@@ -28,6 +29,7 @@ export class ProviderFactory {
       gemini: { enabled: true, priority: 1, maxRetries: 3, timeout: 300000 },
       veo3: { enabled: true, priority: 3, maxRetries: 2, timeout: 180000 },
       replicate: { enabled: true, priority: 1, maxRetries: 3, timeout: 300000 },
+      kie: { enabled: true, priority: 1, maxRetries: 3, timeout: 600000 },
     },
   };
 
@@ -51,6 +53,9 @@ export class ProviderFactory {
     } else if (provider === "veo3") {
       this.registry.video.veo3.apiKey = apiKey;
       this.registry.video.veo3.enabled = true;
+    } else if (provider === "kie") {
+      this.registry.video.kie.apiKey = apiKey;
+      this.registry.video.kie.enabled = true;
     }
   }
 
@@ -62,7 +67,6 @@ export class ProviderFactory {
     apiKey: string,
     apiUrl?: string
   ): any {
-    const { VideoProviderFactory } = require("./videoProviders");
     return VideoProviderFactory.createProvider(provider, apiKey, apiUrl);
   }
 
@@ -74,7 +78,6 @@ export class ProviderFactory {
     apiKey: string,
     apiUrl?: string
   ): any {
-    const { ImageProviderFactory } = require("./imageProviders");
     return ImageProviderFactory.createProvider(provider, apiKey, apiUrl);
   }
 
@@ -97,6 +100,7 @@ export class ProviderFactory {
     if (this.registry.video.sora.enabled) providers.push("sora");
     if (this.registry.video.veo3.enabled) providers.push("veo3");
     if (this.registry.video.gemini.enabled) providers.push("gemini");
+    if (this.registry.video.kie.enabled) providers.push("kie");
     return providers;
   }
 
@@ -110,6 +114,7 @@ export class ProviderFactory {
 
   static getVideoProviderConfig(provider: VideoProvider): ProviderConfig | null {
     if (provider === "replicate") return this.registry.video.replicate;
+    if (provider === "kie") return this.registry.video.kie;
     return null;
   }
 
@@ -147,6 +152,7 @@ export class ProviderFactory {
         gemini: { enabled: true, priority: 1, maxRetries: 3, timeout: 300000 },
         veo3: { enabled: false, priority: 10, maxRetries: 2, timeout: 180000 },
         replicate: { enabled: true, priority: 1, maxRetries: 3, timeout: 300000 },
+        kie: { enabled: false, priority: 10, maxRetries: 3, timeout: 600000 },
       },
     };
   }

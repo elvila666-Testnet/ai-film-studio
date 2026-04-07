@@ -1,5 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { getAnimaticConfig, saveAnimaticConfig, updateFrameDurations, updateAnimaticAudio } from "./db";
+import { describe, it, expect } from "vitest";
 
 describe("Enhanced Animatic Features", () => {
   describe("Frame Duration Controls", () => {

@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 import { getBrandContext } from "../services/brandService";
 import { logUsage } from "../services/ledgerService";
 import { estimateCost } from "../services/pricingService";
+import { performProductionDesignBreakdown } from "../services/productionDesignService";
 import {
     breakdownScript,
     validateDepartmentReturn,
@@ -413,5 +414,63 @@ export const directorRouter = router({
                     shots: shotList.filter((sh: { sceneId: number }) => sh.sceneId === s.id).length 
                 }))
             };
+        }),
+    saveProposalNotes: protectedProcedure
+        .input(z.object({
+            projectId: z.number(),
+            notes: z.string(),
+        }))
+        .mutation(async ({ input }) => {
+            const db = await getDb();
+            if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unreachable" });
+
+            await db.update(projectContent)
+                .set({ proposalDirectorNotes: input.notes })
+                .where(eq(projectContent.projectId, input.projectId));
+
+            return { success: true };
+        }),
+
+    updateShotFeedback: protectedProcedure
+        .input(z.object({
+            shotId: z.number(),
+            notes: z.string().optional(),
+            isApproved: z.boolean().optional(),
+        }))
+        .mutation(async ({ input }) => {
+            const db = await getDb();
+            if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unreachable" });
+
+            const { shots } = await import("../../drizzle/schema");
+            
+            await db.update(shots)
+                .set({
+                    directorNotes: input.notes,
+                    isApproved: input.isApproved,
+                })
+                .where(eq(shots.id, input.shotId));
+
+            return { success: true };
+        }),
+    updateSetFeedback: protectedProcedure
+        .input(z.object({
+            setId: z.number(),
+            notes: z.string().optional(),
+            isApproved: z.boolean().optional(),
+        }))
+        .mutation(async ({ input }) => {
+            const db = await getDb();
+            if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unreachable" });
+
+            const { productionDesignSets } = await import("../../drizzle/schema");
+            
+            await db.update(productionDesignSets)
+                .set({
+                    directorNotes: input.notes,
+                    isApproved: input.isApproved,
+                })
+                .where(eq(productionDesignSets.id, input.setId));
+
+            return { success: true };
         }),
 });

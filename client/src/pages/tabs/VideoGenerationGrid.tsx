@@ -36,11 +36,12 @@ interface VideoModelDef {
 const VIDEO_MODELS: VideoModelDef[] = [
     { id: "veo3-fast",    label: "Veo 3 Fast",     provider: "veo3", modelId: "veo-3.0-generate-001",  available: true,  badge: "Default" },
     { id: "veo3-quality", label: "Veo 3 Quality",   provider: "veo3", modelId: "veo-3.0-generate-001",  available: true,  badge: "HQ" },
+    { id: "kie-seedance", label: "Seedream / Seedance 2.0", provider: "kie",  modelId: "kie-seedance-2-0",     available: true,  badge: "KIE" },
+    { id: "kie-kling",    label: "Kling 3.0",           provider: "kie",  modelId: "kie-kling-3-0",        available: true,  badge: "KIE" },
+    { id: "kie-wan",      label: "Wan 2.6",             provider: "kie",  modelId: "kie-wan-2-6",          available: true,  badge: "KIE" },
     { id: "sora",         label: "Sora",            provider: "sora", modelId: "sora-1.0",              available: false },
-    { id: "kling",        label: "Kling",           provider: "kling", modelId: "kling-v1",             available: false },
-    { id: "wan",          label: "Wan",             provider: "whan", modelId: "wan-v1",                available: false },
-    { id: "runway",       label: "Runway Gen-3",    provider: "replicate", modelId: "runway/gen-3",      available: false },
-    { id: "luma",         label: "Luma Dream Machine", provider: "replicate", modelId: "luma/dream-machine", available: false },
+    { id: "kling",        label: "Kling (Beta)",    provider: "kling", modelId: "kling-v1",             available: false },
+    { id: "wan",          label: "Wan (Beta)",      provider: "whan", modelId: "wan-v1",                available: false },
 ];
 
 export function VideoGenerationGrid({ projectId }: VideoGenerationGridProps) {
@@ -69,15 +70,19 @@ export function VideoGenerationGrid({ projectId }: VideoGenerationGridProps) {
 
     const handleAnimate = async (shotNumber: number, motionPrompt: string, shotId: number) => {
         const model = getSelectedModel(shotId);
-        if (!model.available) {
-            toast.error(`${model.label} is coming soon. Please use Veo 3.`);
-            return;
+        let costEstimate = 0.25;
+        if (model.provider === "kie") {
+            if (model.id === "kie-kling") costEstimate = 0.18 * 5;
+            else costEstimate = 0.15 * 5;
+        } else if (model.provider === "veo3") {
+            costEstimate = 0.055 * 8;
         }
-        requestApproval(0.25, async () => {
+
+        requestApproval(costEstimate, async () => {
             try {
                 await animateFrameMutation.mutateAsync({
                     projectId, shotNumber, motionPrompt,
-                    provider: model.provider as "veo3" | "sora" | "replicate" | "gemini" | "flow" | "kling" | "whan",
+                    provider: model.provider as any,
                     modelId: model.modelId,
                     characterLocked: true, force: true
                 });
@@ -394,7 +399,7 @@ export function VideoGenerationGrid({ projectId }: VideoGenerationGridProps) {
                         const basePrompt = lightboxShot.visualDescription || lightboxShot.prompt || "Cinematic animation";
                         const enhanced = notes ? `${basePrompt}\n\n[DIRECTOR NOTES]: ${notes}` : basePrompt;
                         setLightboxShot(null);
-                        handleAnimate(lightboxShot.shotNumber, enhanced);
+                        handleAnimate(lightboxShot.shotNumber, enhanced, lightboxShot.id);
                     }}
                 />
             )}
@@ -440,7 +445,7 @@ function VersionSwitcher({ projectId, shot, onSelect }: { projectId: number; sho
                 </button>
 
                 <div className="flex-1 grid grid-cols-4 gap-1">
-                    {variants.slice(Math.max(0, currentIdx - 1), currentIdx + 3).map((v, i) => (
+                    {variants.slice(Math.max(0, currentIdx - 1), currentIdx + 3).map((v: any, i: number) => (
                         <button
                             key={v.id}
                             onClick={() => setCurrentIdx(variants.indexOf(v))}

@@ -11,7 +11,7 @@ import { storyboardImages } from "../../drizzle/schema";
 import { getDb } from "../db";
 import { saveNewShotVariant, getShotVariants } from "../db/storyboard";
 import { GeminiProvider } from "../services/providers/geminiProvider";
-import { ensurePermanentUrl, generateStoryboardImage } from "../services/aiGeneration";
+import { ensurePermanentUrl, generateStoryboardImage, upscaleImageTo4k } from "../services/aiGeneration";
 import { getLockedCharacters } from "../db/characters";
 import { getProjectPDSets } from "../db/productionDesign";
 
@@ -140,44 +140,11 @@ export const shotDesignerRouter = router({
       try {
         console.log(`[ShotDesigner] Rendering 4K frame ${input.frameId} for shot ${storyboardFrame.shotNumber}`);
 
-        // Build 4K upscaling prompt - STRICT IDENTITY REINFORCEMENT
-        const upscalePrompt = `
-PIXEL-PERFECT CINEMATIC UPSCALE MANDATE.
-You are a high-end Digital Intermediate (DI) colorist and upscaler.
-
-Reference Image Description:
-${storyboardFrame.prompt}
-
-STRICT CONSTRAINTS:
-1. IDENTITY: The output MUST be a pixel-perfect higher resolution version of the input.
-2. COMPOSITION: Do NOT change the position of any elements. Do NOT change camera angle.
-3. CONTENT: Do NOT add new objects, characters, or background elements. 
-4. ENHANCEMENT: Focus EXCLUSIVELY on:
-   - Increasing effective resolution to 4K UHD.
-   - Enhancing textures (skin, fabric, metal, water).
-   - Fine-tuning light rays and global illumination.
-   - Professional cinematic color grading (HDR look).
-   - Removing compression artifacts while preserving film grain.
-
-Output: One ultra-sharp 4K UHD frame (16:9).
-`;
-
-        // Use Gemini Provider to render 4K
-        const geminiProvider = new GeminiProvider();
-        const result = await geminiProvider.generateImage(
-          {
-            prompt: upscalePrompt,
-            style: "Cinematic 4K",
-            resolution: "3840x2160",
-            count: 1,
-            quality: "hd",
-            imageInputs: storyboardFrame.imageUrl ? [storyboardFrame.imageUrl] : undefined,
-          },
-          "imagen-3.0-generate-001"
-        );
+        // Use the native pure upscaler for a strict pixel-identical high-res image
+        const rawUpscaledUrl = await upscaleImageTo4k(storyboardFrame.imageUrl!);
 
         // Ensure permanent URL
-        const permanentUrl = await ensurePermanentUrl(result.url);
+        const permanentUrl = await ensurePermanentUrl(rawUpscaledUrl);
 
         // Update DB with masterImageUrl
         await db.update(storyboardImages)
@@ -193,7 +160,7 @@ Output: One ultra-sharp 4K UHD frame (16:9).
           prompt: storyboardFrame.prompt,
           status: "4k_rendered",
           resolution: "4K UHD",
-          processingTime: result.processingTime,
+          processingTime: 5000,
         };
       } catch (error: any) {
         console.error("[ShotDesigner] 4K rendering failed:", error);
@@ -532,7 +499,7 @@ Output: One ultra-sharp 4K UHD frame (16:9).
           "nano-banana-pro",
           input.projectId,
           ctx.user.id.toString(),
-          "1024x1024",
+          "1216x832",
           imageAnchors.slice(0, 3)
         );
 

@@ -5,7 +5,7 @@
 
 // ============ PROVIDER TYPES ============
 export type ImageProvider = "nanobanana" | "dalle" | "midjourney" | "gemini" | "replicate";
-export type VideoProvider = "flow" | "sora" | "kling" | "whan" | "gemini" | "veo3" | "replicate";
+export type VideoProvider = "flow" | "sora" | "kling" | "whan" | "gemini" | "veo3" | "replicate" | "kie";
 
 export interface ProviderConfig {
   enabled: boolean;
@@ -168,6 +168,11 @@ export const VIDEO_PROVIDER_PRICING: Record<VideoProvider, Record<string, number
     "720p_per_minute": 0.06,
     "1080p_per_minute": 0.11,
     "4k_per_minute": 0.22,
+  },
+  kie: {
+    "720p_per_minute": 0.07,
+    "1080p_per_minute": 0.12,
+    "4k_per_minute": 0.25,
   }
 };
 
@@ -287,5 +292,15 @@ export const PROVIDER_CAPABILITIES: Record<
     supportsSeed: true,
     maxConcurrentRequests: 5,
     averageProcessingTime: 120000,
+  },
+  kie: {
+    imageResolutions: [],
+    videoResolutions: ["720p", "1080p", "4k"],
+    maxDuration: 120,
+    supportsKeyframe: true,
+    supportsNegativePrompt: true,
+    supportsSeed: true,
+    maxConcurrentRequests: 10,
+    averageProcessingTime: 45000,
   }
 };

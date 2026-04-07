@@ -141,6 +141,7 @@ export const visualStyleGuideRouter = router({
       aesthetic: z.string(),
       mission: z.string(),
       coreMessaging: z.string(),
+      projectContext: z.string().optional(),
       moodboardImages: z.array(z.string()).optional(),
     }))
     .mutation(async ({ input, ctx }) => {

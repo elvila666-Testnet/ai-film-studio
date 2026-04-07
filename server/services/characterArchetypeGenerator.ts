@@ -252,7 +252,7 @@ export async function retakeCharacterImage(
 /**
  * Calculate how well a character aligns with brand guidelines
  */
-function calculateBrandAlignment(archetype: Record<string, unknown>, brand: BrandGuidelines): number {
+function calculateBrandAlignment(archetype: any, brand: BrandGuidelines): number {
   let score = 50; // Base score
 
   // Check alignment with target customer

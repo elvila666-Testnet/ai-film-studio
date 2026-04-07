@@ -333,12 +333,15 @@ export function createConsistencyReport(
 } {
   let recommendation = "Both outputs maintain visual consistency with frame descriptor.";
 
-  if (flowOutput && !flowOutput.isConsistent) {
-    recommendation = `Flow output has violations: ${flowOutput.violations.join(", ")}`;
+  const flowRes = flowOutput as any;
+  const soraRes = soraOutput as any;
+
+  if (flowRes && !flowRes.isConsistent) {
+    recommendation = `Flow output has violations: ${flowRes.violations.join(", ")}`;
   }
 
-  if (soraOutput && !soraOutput.isConsistent) {
-    recommendation = `Sora output has violations: ${soraOutput.violations.join(", ")}`;
+  if (soraRes && !soraRes.isConsistent) {
+    recommendation = `Sora output has violations: ${soraRes.violations.join(", ")}`;
   }
 
   return {

@@ -77,7 +77,7 @@ export const charactersRouter = router({
       referenceImageUrl: z.string().optional().nullable(),
       isHero: z.boolean().optional(),
     }))
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ input, ctx: _ctx }) => {
       try {
         console.log(`[CharactersRouter] Update character ${input.id} started. Keys:`, Object.keys(input));
         const { id, ...data } = input;

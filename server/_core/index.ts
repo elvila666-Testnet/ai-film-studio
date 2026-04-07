@@ -8,10 +8,10 @@ import cookieParser from "cookie-parser";
 import authRoutes from "../routes/auth.js";
 import googleAuthRoutes from "../routes/googleAuth.js";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { appRouter } from "../routers";
+import { appRouter } from "../routers.js";
 import { createContext } from "./context";
 import { initBackgroundWorkers } from "../workers/index";
-import { initializeModels, ensureActiveModels } from "../db";
+import { initializeModels, ensureActiveModels } from "../db/models";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

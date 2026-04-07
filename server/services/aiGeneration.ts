@@ -1,14 +1,14 @@
-import { invokeLLM } from "../_core/llm";
-import { GeminiProvider } from "./providers/geminiProvider";
-import { uploadBase64Image } from "../_core/gcs";
-import { ReplicateProvider } from "./providers/replicateProvider";
-import { uploadExternalUrlToGCS } from "./storageService";
-import { ENV } from "../_core/env";
+import { invokeLLM } from "../_core/llm.ts";
+import { GeminiProvider } from "./providers/geminiProvider.ts";
+import { uploadBase64Image } from "../_core/gcs.ts";
+import { ReplicateProvider } from "./providers/replicateProvider.ts";
+import { uploadExternalUrlToGCS } from "./storageService.ts";
+import { ENV } from "../_core/env.ts";
 
 const geminiProvider = new GeminiProvider();
 
 let _replicateProvider: ReplicateProvider | null = null;
-function getReplicateProvider() {
+export function getReplicateProvider() {
   if (!_replicateProvider) {
     console.log(`[AI Service] Initializing Replicate Provider with token starting with: ${(process.env.REPLICATE_API_TOKEN || "").substring(0, 5)}...`);
     _replicateProvider = new ReplicateProvider(process.env.REPLICATE_API_TOKEN || "");
@@ -19,17 +19,19 @@ function getReplicateProvider() {
 function getProviderFor(modelId?: string) {
   const m = (modelId || "").toLowerCase();
   
-  if (m.includes("gemini-3")) {
-    return geminiProvider;
+  // High-fidelity multimodal requests are now routed to Replicate for consistent anchoring
+  // unless explicitly requested otherwise.
+  if (m.includes("gemini-3") || m.includes("imagen")) {
+    // We favor Replicate for all Image-to-Image and high-fidelity tasks as per user directive
+    return getReplicateProvider();
   }
 
-  if (m.includes("flux") || m.includes("seadream") || m.includes("apiyi") || m.includes("replicate")) {
+  if (m.includes("flux") || m.includes("seadream") || m.includes("apiyi") || m.includes("replicate") || m.includes("banana") || m.includes("nano")) {
     return getReplicateProvider();
   }
   
-  return geminiProvider;
-
-  return geminiProvider;
+  // Default to Replicate for all image-related routing in this service
+  return getReplicateProvider();
 }
 
 /**
@@ -521,7 +523,7 @@ export async function refineImagePrompt(
 /**
  * Generate a storyboard image using Replicate
  */
-export async function generateStoryboardImage(prompt: string, modelId?: string, projectId?: number, userId?: string, resolution: string = "1024x1024", imageInputs?: string[]): Promise<string> {
+export async function generateStoryboardImage(prompt: string, modelId?: string, projectId?: number, userId?: string, resolution: string = "1216x832", imageInputs?: string[]): Promise<string> {
   try {
     const provider = getProviderFor(modelId);
     const internalModelId = provider instanceof ReplicateProvider ? modelId : "imagen-4.0-generate-001";
@@ -621,7 +623,7 @@ export async function generateGridImage(
            try {
               const lastResortResult = await geminiProvider.generateImage({
                   prompt,
-                  resolution: "1024x1024", 
+                  resolution: "1216x832", 
                   quality: "standard",
                   projectId,
                   userId,
@@ -672,7 +674,7 @@ export async function generateStoryboardImageWithConsistency(
     try {
       const result = await provider.generateImage({
         prompt: finalPrompt,
-        resolution: "1024x1024",
+        resolution: "1216x832",
         quality: qualityTier === "quality" ? "hd" : "standard",
         seed: finalSeed,
         projectId,
@@ -686,7 +688,7 @@ export async function generateStoryboardImageWithConsistency(
         console.warn(`[AI Service] Consistency generation failed. Falling back to Gemini. Error: ${primaryError.message}`);
         const fallbackResult = await geminiProvider.generateImage({
           prompt: finalPrompt,
-          resolution: "1024x1024",
+          resolution: "1216x832",
           quality: "standard",
           seed: finalSeed,
           projectId,
@@ -729,7 +731,7 @@ export async function generateStoryboardImageVariation(
     try {
       const result = await provider.generateImage({
         prompt: finalPrompt,
-        resolution: "1024x1024",
+        resolution: "1216x832",
         quality: "standard",
         seed: finalSeed,
         projectId,
@@ -742,7 +744,7 @@ export async function generateStoryboardImageVariation(
         console.warn(`[AI Service] Variation generation failed. Falling back to Gemini. Error: ${primaryError.message}`);
         const fallbackResult = await geminiProvider.generateImage({
           prompt: finalPrompt,
-          resolution: "1024x1024",
+          resolution: "1216x832",
           quality: "standard",
           seed: finalSeed,
           projectId,
@@ -906,11 +908,11 @@ export async function generateCharacterPose(
     // Re-declaring it locally just in case or using the top level one.
     // Top level one is fine.
 
-    const result = await geminiProvider.generateImage({
+    const result = await getReplicateProvider().generateImage({
       prompt,
       resolution: "1024x1024",
       quality: "hd",
-    }, geminiModelId);
+    }, "flux-pro");
 
     const url = await ensurePermanentUrl(result.url, "poses");
     return url;
@@ -975,113 +977,98 @@ export async function analyzeScriptToScenes(
   }
 }
 
-export const PCI_1_REFERENCE_PROMPT = (description: string) => `**Photorealistic Character Identity Sheet (Using a Reference Image)**
+export const PCI_1_REFERENCE_PROMPT = (description: string) => `**Character Identity Sheet (Using a Reference Image)**
 
 **Prompt**
-Create a **photorealistic multi-angle photographic identity sheet** based **strictly** on the uploaded reference image.
+
+Create a **photorealistic photographic identity sheet** based **strictly** on the attached reference image(s).
+
+**[${description}]**
 
 - Match the **exact real-world appearance** of the person: facial structure, proportions, skin texture, age, asymmetry, and natural imperfections.
-- The result must look like **real photography of a real human**, not a digital character or 3D asset.
-- Use a **simple, neutral background**, similar to a studio or indoor wall.
-- The overall feeling should be **documentary and natural**, not stylized or cinematic.
+- The subject must look like a **real human photographed in the real world**.
+- Avoid any stylized, animated, or synthetic appearance.
+- Use a **simple neutral background**, similar to an ID or documentary shoot.
 
 **Layout**
-- **Two horizontal rows**, presented as a clean photo contact sheet.
-    - **Top row:** four full-body photographs of the same person:
+
+- **Two horizontal rows**, presented as a photo contact sheet.
+    - **Top row:** four full-body photographs:
         1. Facing the camera
         2. Left-facing profile
         3. Right-facing profile
-        4. Facing away from the camera
-    - **Bottom row:** three close-up photographic portraits:
+        4. Facing away
+    - **Bottom row:** three close-up portraits:
         1. Facing the camera
         2. Left-facing profile
         3. Right-facing profile
 
-**Pose & Body Language**
-- The subject stands **naturally and casually**, as a real person would when asked to stand still.
-- No exaggerated stance, no rigid pose, no symmetry.
-- Subtle, natural weight distribution and relaxed posture.
-- Shoulders relaxed, arms resting naturally at the sides.
+**Pose & Presence**
 
-**Consistency & Accuracy**
-- Maintain **strong identity consistency** across all images.
-- Preserve natural human asymmetry.
-- Proportions must remain realistic and consistent without looking mechanically aligned.
-- The subject should feel like the *same person photographed multiple times*, not a replicated model.
+- Natural stance, relaxed posture.
+- No posing for presentation.
+- Subtle variation in head angle and body balance, like multiple photos taken moments apart.
 
-**Lighting & Camera**
-- Soft, neutral, real-world lighting (similar to window light or soft studio light).
-- No dramatic, cinematic, or stylized lighting.
-- Natural shadows with gentle falloff.
-- Realistic camera perspective and lens behavior.
+**Lighting & Finish**
 
-**Critical constraints**
-- Not a 3D render
-- Not CGI
-- Not a game character
-- Not stylized
-- Not a model turnaround
+- Soft, neutral, realistic lighting.
+- No stylization, no dramatic contrast.
+- The final result should resemble **real reference photography**, not a character asset.`;
 
-[REFERENCE DESCRIPTION]:
-${description}`;
-
-export const PCI_2_DESCRIPTION_PROMPT = (description: string) => `**Photorealistic Character Identity Sheet (Description Only)**
+export const PCI_2_DESCRIPTION_PROMPT = (description: string) => `**Character Identity Sheet  (No Reference Image)**
 
 **Prompt**
-Create a **photorealistic multi-angle photographic identity sheet** for a character based on the following description.
 
-[CHARACTER DESCRIPTION]:
-${description}
+Create a **photorealistic photographic identity sheet** of the following person:
 
-- The character must have a **distinct and consistent real-world appearance** across all angles: specific facial structure, proportions, skin texture, and age.
-- The result must look like **real photography of a real human**, not a digital character or 3D asset.
-- Use a **simple, neutral background**, similar to a studio or indoor wall.
-- The overall feeling should be **documentary and natural**, not stylized or cinematic.
+**[${description}]**
+
+- The subject must look like a **real human photographed in the real world**.
+- Avoid any stylized, animated, or synthetic appearance.
+- Use a **simple neutral background**, similar to an ID or documentary shoot.
 
 **Layout**
-- **Two horizontal rows**, presented as a clean photo contact sheet.
-    - **Top row:** four full-body photographs of the same person:
+
+- **Two horizontal rows**, presented as a photo contact sheet.
+    - **Top row:** four full-body photographs:
         1. Facing the camera
         2. Left-facing profile
         3. Right-facing profile
-        4. Facing away from the camera
-    - **Bottom row:** three close-up photographic portraits:
+        4. Facing away
+    - **Bottom row:** three close-up portraits:
         1. Facing the camera
         2. Left-facing profile
         3. Right-facing profile
 
-**Pose & Body Language**
-- The subject stands **naturally and casually**, as a real person would when asked to stand still.
-- No exaggerated stance, no rigid pose, no symmetry.
-- Subtle, natural weight distribution and relaxed posture.
-- Shoulders relaxed, arms resting naturally at the sides.
+**Pose & Presence**
 
-**Consistency & Accuracy**
-- Maintain **strong identity consistency** across all images.
-- Preserve natural human asymmetry.
-- Proportions must remain realistic and consistent without looking mechanically aligned.
-- The subject should feel like the *same person photographed multiple times*, not a replicated model.
+- Natural stance, relaxed posture.
+- No posing for presentation.
+- Subtle variation in head angle and body balance, like multiple photos taken moments apart.
 
-**Lighting & Camera**
-- Soft, neutral, real-world lighting (similar to window light or soft studio light).
-- No dramatic, cinematic, or stylized lighting.
-- Natural shadows with gentle falloff.
-- Realistic camera perspective and lens behavior.
+**Lighting & Finish**
 
-**Critical constraints**
-- Not a 3D render
-- Not CGI
-- Not a game character
-- Not stylized
-- Not a model turnaround`;
+- Soft, neutral, realistic lighting.
+- No stylization, no dramatic contrast.
+- The final result should resemble **real reference photography**, not a character asset.`;
 
-export const PCI_3_WARDROBE_PROMPT = (outfitDescription: string) => `Use the same photographic identity sheet as reference.
-- Maintain the exact same person: face, body, age, proportions, posture, and expression.
-- Change only the clothing to the following: ${outfitDescription}
+export const PCI_3_WARDROBE_PROMPT = (outfitDescription: string) => `## **Changing Wardrobe (Photorealistic Edit)**
 
-Constraints:
+**Prompt**
+
+Use the **same photographic identity sheet** as reference.
+
+- Maintain the **exact same person**: face, body, age, proportions, posture, and expression.
+- Change **only** the clothing to the following:
+
+**[${outfitDescription}]**
+
+**Constraints**
+
 - The clothing must behave like real fabric on a real body.
-- No change to lighting, camera angle, or body posture.`;
+- No change to lighting, camera angle, or body posture.
+- The person should still feel like the same individual photographed on the same day, just wearing different clothes.
+- No stylization, no CGI look, no character redesign.`;
 
 /**
  * Generate a Nano Pro Character Reference Sheet
@@ -1095,7 +1082,7 @@ export async function generateCharacterNano(
   isWardrobeChange: boolean = false,
   seed?: number
 ): Promise<string> {
-  const geminiModelId = "imagen-4.0-generate-001"; // Use imagen-4.0-generate-001 for better Vertex AI support
+  const geminiModelId = "gemini-3-pro-image-preview"; // Use gemini-3 for high-fidelity multimodal consistency
 
   let finalPrompt = "";
   if (isWardrobeChange) {
@@ -1109,10 +1096,10 @@ export async function generateCharacterNano(
   try {
     console.log(`[AI Service] Generating character with ${referenceImages.length} reference image(s) via intelligent routing`);
     
-    // Request "Nano Banana 2" identity
+    // Request Replicate-backed identity engine
     const preferredModel = "Nano Banana 2";
-    const provider = getProviderFor(preferredModel);
-    const internalModelId = provider instanceof ReplicateProvider ? preferredModel : geminiModelId;
+    const provider = getProviderFor(preferredModel); 
+    const internalModelId = preferredModel; // provider handles internal mapping
 
     try {
       const result = await provider.generateImage({
@@ -1126,22 +1113,19 @@ export async function generateCharacterNano(
       }, internalModelId);
 
       const url = await ensurePermanentUrl(result.url, "characters");
-      console.log(`[AI Service] Character generated successfully with visual anchors: ${url}`);
+      console.log(`[AI Service] Character generated successfully via Replicate Img2Img: ${url}`);
       return url;
     } catch (primaryError: any) {
-      if (provider instanceof ReplicateProvider) {
-        console.warn(`[AI Service] Character generation failed. Falling back to Gemini. Error: ${primaryError.message}`);
-        const fallbackResult = await geminiProvider.generateImage({
-          prompt: finalPrompt,
-          resolution: "1024x1024",
-          quality: "hd",
-          projectId,
-          userId,
-          seed
-        }, "imagen-4.0-generate-001");
-        return await ensurePermanentUrl(fallbackResult.url, "characters_fallback");
-      }
-      throw primaryError;
+      console.warn(`[AI Service] Replicate character generation failed. Falling back to Gemini. Error: ${primaryError.message}`);
+      const fallbackResult = await geminiProvider.generateImage({
+        prompt: finalPrompt,
+        resolution: "1024x1024",
+        quality: "hd",
+        projectId,
+        userId,
+        seed
+      }, "gemini-3-pro-image-preview");
+      return await ensurePermanentUrl(fallbackResult.url, "characters_fallback");
     }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
@@ -1157,7 +1141,7 @@ export async function upscaleImageTo4k(
   imageUrl: string
 ): Promise<string> {
   try {
-    return await geminiProvider.upscaleImage(imageUrl, 4);
+    return await getReplicateProvider().upscaleImage(imageUrl, 4);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[AI Service] 4K Upscale failed:", message);
@@ -1203,7 +1187,7 @@ export async function generateSetNano(
                 console.warn(`[AI Service] Set generation failed. Falling back to Gemini. Error: ${primaryError.message}`);
                 const fallbackResult = await geminiProvider.generateImage({
                     prompt,
-                    resolution: "1024x1024",
+                    resolution: "1216x832",
                     quality: "hd",
                     projectId,
                     userId,
@@ -1239,7 +1223,7 @@ export async function generatePropNano(
 
         const result = await provider.generateImage({
             prompt,
-            resolution: "1024x1024",
+            resolution: "1216x832",
             quality: "hd",
             projectId,
             userId,

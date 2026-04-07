@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 import { getUserByEmail, upsertUser, getDb } from "../db";
 import { users as dbUsers } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME } from "../../shared/const";
 import { ENV } from "../_core/env";
 
 const router = express.Router();

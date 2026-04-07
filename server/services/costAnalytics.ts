@@ -3,7 +3,7 @@
  * Tracks and analyzes video generation costs across providers
  */
 
-export type VideoProvider = 'veo3' | 'sora' | 'flow';
+export type VideoProvider = 'veo3' | 'sora' | 'flow' | 'kie';
 export type VideoQuality = 'low' | 'medium' | 'high' | '4k';
 
 export interface GenerationCost {
@@ -76,6 +76,12 @@ export function getProviderCost(provider: VideoProvider, quality: VideoQuality, 
       medium: 0.4,
       high: 0.8,
       '4k': 1.6,
+    },
+    kie: {
+      low: 0.1,
+      medium: 0.2,
+      high: 0.4,
+      '4k': 0.8,
     },
   };
   
@@ -205,7 +211,7 @@ export function compareCosts(costs: GenerationCost[], provider1: VideoProvider, 
  * Get most cost-effective provider
  */
 export function getMostCostEffectiveProvider(costs: GenerationCost[]): VideoProvider | null {
-  const providers: VideoProvider[] = ['veo3', 'sora', 'flow'];
+  const providers: VideoProvider[] = ['veo3', 'sora', 'flow', 'kie'];
   let bestProvider: VideoProvider | null = null;
   let lowestCost = Infinity;
   
@@ -224,7 +230,7 @@ export function getMostCostEffectiveProvider(costs: GenerationCost[]): VideoProv
  * Get most reliable provider (highest success rate)
  */
 export function getMostReliableProvider(costs: GenerationCost[]): VideoProvider | null {
-  const providers: VideoProvider[] = ['veo3', 'sora', 'flow'];
+  const providers: VideoProvider[] = ['veo3', 'sora', 'flow', 'kie'];
   let bestProvider: VideoProvider | null = null;
   let highestSuccessRate = -1;
   
@@ -254,6 +260,7 @@ export function getCostBreakdown(costs: GenerationCost[]): Record<VideoProvider,
     veo3: 0,
     sora: 0,
     flow: 0,
+    kie: 0,
   };
   
   for (const cost of costs) {
@@ -307,7 +314,7 @@ export function getBudgetUtilization(totalCost: number, budget: number): number 
  * Recommend provider based on quality and cost
  */
 export function recommendProvider(quality: VideoQuality, budget: number): VideoProvider {
-  const providers: VideoProvider[] = ['veo3', 'sora', 'flow'];
+  const providers: VideoProvider[] = ['veo3', 'sora', 'flow', 'kie'];
   const durationSeconds = 60; // Standard 1-minute video
   
   // Find cheapest provider within budget

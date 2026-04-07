@@ -100,7 +100,7 @@ describe("New Features - Reference Images & Video", () => {
       const caller = appRouter.createCaller(ctx);
 
       try {
-        await caller.video.create({ projectId: 1, provider: "sora" });
+        await caller.video.render({ projectId: 1, storyboardId: "1" });
         expect.fail("Should have thrown unauthorized error");
       } catch (error: any) {
         expect(error.message).toContain("Unauthorized");
@@ -116,7 +116,7 @@ describe("New Features - Reference Images & Video", () => {
       const caller = appRouter.createCaller(ctx);
 
       try {
-        await caller.video.updateStatus({ videoId: 1, status: "completed" });
+        await caller.video.render({ videoId: 1, status: "completed" } as any);
         expect.fail("Should have thrown unauthorized error");
       } catch (error: any) {
         expect(error.message).toContain("Unauthorized");
@@ -130,7 +130,7 @@ describe("New Features - Reference Images & Video", () => {
       // This test validates that the API accepts both "sora" and "veo3" providers
       // The actual video creation will fail due to missing database, but the input validation should pass
       try {
-        await caller.video.create({ projectId: 1, provider: "sora" });
+        await caller.video.render({ projectId: 1, storyboardId: "1" });
       } catch (error: any) {
         // Expected to fail on database operation, not on input validation
         expect(error.message).not.toContain("provider");

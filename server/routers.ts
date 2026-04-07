@@ -4,7 +4,7 @@ import { referenceImagesRouter } from "./routers/referenceImagesRouter";
 import { editorRouter } from "./routers/editorRouter";
 import { charactersRouter } from "./routers/charactersRouter";
 console.log("FORCE REBUILD: GEMINI NATIVE REST + NANOBANANA REPLICATE - " + Date.now());
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME } from "../shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
@@ -65,6 +65,7 @@ export const appRouter = router({
   // ─── New Pipeline Agents ──────────────────────────────────
   scriptWriter: scriptWriterRouter,
   directorV2: directorV2Router,
+  directorNew: directorV2Router, // Compatibility alias for updateShotFeedback
   promptEngineer: promptEngineerRouter,
   shooting: shootingRouter,
 

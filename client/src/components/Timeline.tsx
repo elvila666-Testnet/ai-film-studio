@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Volume2, Eye, Lock } from "lucide-react";
+import { Plus, Trash2, Volume2, Eye, Lock, Scissors, MousePointer2, Music, Video as VideoIcon } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 
@@ -55,6 +55,7 @@ export default function Timeline({
   const [history, setHistory] = useState<Array<{ clips: TimelineClip[]; timestamp: number }>>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [pendingUpdates, setPendingUpdates] = useState<Map<number, number>>(new Map());
+  const [editMode, setEditMode] = useState<"select" | "blade">("select");
   const timelineRef = useRef<HTMLDivElement>(null);
   const batchSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pixelsPerSecond = 50 * zoom;
@@ -92,6 +93,16 @@ export default function Timeline({
     },
   });
 
+  const splitClipMutation = trpc.editor.clips.split.useMutation({
+    onSuccess: () => {
+      toast.success("Clip split successfully");
+      clipsQuery.refetch();
+    },
+    onError: (error) => {
+      toast.error(`Split failed: ${error.message}`);
+    },
+  });
+
   // Note: Delete track mutation not yet implemented in backend
 
   // Update local state from queries
@@ -116,15 +127,18 @@ export default function Timeline({
     if (clipsQuery.data) {
       setClips(
         clipsQuery.data.map((clip: Record<string, any>) => {
-          // Convert duration from milliseconds to seconds if needed
-          const durationSeconds = clip.duration > 1000 ? clip.duration / 1000 : clip.duration || 5;
+          // Clips from DB are already in seconds or milliseconds?
+          // Looking at handles, they are passed as ms. 
+          // But our duration state is now SECONDS.
+          // Standardizing: Any duration > 1000 is likely ms, convert to s.
+          const dur = clip.duration > 1000 ? clip.duration / 1000 : clip.duration || 5;
           return {
             id: clip.id,
             trackId: clip.trackId || 0,
             startTime: clip.startTime || 0,
-            duration: durationSeconds,
+            duration: dur,
             name: clip.fileName || `Clip ${clip.id}`,
-            color: `hsl(${Math.random() * 360}, 70%, 60%)`,
+            color: `hsl(${(clip.id * 137) % 360}, 70%, 60%)`, // Stable color
           };
         })
       );
@@ -527,52 +541,57 @@ export default function Timeline({
   return (
     <div className="w-full h-full bg-slate-900 rounded-lg p-2 flex flex-col gap-2 overflow-hidden">
       {/* Timeline Header with Controls */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h3 className="text-lg font-semibold text-white">Timeline</h3>
-          <span className="text-sm text-slate-400">
-            {formatTime(currentTime)} / {formatTime(duration)}
-          </span>
+      <div className="flex items-center justify-between bg-black/40 p-4 rounded-xl border border-white/5">
+        <div className="flex items-center gap-6">
+          <div className="flex flex-col">
+            <h3 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-1">Current Position</h3>
+            <span className="text-xl font-mono font-black text-primary tracking-tighter">
+              {formatTime(currentTime)}
+            </span>
+          </div>
+          <div className="w-px h-10 bg-white/10" />
+          <div className="flex flex-col">
+            <h3 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-1">Total Duration</h3>
+            <span className="text-xl font-mono font-black text-slate-400 tracking-tighter">
+                {formatTime(duration)}
+            </span>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <label className="text-sm text-slate-400">Zoom:</label>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setZoom(Math.max(0.25, zoom - 0.25))}
-            className="h-8 w-8 p-0"
-            title="Zoom Out"
-          >
-            −
-          </Button>
-          <input
-            type="range"
-            min="0.25"
-            max="5"
-            step="0.25"
-            value={zoom}
-            onChange={(e) => setZoom(Number(e.target.value))}
-            className="w-32"
-          />
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setZoom(Math.min(5, zoom + 0.25))}
-            className="h-8 w-8 p-0"
-            title="Zoom In"
-          >
-            +
-          </Button>
-          <span className="text-sm text-slate-400 w-12 text-right">{(zoom * 100).toFixed(0)}%</span>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setZoom(1)}
-            className="text-xs"
-            title="Reset Zoom"
-          >
-            Reset
-          </Button>
+        
+        <div className="flex items-center gap-6">
+            <div className="flex flex-col items-end">
+                <h3 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-1">Timeline Zoom</h3>
+                <div className="flex items-center gap-3">
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setZoom(Math.max(0.25, zoom - 0.25))}
+                        className="h-8 w-8 hover:bg-white/5 text-slate-500 rounded-lg"
+                    >
+                        −
+                    </Button>
+                    <div className="relative w-32 h-1 bg-white/5 rounded-full overflow-hidden">
+                        <div className="absolute top-0 left-0 h-full bg-primary" style={{ width: `${(zoom / 5) * 100}%` }} />
+                        <input
+                            type="range"
+                            min="0.25"
+                            max="5"
+                            step="0.25"
+                            value={zoom}
+                            onChange={(e) => setZoom(Number(e.target.value))}
+                            className="absolute inset-0 opacity-0 cursor-pointer"
+                        />
+                    </div>
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setZoom(Math.min(5, zoom + 0.25))}
+                        className="h-8 w-8 hover:bg-white/5 text-slate-500 rounded-lg"
+                    >
+                        +
+                    </Button>
+                </div>
+            </div>
         </div>
       </div>
 
@@ -633,6 +652,28 @@ export default function Timeline({
         </div>
       </div>
 
+      {/* NEW: Tool Selector */}
+      <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl w-fit border border-white/5">
+        <Button
+          size="sm"
+          variant={editMode === "select" ? "default" : "ghost"}
+          onClick={() => setEditMode("select")}
+          className={`h-8 px-3 rounded-lg gap-2 text-[10px] uppercase font-black tracking-widest transition-all ${editMode === "select" ? "bg-primary text-black" : "text-slate-500"}`}
+        >
+          <MousePointer2 className="w-3.5 h-3.5" />
+          Select
+        </Button>
+        <Button
+          size="sm"
+          variant={editMode === "blade" ? "default" : "ghost"}
+          onClick={() => setEditMode("blade")}
+          className={`h-8 px-3 rounded-lg gap-2 text-[10px] uppercase font-black tracking-widest transition-all ${editMode === "blade" ? "bg-red-600 text-white hover:bg-red-500" : "text-slate-500"}`}
+        >
+          <Scissors className="w-3.5 h-3.5" />
+          Blade
+        </Button>
+      </div>
+
       {/* Add Track Buttons */}
       <div className="flex gap-2">
         <Button
@@ -659,24 +700,33 @@ export default function Timeline({
       {/* Tracks Panel */}
       <div className="border border-slate-700 rounded-lg overflow-hidden bg-slate-800">
         {/* Timeline Ruler */}
-        <div className="flex border-b border-slate-700">
-          <div className="w-48 bg-slate-700 border-r border-slate-600 flex-shrink-0" />
-          <div className="flex-1 bg-slate-800 overflow-x-auto">
+        <div className="flex border-b border-white/5 bg-[#050508]">
+          <div className="w-56 bg-black border-r border-white/5 flex-shrink-0" />
+          <div className="flex-1 overflow-x-auto scroller-hidden">
             <div
-              className="flex relative h-8 border-b border-slate-600"
+              className="flex relative h-10 border-b border-white/5"
               style={{ width: `${duration * pixelsPerSecond}px` }}
             >
-              {Array.from({ length: Math.ceil(duration) }).map((_, i) => (
-                <div
-                  key={i}
-                  className="flex flex-col items-center justify-start flex-shrink-0 border-r border-slate-600"
-                  style={{ width: `${pixelsPerSecond}px` }}
-                >
-                  <span className="text-xs text-slate-400 pt-1">
-                    {formatTime(i)}
-                  </span>
-                </div>
-              ))}
+              {/* Show ticks every N seconds based on zoom level to avoid DOM bloat */}
+              {Array.from({ length: Math.ceil(duration / (zoom < 0.5 ? 10 : 1)) }).map((_, i) => {
+                const time = i * (zoom < 0.5 ? 10 : 1);
+                return (
+                  <div
+                    key={i}
+                    className="flex flex-col items-center justify-start flex-shrink-0 border-r border-white/10"
+                    style={{ 
+                      width: `${pixelsPerSecond * (zoom < 0.5 ? 10 : 1)}px`,
+                      position: 'absolute',
+                      left: `${time * pixelsPerSecond}px`
+                    }}
+                  >
+                    <div className="h-2 w-px bg-white/20 mb-1" />
+                    <span className="text-[9px] font-mono text-white/40">
+                      {formatTime(time)}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -684,83 +734,68 @@ export default function Timeline({
         {/* Tracks */}
         <div className="flex">
           {/* Track Controls */}
-          <div className="w-48 bg-slate-700 border-r border-slate-600 flex-shrink-0 overflow-y-auto">
+          <div className="w-56 bg-[#050508] border-r border-white/5 flex-shrink-0 overflow-y-auto">
             {tracks.length === 0 ? (
-              <div className="p-4 text-center text-slate-400 text-sm">
-                No tracks yet. Add one to get started.
+              <div className="p-8 text-center text-slate-600">
+                <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center mx-auto mb-3">
+                    <Plus className="w-5 h-5" />
+                </div>
+                <p className="text-[10px] font-black uppercase tracking-widest">No tracks</p>
               </div>
             ) : (
               tracks.map((track) => (
                 <div
                   key={track.id}
-                  className={`border-b border-slate-600 p-2 cursor-pointer transition-colors ${selectedTrackId === track.id
-                    ? "bg-slate-600"
-                    : "hover:bg-slate-600"
+                  className={`border-b border-white/5 p-3 cursor-pointer transition-all relative group ${selectedTrackId === track.id
+                    ? "bg-white/[0.03]"
+                    : "hover:bg-white/[0.02]"
                     }`}
                   onClick={() => setSelectedTrackId(track.id)}
                   style={{ height: `${track.height}px` }}
                 >
-                  <div className="flex flex-col gap-1 h-full">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-white truncate">
-                        {track.name}
-                      </span>
-                      <span className="text-xs text-slate-400 bg-slate-800 px-1 rounded">
-                        {track.type}
-                      </span>
+                  <div className="flex flex-col justify-between h-full relative z-10">
+                    <div className="flex items-center justify-between gap-2">
+                       <div className="flex items-center gap-2 min-w-0">
+                          <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 ${track.type === 'audio' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                            {track.type === 'audio' ? <Music className="w-3.5 h-3.5" /> : <VideoIcon className="w-3.5 h-3.5" />}
+                          </div>
+                          <span className="text-[10px] items-center gap-2 font-black text-white/80 truncate uppercase tracking-widest">
+                            {track.name}
+                          </span>
+                       </div>
+                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                                onClick={(e) => { e.stopPropagation(); handleToggleMute(track.id); }}
+                                className={`p-1.5 rounded-lg transition-colors ${track.isMuted ? "bg-red-500 text-white" : "bg-white/5 text-slate-500 hover:text-white"}`}
+                            >
+                                <Volume2 className="w-3 h-3" />
+                            </button>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); handleToggleLock(track.id); }}
+                                className={`p-1.5 rounded-lg transition-colors ${track.isLocked ? "bg-amber-500 text-white" : "bg-white/5 text-slate-500 hover:text-white"}`}
+                            >
+                                <Lock className="w-3 h-3" />
+                            </button>
+                       </div>
                     </div>
-                    <div className="flex gap-1 flex-wrap">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleMute(track.id);
-                        }}
-                        className={`p-1 rounded text-xs ${track.isMuted
-                          ? "bg-red-600 text-white"
-                          : "bg-slate-600 text-slate-300"
-                          }`}
-                        title="Mute"
-                      >
-                        <Volume2 className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleVisibility(track.id);
-                        }}
-                        className={`p-1 rounded text-xs ${track.isVisible
-                          ? "bg-slate-600 text-slate-300"
-                          : "bg-slate-500 text-slate-400"
-                          }`}
-                        title="Toggle Visibility"
-                      >
-                        <Eye className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleLock(track.id);
-                        }}
-                        className={`p-1 rounded text-xs ${track.isLocked
-                          ? "bg-yellow-600 text-white"
-                          : "bg-slate-600 text-slate-300"
-                          }`}
-                        title="Lock"
-                      >
-                        <Lock className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteTrack(track.id);
-                        }}
-                        className="p-1 rounded text-xs bg-slate-600 text-red-400 hover:bg-red-600 hover:text-white"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
+                    
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div className={`w-1.5 h-1.5 rounded-full ${track.isVisible ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-slate-600'}`} />
+                            <span className="text-[8px] font-black text-slate-600 uppercase tracking-tighter">{track.type} Track</span>
+                        </div>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); handleDeleteTrack(track.id); }}
+                            className="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-red-500/20 text-slate-600 hover:text-red-400 transition-all flex-shrink-0"
+                            title="Delete"
+                        >
+                            <Trash2 className="w-3 h-3" />
+                        </button>
                     </div>
                   </div>
+                  {selectedTrackId === track.id && (
+                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
+                  )}
                 </div>
               ))
             )}
@@ -791,45 +826,69 @@ export default function Timeline({
                       return (
                         <div
                           key={clip.id}
-                          draggable
-                          onDragStart={(e) => handleClipDragStart(e, clip.id)}
+                          draggable={editMode === "select"}
+                          onDragStart={(e) => editMode === "select" && handleClipDragStart(e, clip.id)}
                           onDragEnd={handleClipDragEnd}
-                          className={`absolute top-1 bottom-1 rounded bg-opacity-80 border cursor-move hover:border-white transition-colors overflow-hidden group ${draggedClipId === clip.id
-                            ? "border-yellow-400 opacity-75 shadow-lg shadow-yellow-400"
-                            : "border-slate-400"
+                          onClick={(e) => {
+                            if (editMode === "blade") {
+                                e.stopPropagation();
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const splitPointX = e.clientX - rect.left;
+                                const splitTimeMs = (splitPointX / pixelsPerSecond) * 1000;
+                                splitClipMutation.mutate({ clipId: clip.id, splitTime: Math.round(splitTimeMs) });
+                            }
+                          }}
+                          className={`absolute top-1 bottom-1 rounded-xl border cursor-pointer transition-all overflow-hidden group shadow-2xl ${
+                            editMode === "blade" ? "hover:ring-2 hover:ring-red-500 hover:scale-[1.02]" : ""
+                          } ${
+                            draggedClipId === clip.id
+                                ? "border-yellow-400 z-50 ring-4 ring-yellow-400/20 scale-105"
+                                : "border-white/10"
+                            } ${
+                                track.type === 'audio' 
+                                    ? "bg-gradient-to-br from-purple-600/40 to-indigo-900/60" 
+                                    : "bg-gradient-to-br from-blue-600/40 to-cyan-900/60"
                             }`}
                           style={{
                             left: `${clip.startTime * pixelsPerSecond}px`,
                             width: `${clipWidth}px`,
-                            backgroundColor: clip.color,
-                            minWidth: '50px',
+                            minWidth: '20px',
                           }}
                           title={clip.name}
                         >
-                          <div className="text-xs text-white truncate p-1">
-                            {clip.name}
+                           {/* Premium Glass Effect Overlay */}
+                          <div className="absolute inset-0 bg-white/5 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                          
+                          <div className="relative z-10 flex flex-col h-full justify-center px-2">
+                             <div className="flex items-center gap-1.5 min-w-0">
+                                {track.type === 'audio' ? <Music className="w-3 h-3 text-purple-300 flex-shrink-0" /> : <VideoIcon className="w-3 h-3 text-blue-300 flex-shrink-0" />}
+                                <span className="text-[10px] font-black text-white/90 truncate uppercase tracking-tighter">
+                                    {clip.name}
+                                </span>
+                             </div>
+                             <div className="text-[8px] font-mono text-white/40 mt-0.5">{(clip.duration).toFixed(1)}s</div>
                           </div>
-                          {/* Trim handles - only show if not dragging */}
-                          {draggedClipId !== clip.id && (
+
+                          {/* Trim handles - only show if selection mode and not dragging */}
+                          {editMode === "select" && draggedClipId !== clip.id && (
                             <>
                               <div
-                                className="absolute left-0 top-0 bottom-0 w-1 bg-white opacity-0 group-hover:opacity-100 cursor-ew-resize hover:bg-yellow-400"
+                                className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/20 transition-colors"
                                 onMouseDown={(e) => handleTrimStart(e, clip.id, "left")}
                               />
                               <div
-                                className="absolute right-0 top-0 bottom-0 w-1 bg-white opacity-0 group-hover:opacity-100 cursor-ew-resize hover:bg-yellow-400"
+                                className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/20 transition-colors"
                                 onMouseDown={(e) => handleTrimStart(e, clip.id, "right")}
                               />
                             </>
                           )}
-                          {/* Cut button on hover */}
-                          <button
-                            onClick={() => handleCutClip(clip.id)}
-                            className="absolute top-0 right-6 opacity-0 group-hover:opacity-100 bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1 rounded transition-opacity"
-                            title="Cut at playhead"
-                          >
-                            Cut
-                          </button>
+
+                          {/* Blade Indicator Overlay */}
+                          {editMode === "blade" && (
+                             <div className="absolute inset-0 bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity border-x border-red-500/50 pointer-events-none flex items-center justify-center">
+                                <Scissors className="w-4 h-4 text-red-500 animate-pulse" />
+                             </div>
+                          )}
                         </div>
                       );
                     })}

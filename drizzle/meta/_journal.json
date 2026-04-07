@@ -71,6 +71,13 @@
       "when": 1774027520189,
       "tag": "0009_numerous_green_goblin",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1775580149971,
+      "tag": "0010_woozy_lester",
+      "breakpoints": true
     }
   ]
 }

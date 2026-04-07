@@ -170,7 +170,7 @@ export default function VisualStyleTab({ projectId }: VisualStyleTabProps) {
             if (result && result.url) {
               generatedImages.push(result.url);
               // Progressive update
-              setGeneratedStyleGuide((prev: unknown) => ({
+              setGeneratedStyleGuide((prev: any) => ({
                 ...prev,
                 visualReferences: [...generatedImages]
               }));

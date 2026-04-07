@@ -192,17 +192,22 @@ export class GeminiProvider {
     ): Promise<ImageGenerationResult> {
         const hasImageRefs = params.imageInputs && params.imageInputs.length > 0;
 
-        // imagen-4.0-generate-001 does NOT support referenceImages.
-        // Switch to imagen-3.0-capability-001 when we need image anchors.
-        const effectiveModel = hasImageRefs ? "imagen-3.0-capability-001" : modelId;
+        // imagen-4.0-generate-001 on Vertex AI has strict permission/quota boundaries for Img2Img.
+        // If image anchors are present, safely fall back to the generic Gemini REST API as legacy.
+        if (hasImageRefs) {
+            console.log(`[GeminiProvider] Image anchors detected. Routing directly to Gemini REST API to avoid Vertex 500 Errors.`);
+            return await this.generateImageWithGeminiREST(params, modelId, startTime);
+        }
+
+        const effectiveModel = modelId;
 
         const url = `${this.vertexBaseUrl}/${this.projectId}/locations/us-central1/publishers/google/models/${effectiveModel}:predict`;
         
-        console.log(`[GeminiProvider] Calling Vertex AI endpoint: ${url} (imageRefs: ${hasImageRefs ? params.imageInputs!.length : 0})`);
+        console.log(`[GeminiProvider] Calling Vertex AI endpoint: ${url}`);
 
-        // Add timeout protection (60 seconds for reference image processing)
+        // Add timeout protection 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), hasImageRefs ? 60000 : 30000);
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
 
         try {
             // Prepare base instance
@@ -221,30 +226,7 @@ export class GeminiProvider {
                 }
             };
 
-            // If we have an image reference, use the modern referenceImages structure for Imagen 3 Editing
-            if (hasImageRefs) {
-                const imageRefsPromises = params.imageInputs!.map(async (imgInput, idx) => {
-                    let base64Data: string;
-                    if (imgInput.startsWith('data:')) {
-                        base64Data = imgInput.split(',')[1];
-                    } else if (imgInput.startsWith('http')) {
-                        base64Data = await this.downloadImageAsBase64(imgInput);
-                    } else {
-                        base64Data = imgInput;
-                    }
-
-                    return {
-                        referenceId: idx + 1,
-                        referenceType: "REFERENCE_TYPE_RAW",
-                        referenceImage: {
-                            bytesBase64Encoded: base64Data
-                        }
-                    };
-                });
-
-                payload.instances[0].referenceImages = await Promise.all(imageRefsPromises);
-                console.log(`[GeminiProvider] Injected ${payload.instances[0].referenceImages.length} reference images into Imagen 3 payload`);
-            }
+            // No image logic here as anchors are routed to REST API
 
             // Vertex AI requires an OAuth token, not a Gemini API key (AIza...)
             let accessToken = this.apiKey;
@@ -360,7 +342,14 @@ export class GeminiProvider {
             const payload: any = {
                 instances: [
                     {
-                        prompt: params.prompt
+                        prompt: params.prompt,
+                        ...(params.imageInputs && params.imageInputs.length > 0 ? {
+                            image: {
+                                bytesBase64Encoded: params.imageInputs[0].startsWith('http')
+                                    ? await this.downloadImageAsBase64(params.imageInputs[0])
+                                    : (params.imageInputs[0].split(",")[1] || params.imageInputs[0])
+                            }
+                        } : {})
                     }
                 ],
                 parameters: {
@@ -438,7 +427,7 @@ export class GeminiProvider {
                 instances: [{ prompt: params.prompt }],
                 parameters: {
                     ...(params.input_image_url && { image: { image_url: params.input_image_url } }),
-                    aspectRatio: params.resolution === "1080p" ? "16:9" : "1:1",
+                    aspectRatio: "16:9",
                 }
             };
 

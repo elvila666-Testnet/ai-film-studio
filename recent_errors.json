@@ -1,0 +1,531 @@
+﻿[
+  {
+    "httpRequest": {
+      "latency": "0.172826031s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://ai-film-studio-553654730386.us-central1.run.app/",
+      "remoteIp": "2806:107e:f:6629:ccc7:b359:39fc:3b1f",
+      "requestMethod": "POST",
+      "requestSize": "1379",
+      "requestUrl": "https://ai-film-studio-553654730386.us-central1.run.app/api/auth/login",
+      "responseSize": "231",
+      "serverIp": "2600:1901:81d4:200::",
+      "status": 500,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+    },
+    "insertId": "69cb3249000001f97c5dd0f7",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff082453e9b69a24ed27b3394b81e0d23d59e48425339fd5b19a96fe53e616b9057d024571a76c373f0cdcffbccf179daa50f120fa63adfccd44a66de71696ddb5e6ce7af11dbf21339b8e",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-03-31T02:32:41.007465432Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00306-hhr",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "f3d4b544a34544f1",
+    "timestamp": "2026-03-31T02:32:40.820883Z",
+    "trace": "projects/ai-film-studio-485900/traces/7dc47c14f887339da62c9d3f15b33fa7",
+    "traceSampled": true
+  },
+  {
+    "httpRequest": {
+      "latency": "0.150419655s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://ai-film-studio-553654730386.us-central1.run.app/",
+      "remoteIp": "2806:107e:f:6629:ccc7:b359:39fc:3b1f",
+      "requestMethod": "POST",
+      "requestSize": "1380",
+      "requestUrl": "https://ai-film-studio-553654730386.us-central1.run.app/api/auth/login",
+      "responseSize": "231",
+      "serverIp": "2600:1900:4244:200::",
+      "status": 500,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+    },
+    "insertId": "69caf7280002957ac1dbdcd1",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff083fcb40de02b69afc78ef517fc009dba30bcf1d24c4b8ac99dc1f5e81aa96afda56a1d8117c026738f2d042ef799c18148412bc2d6d2ec361a330969988ce400c7403436c44250ce50ab47823c1da",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-03-30T22:20:24.467130092Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00305-wgq",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "8a47877c2499975b",
+    "timestamp": "2026-03-30T22:20:24.017871Z",
+    "trace": "projects/ai-film-studio-485900/traces/00937f6126b792b8612d1a10ad302e86"
+  },
+  {
+    "httpRequest": {
+      "latency": "0.126512684s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://ai-film-studio-553654730386.us-central1.run.app/",
+      "remoteIp": "2806:107e:f:6629:ccc7:b359:39fc:3b1f",
+      "requestMethod": "POST",
+      "requestSize": "1379",
+      "requestUrl": "https://ai-film-studio-553654730386.us-central1.run.app/api/auth/login",
+      "responseSize": "231",
+      "serverIp": "2600:1900:4244:200::",
+      "status": 500,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+    },
+    "insertId": "69caf727000e765d9cb1fa68",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff084f27c8f79bfe21b040eb063aeb1b6e21ef061075db35a4eea8e4425f0665abf868ba53af91034eb42e75bf699bb923bc48915ee6e4749d4a36817e0dc183a85d4cb6bbb4e5de4402eda91984d92d01",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-03-30T22:20:24.281683403Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00305-wgq",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "3cb80a503fa0cecc",
+    "timestamp": "2026-03-30T22:20:23.820365Z",
+    "trace": "projects/ai-film-studio-485900/traces/39ec39d3f2a7d6fa612d1a10ad302a88"
+  },
+  {
+    "httpRequest": {
+      "latency": "0.119193025s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://ai-film-studio-553654730386.us-central1.run.app/",
+      "remoteIp": "2806:107e:f:6629:ccc7:b359:39fc:3b1f",
+      "requestMethod": "POST",
+      "requestSize": "1380",
+      "requestUrl": "https://ai-film-studio-553654730386.us-central1.run.app/api/auth/login",
+      "responseSize": "231",
+      "serverIp": "2600:1900:4244:200::",
+      "status": 500,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+    },
+    "insertId": "69caf727000b6f329339c626",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff084f27c8f79bfe21b040eb063aeb1b6e21ef061075db35a4eea8e4425f0665abf868ba53af91034eb42e75bf699bb923bc48915ee6e4749d4a36817e0dc183a85d4cb6bbb4e5de4402eda91984d92d01",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-03-30T22:20:23.948423350Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00305-wgq",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "339efccea0da1b0b",
+    "timestamp": "2026-03-30T22:20:23.628953Z",
+    "trace": "projects/ai-film-studio-485900/traces/11e8df4846a15a95612d1a10ad302386"
+  },
+  {
+    "httpRequest": {
+      "latency": "0.187707399s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://ai-film-studio-553654730386.us-central1.run.app/",
+      "remoteIp": "2806:107e:f:6629:ccc7:b359:39fc:3b1f",
+      "requestMethod": "POST",
+      "requestSize": "1380",
+      "requestUrl": "https://ai-film-studio-553654730386.us-central1.run.app/api/auth/login",
+      "responseSize": "231",
+      "serverIp": "2600:1900:4244:200::",
+      "status": 500,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+    },
+    "insertId": "69caf72700093740967b41d4",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff0806242a28851e5fe6b87c7a0d41ac9df48a512a34531fca7adbfdbdf5536d24bfddcbf96b8a5bc7f6bffbbf7494cfa8be0d0322b9da859ef3460fe3958457f584c0640c71a00b141b34833ed70214",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-03-30T22:20:23.612734724Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00305-wgq",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "4a95935351e3d25b",
+    "timestamp": "2026-03-30T22:20:23.412390Z",
+    "trace": "projects/ai-film-studio-485900/traces/af577c5a3c60e17d612d1a10ad30228c",
+    "traceSampled": true
+  },
+  {
+    "httpRequest": {
+      "latency": "0.169193812s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://ai-film-studio-553654730386.us-central1.run.app/",
+      "remoteIp": "2806:107e:f:6629:ccc7:b359:39fc:3b1f",
+      "requestMethod": "POST",
+      "requestSize": "1380",
+      "requestUrl": "https://ai-film-studio-553654730386.us-central1.run.app/api/auth/login",
+      "responseSize": "231",
+      "serverIp": "2600:1900:4244:200::",
+      "status": 500,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+    },
+    "insertId": "69caf72600095367e62325b4",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff084f27c8f79bfe21b040eb063aeb1b6e21ef061075db35a4eea8e4425f0665abf868ba53af91034eb42e75bf699bb923bc48915ee6e4749d4a36817e0dc183a85d4cb6bbb4e5de4402eda91984d92d01",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-03-30T22:20:22.615516156Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00305-wgq",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "427fb2c8b65efeb1",
+    "timestamp": "2026-03-30T22:20:22.436162Z",
+    "trace": "projects/ai-film-studio-485900/traces/6bd1059aeb005b31612d1a10ad302fc2",
+    "traceSampled": true
+  },
+  {
+    "httpRequest": {
+      "latency": "0.227672731s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://ai-film-studio-553654730386.us-central1.run.app/",
+      "remoteIp": "2806:107e:f:6629:ccc7:b359:39fc:3b1f",
+      "requestMethod": "POST",
+      "requestSize": "1379",
+      "requestUrl": "https://ai-film-studio-553654730386.us-central1.run.app/api/auth/login",
+      "responseSize": "231",
+      "serverIp": "2600:1900:4240:200::",
+      "status": 500,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+    },
+    "insertId": "69caedb80003a5eea7f2c4bf",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff0810f283c0e90caad1924fbc7798e15d4a0d7cbeb0834921cf04e0cb39c35cf253393699460e00b6d6237dcebc96387094434f7a6567303e0890339b54b0c2fc7fd435ec8da6fcde230e",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-03-30T21:40:08.244946133Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00304-rvv",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "d1ca6951e7d915ca",
+    "timestamp": "2026-03-30T21:40:08.007031Z",
+    "trace": "projects/ai-film-studio-485900/traces/dd6cb04d398b3511006a3ca9f20d6874",
+    "traceSampled": true
+  },
+  {
+    "httpRequest": {
+      "latency": "0.265236564s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://ai-film-studio-553654730386.us-central1.run.app/",
+      "remoteIp": "2806:107e:f:6629:ccc7:b359:39fc:3b1f",
+      "requestMethod": "POST",
+      "requestSize": "1377",
+      "requestUrl": "https://ai-film-studio-553654730386.us-central1.run.app/api/auth/login",
+      "responseSize": "231",
+      "serverIp": "2600:1900:4240:200::",
+      "status": 500,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+    },
+    "insertId": "69caedb80001520b69e76750",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff088f30efe1b5df0d8976f5e100253b002740097251b947224bb24d9a3c5e78fe34f0d5df9dfec0529430f6305ea21c6accd61fbcb4fc2f48f262ea4f78604b90990910d8e621dced52",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-03-30T21:40:08.093065547Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00304-rvv",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "1cbce8f07be2c02c",
+    "timestamp": "2026-03-30T21:40:07.814751Z",
+    "trace": "projects/ai-film-studio-485900/traces/f4d6b13031b131eb006a3ca9f20d6691",
+    "traceSampled": true
+  },
+  {
+    "httpRequest": {
+      "latency": "0.263991559s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://ai-film-studio-553654730386.us-central1.run.app/",
+      "remoteIp": "2806:107e:f:6629:ccc7:b359:39fc:3b1f",
+      "requestMethod": "POST",
+      "requestSize": "1380",
+      "requestUrl": "https://ai-film-studio-553654730386.us-central1.run.app/api/auth/login",
+      "responseSize": "231",
+      "serverIp": "2600:1900:4240:200::",
+      "status": 500,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+    },
+    "insertId": "69caedb7000c8c2a316dfaa3",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff08b471ae7c7dc8fb34dbf6b2567b694e2c81095334eb45848786b2b57f4359b62cb3699b2edd1c222a29c9e525003fe0a9eee207faf2dc70ee8c01505501c05c3ea3f745e1ad82a691",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-03-30T21:40:07.827213677Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00304-rvv",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "d43be0be99200ca3",
+    "timestamp": "2026-03-30T21:40:07.553898Z",
+    "trace": "projects/ai-film-studio-485900/traces/413fc79dc1802fb9006a3ca9f20d617a",
+    "traceSampled": true
+  },
+  {
+    "httpRequest": {
+      "latency": "0.239746533s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://ai-film-studio-553654730386.us-central1.run.app/",
+      "remoteIp": "2806:107e:f:6629:ccc7:b359:39fc:3b1f",
+      "requestMethod": "POST",
+      "requestSize": "1380",
+      "requestUrl": "https://ai-film-studio-553654730386.us-central1.run.app/api/auth/login",
+      "responseSize": "231",
+      "serverIp": "2600:1900:4240:200::",
+      "status": 500,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+    },
+    "insertId": "69caedb60004ede3218f921f",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff08e59ef0f0f2446ad407e8f0b895ae1dae6c80f95bd4f4274e107b67dd4113b84ff6e48ab1f5a3cbf8574c4f706fe64662ac468a38377aa671fbd7a1765a521696b498ed6bce77ea274f1e336054dc",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-03-30T21:40:06.635861909Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00304-rvv",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "5a7fcc3102702c95",
+    "timestamp": "2026-03-30T21:40:06.081617Z",
+    "trace": "projects/ai-film-studio-485900/traces/a404517fb9035f36cdccc24696960ab4"
+  },
+  {
+    "httpRequest": {
+      "latency": "0.185377622s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://ai-film-studio-553654730386.us-central1.run.app/",
+      "remoteIp": "2806:107e:f:6629:d5e2:8f5b:e318:7f59",
+      "requestMethod": "POST",
+      "requestSize": "896",
+      "requestUrl": "https://ai-film-studio-553654730386.us-central1.run.app/api/auth/login",
+      "responseSize": "231",
+      "serverIp": "2600:1900:4240:200::",
+      "status": 500,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+    },
+    "insertId": "69cac7f50009f0f66dbfbf98",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff08e1fa57641b4fd67025d9cdb413dfcb96cffe98915fa0f1513e8d04f5799ae8505c59b01aab363e144a559de6ce9415ea2380974b5e5f72146ede27753e4e4ea299920a159ce42774",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-03-30T18:59:01.656178918Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00304-rvv",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "ef31560e4c54c44c",
+    "timestamp": "2026-03-30T18:59:01.459680Z",
+    "trace": "projects/ai-film-studio-485900/traces/50b0fbd0082874004269e19ab3b0418e",
+    "traceSampled": true
+  },
+  {
+    "httpRequest": {
+      "latency": "0.139453648s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://ai-film-studio-553654730386.us-central1.run.app/",
+      "remoteIp": "2806:107e:f:6629:d5e2:8f5b:e318:7f59",
+      "requestMethod": "POST",
+      "requestSize": "896",
+      "requestUrl": "https://ai-film-studio-553654730386.us-central1.run.app/api/auth/login",
+      "responseSize": "231",
+      "serverIp": "2600:1900:4240:200::",
+      "status": 500,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+    },
+    "insertId": "69cac7f30004e730901b56fa",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff0810f283c0e90caad1924fbc7798e15d4a0d7cbeb0834921cf04e0cb39c35cf253393699460e00b6d6237dcebc96387094434f7a6567303e0890339b54b0c2fc7fd435ec8da6fcde230e",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-03-30T18:58:59.326381402Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00304-rvv",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "cf56ce49c2b574c4",
+    "timestamp": "2026-03-30T18:58:59.180188Z",
+    "trace": "projects/ai-film-studio-485900/traces/bb56cab15a27ed5f4269e19ab3b047f1",
+    "traceSampled": true
+  },
+  {
+    "httpRequest": {
+      "latency": "0.161663847s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://ai-film-studio-553654730386.us-central1.run.app/",
+      "remoteIp": "2806:107e:f:6629:d5e2:8f5b:e318:7f59",
+      "requestMethod": "POST",
+      "requestSize": "896",
+      "requestUrl": "https://ai-film-studio-553654730386.us-central1.run.app/api/auth/login",
+      "responseSize": "231",
+      "serverIp": "2600:1900:4240:200::",
+      "status": 500,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+    },
+    "insertId": "69cac7e2000ec7811bb1352d",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff084ff451da9f2bbf90923c97fedb4da19dbb9a0aa120ce6b83e98fd8a5834cb2612bbe9370c8636616fad49285e1e621b36bb32a5cbc1a6cd4e68658f13d3361fcfc178c09f972824f37",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-03-30T18:58:42.975977918Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00304-rvv",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "823a4bc70e7ae805",
+    "timestamp": "2026-03-30T18:58:42.805651Z",
+    "trace": "projects/ai-film-studio-485900/traces/b53417a33089508d95e82aa01143591c",
+    "traceSampled": true
+  }
+]

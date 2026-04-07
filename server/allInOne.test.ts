@@ -1,7 +1,5 @@
 import { describe, it, expect } from "vitest";
 import {
-  generateWithVeo3,
-  generateWithSora,
   generateImageToVideo,
   checkVideoStatus,
 } from "./services/imageToVideo";
@@ -16,7 +14,7 @@ describe("All-in-One Suite - Phase 2-5 Tests", () => {
     const mockMotionPrompt = "Camera slowly pans left, character looks at camera";
 
     it("should handle Veo3 API errors gracefully", async () => {
-      const response = await generateWithVeo3({
+      const response = await generateImageToVideo({
         imageUrl: mockImageUrl,
         motionPrompt: mockMotionPrompt,
         duration: 4,
@@ -31,7 +29,7 @@ describe("All-in-One Suite - Phase 2-5 Tests", () => {
     });
 
     it("should handle Sora API errors gracefully", async () => {
-      const response = await generateWithSora({
+      const response = await generateImageToVideo({
         imageUrl: mockImageUrl,
         motionPrompt: mockMotionPrompt,
         duration: 4,
@@ -46,7 +44,7 @@ describe("All-in-One Suite - Phase 2-5 Tests", () => {
     });
 
     it("should validate duration limits", async () => {
-      const response = await generateWithVeo3({
+      const response = await generateImageToVideo({
         imageUrl: mockImageUrl,
         motionPrompt: mockMotionPrompt,
         duration: 120,
@@ -103,7 +101,7 @@ describe("All-in-One Suite - Phase 2-5 Tests", () => {
       const originalKey = process.env.VEO3_API_KEY;
       delete process.env.VEO3_API_KEY;
 
-      const response = await generateWithVeo3({
+      const response = await generateImageToVideo({
         imageUrl: mockImageUrl,
         motionPrompt: mockMotionPrompt,
         duration: 4,
@@ -119,7 +117,7 @@ describe("All-in-One Suite - Phase 2-5 Tests", () => {
     });
 
     it("should validate API response structure", async () => {
-      const response = await generateWithVeo3({
+      const response = await generateImageToVideo({
         imageUrl: mockImageUrl,
         motionPrompt: mockMotionPrompt,
         duration: 4,
@@ -137,7 +135,7 @@ describe("All-in-One Suite - Phase 2-5 Tests", () => {
     });
 
     it("should handle character lock parameter", async () => {
-      const withLock = await generateWithVeo3({
+      const withLock = await generateImageToVideo({
         imageUrl: mockImageUrl,
         motionPrompt: mockMotionPrompt,
         duration: 4,
@@ -146,7 +144,7 @@ describe("All-in-One Suite - Phase 2-5 Tests", () => {
         resolution: "1080p",
       });
 
-      const withoutLock = await generateWithVeo3({
+      const withoutLock = await generateImageToVideo({
         imageUrl: mockImageUrl,
         motionPrompt: mockMotionPrompt,
         duration: 4,
@@ -220,7 +218,7 @@ describe("All-in-One Suite - Phase 2-5 Tests", () => {
     });
 
     it("should validate error recovery", async () => {
-      const response1 = await generateWithVeo3({
+      const response1 = await generateImageToVideo({
         imageUrl: "https://example.com/frame.jpg",
         motionPrompt: "Test",
         duration: 4,
@@ -229,7 +227,7 @@ describe("All-in-One Suite - Phase 2-5 Tests", () => {
         resolution: "1080p",
       });
 
-      const response2 = await generateWithVeo3({
+      const response2 = await generateImageToVideo({
         imageUrl: "https://example.com/frame.jpg",
         motionPrompt: "Test",
         duration: 4,

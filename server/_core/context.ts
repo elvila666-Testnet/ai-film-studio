@@ -1,7 +1,7 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import type { User } from "../../drizzle/schema";
 import jwt from "jsonwebtoken";
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME } from "../../shared/const";
 import { ENV } from "./env";
 
 const JWT_SECRET = ENV.cookieSecret || "your-secret-key-change-in-production";

@@ -148,6 +148,9 @@ export async function initializeModels() {
     { category: "video", provider: "Kling", modelId: "Kling AI", isActive: false, isBuiltIn: true },
     { category: "video", provider: "Luma", modelId: "Dream Machine", isActive: false, isBuiltIn: true },
     { category: "video", provider: "Wan", modelId: "Wan 2.1", isActive: false, isBuiltIn: true },
+    { category: "video", provider: "Kie", modelId: "kie-seedance-2-0", isActive: true, name: "Seedream (Seedance 2.0)", isBuiltIn: true },
+    { category: "video", provider: "Kie", modelId: "kie-kling-3-0", isActive: true, name: "Kling 3.0 (KIE)", isBuiltIn: true },
+    { category: "video", provider: "Kie", modelId: "kie-wan-2-6", isActive: true, name: "Wan 2.6 (KIE)", isBuiltIn: true },
   ];
 
   for (const model of defaults) {

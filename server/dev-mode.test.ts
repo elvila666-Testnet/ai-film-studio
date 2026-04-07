@@ -102,7 +102,6 @@ describe("Mock Data Service", () => {
 
 describe("Mock LLM Response", () => {
   it("should simulate LLM response with delay", async () => {
-    const content = "Mock response content";
     const delayMs = 100;
     const startTime = Date.now();
     
@@ -166,19 +165,16 @@ describe("Mock Mode Integration", () => {
   });
 
   it("should handle mock data for script generation", () => {
-    const brief = "Product commercial";
     const mockResult = "# Generated Script\n\n## Scene 1\nOpening shot";
     expect(mockResult).toContain("Generated Script");
   });
 
   it("should handle mock data for visual style generation", () => {
-    const script = "# Script";
     const mockResult = "# Master Visual Style\n\n## Lighting\nSetup here";
     expect(mockResult).toContain("Master Visual Style");
   });
 
   it("should handle mock data for technical shots generation", () => {
-    const script = "# Script";
     const mockResult = JSON.stringify([
       { name: "Wide Shot", duration: 3 },
       { name: "Close-up", duration: 4 },

@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { TRPCError } from '@trpc/server';
-const generateAsset = async (...args: any[]): Promise<any> => { throw new Error("Native Gemini Migration: Replicate Audio Service is deprecated"); };
+const generateAsset = async (..._args: any[]): Promise<any> => { throw new Error("Native Gemini Migration: Replicate Audio Service is deprecated"); };
 import { Storage } from '@google-cloud/storage';
 import { v4 as uuidv4 } from 'uuid';
 import { pipeline } from 'stream/promises';

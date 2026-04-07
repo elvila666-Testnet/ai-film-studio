@@ -12,13 +12,14 @@ interface ShootingPanelProps {
 const PROVIDERS = [
     { id: "flow", label: "Flow (Fast)" },
     { id: "veo3", label: "Veo 3 (Quality)" },
-    { id: "kling", label: "Kling" },
-    { id: "sora", label: "Sora" },
+    { id: "kie-seedance", label: "Seedream / Seedance 2.0 (KIE)", provider: "kie", modelId: "kie-seedance-2-0" },
+    { id: "kie-kling", label: "Kling 3.0 (KIE)", provider: "kie", modelId: "kie-kling-3-0" },
+    { id: "kie-wan", label: "Wan 2.6 (KIE)", provider: "kie", modelId: "kie-wan-2-6" },
 ] as const;
 
 export function ShootingPanel({ projectId }: ShootingPanelProps) {
     const { requestApproval } = useCostGuard();
-    const [provider, setProvider] = useState<"flow" | "veo3" | "kling" | "sora">("flow");
+    const [providerId, setProviderId] = useState<typeof PROVIDERS[number]["id"]>("flow");
     const [duration, setDuration] = useState(5);
     const [renderingId, setRenderingId] = useState<number | null>(null);
 
@@ -39,17 +40,26 @@ export function ShootingPanel({ projectId }: ShootingPanelProps) {
     );
 
     const handleRenderShot = (frameId: number) => {
-        const estimatedCost = provider === "veo3" ? duration * 0.055 : duration * 0.02;
+        let estimatedCost = duration * 0.02;
+        if (providerId === "veo3") estimatedCost = duration * 0.055;
+        else if (providerId === "kie-kling") estimatedCost = duration * 0.18;
+        else if (providerId.startsWith("kie")) estimatedCost = duration * 0.15;
+
         requestApproval(estimatedCost, async () => {
             setRenderingId(frameId);
             try {
-                await renderShotMutation.mutateAsync({
-                    projectId,
-                    storyboardImageId: frameId,
-                    provider,
-                    durationSeconds: duration,
-                    isApproved: true,
-                });
+            const selected = PROVIDERS.find(p => p.id === providerId);
+            const provider = selected && "provider" in selected ? selected.provider : providerId;
+            const modelId = selected && "modelId" in selected ? selected.modelId : undefined;
+
+            await renderShotMutation.mutateAsync({
+                projectId,
+                storyboardImageId: frameId,
+                provider: provider as any,
+                modelId,
+                durationSeconds: duration,
+                isApproved: true,
+            });
             } finally {
                 setRenderingId(null);
             }
@@ -66,8 +76,8 @@ export function ShootingPanel({ projectId }: ShootingPanelProps) {
                         {PROVIDERS.map((p) => (
                             <button
                                 key={p.id}
-                                onClick={() => setProvider(p.id)}
-                                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${provider === p.id ? "bg-primary text-white" : "text-slate-500 hover:text-white"}`}
+                                onClick={() => setProviderId(p.id)}
+                                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${providerId === p.id ? "bg-primary text-white" : "text-slate-500 hover:text-white"}`}
                             >
                                 {p.label}
                             </button>

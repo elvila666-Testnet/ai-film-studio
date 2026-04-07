@@ -8,7 +8,20 @@ dist/
 .vscode/
 local-data/
 *.log
+*.json
+.agent/
+.manus/
+.gemini/
+.dockerignore
+Dockerfile.test
+audios/
+arte/
+test_session_*/
+temp/
+tmp/
+cloud-sql-proxy.exe
 
 # Explicitly include these (just in case)
 !package.json
 !pnpm-lock.yaml
+!package-lock.json

@@ -1,0 +1,1718 @@
+﻿[
+  {
+    "insertId": "-9x6noxd6g0o",
+    "labels": {
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-nnw68"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/cloudaudit.googleapis.com%2Fsystem_event",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "methodName": "/Jobs.RunJob",
+      "resourceName": "namespaces/ai-film-studio-485900/executions/ai-film-studio-migrate-nnw68",
+      "response": {
+        "@type": "type.googleapis.com/google.cloud.run.v1.Execution",
+        "apiVersion": "run.googleapis.com/v1",
+        "kind": "Execution",
+        "metadata": {
+          "annotations": {
+            "run.googleapis.com/client-name": "gcloud",
+            "run.googleapis.com/client-version": "556.0.0",
+            "run.googleapis.com/cloudsql-instances": "ai-film-studio-485900:us-central1:ai-film-studio-db",
+            "run.googleapis.com/creator": "elvila@gmail.com",
+            "run.googleapis.com/execution-environment": "gen2",
+            "run.googleapis.com/lastModifier": "elvila@gmail.com",
+            "run.googleapis.com/operation-id": "8649511d-45b0-4529-99aa-13f8163821cd"
+          },
+          "creationTimestamp": "2026-03-31T19:09:47.986955Z",
+          "generation": 1,
+          "labels": {
+            "client.knative.dev/nonce": "ciq_bos_fiq",
+            "cloud.googleapis.com/location": "us-central1",
+            "run.googleapis.com/job": "ai-film-studio-migrate",
+            "run.googleapis.com/jobGeneration": "29",
+            "run.googleapis.com/jobResourceVersion": "1774984185197490",
+            "run.googleapis.com/jobUid": "2bcfaf97-7f65-4622-8c7c-0167bccb5f4d"
+          },
+          "name": "ai-film-studio-migrate-nnw68",
+          "namespace": "553654730386",
+          "ownerReferences": [
+            {
+              "apiVersion": "serving.knative.dev/v1",
+              "blockOwnerDeletion": true,
+              "controller": true,
+              "kind": "Job",
+              "name": "ai-film-studio-migrate",
+              "uid": "2bcfaf97-7f65-4622-8c7c-0167bccb5f4d"
+            }
+          ],
+          "resourceVersion": "AAZOVtJIJXY",
+          "selfLink": "/apis/run.googleapis.com/v1/namespaces/553654730386/executions/ai-film-studio-migrate-nnw68",
+          "uid": "80cec57c-e530-4791-a69c-e61345c5c4db"
+        },
+        "spec": {
+          "parallelism": 1,
+          "taskCount": 1,
+          "template": {
+            "spec": {
+              "containers": [
+                {
+                  "args": [
+                    "-c",
+                    "echo '[Job] Starting Forced Schema Sync'; npm run db:push -- --force"
+                  ],
+                  "command": [
+                    "sh"
+                  ],
+                  "env": [
+                    {
+                      "name": "NODE_ENV",
+                      "value": "production"
+                    },
+                    {
+                      "name": "GCP_PROJECT_ID",
+                      "value": "ai-film-studio-485900"
+                    },
+                    {
+                      "name": "DATABASE_URL",
+                      "valueFrom": {
+                        "secretKeyRef": {
+                          "key": "latest",
+                          "name": "DATABASE_URL"
+                        }
+                      }
+                    }
+                  ],
+                  "image": "gcr.io/ai-film-studio-485900/ai-film-studio@sha256:2c0bebabf70125fda5aa6b798c65eaeae325e5a337fbe0a27d31493397c0ce9a",
+                  "resources": {
+                    "limits": {
+                      "cpu": "1000m",
+                      "memory": "512Mi"
+                    }
+                  }
+                }
+              ],
+              "maxRetries": 3,
+              "serviceAccountName": "553654730386-compute@developer.gserviceaccount.com",
+              "timeoutSeconds": "600"
+            }
+          }
+        },
+        "status": {
+          "completionTime": "2026-03-31T19:17:34.469716Z",
+          "conditions": [
+            {
+              "lastTransitionTime": "2026-03-31T19:17:34.469716Z",
+              "message": "Task ai-film-studio-migrate-nnw68-task0 failed with exit code: 1 and message: The container exited with an error.",
+              "reason": "NonZeroExitCode",
+              "status": "False",
+              "type": "Completed"
+            },
+            {
+              "lastTransitionTime": "2026-03-31T19:09:48.960035Z",
+              "message": "Provisioned imported containers.",
+              "status": "True",
+              "type": "ResourcesAvailable"
+            },
+            {
+              "lastTransitionTime": "2026-03-31T19:11:42.236636Z",
+              "message": "Started deployed execution in 1m53.27s.",
+              "status": "True",
+              "type": "Started"
+            },
+            {
+              "lastTransitionTime": "2026-03-31T19:09:48.840818Z",
+              "message": "Imported container image.",
+              "status": "True",
+              "type": "ContainerReady"
+            },
+            {
+              "lastTransitionTime": "2026-03-31T19:17:42.361462Z",
+              "message": "System will retry after 00:00 from lastTransitionTime for attempt 0.",
+              "reason": "ImmediateRetry",
+              "severity": "Info",
+              "status": "True",
+              "type": "Retry"
+            }
+          ],
+          "failedCount": 1,
+          "logUri": "https://console.cloud.google.com/logs/viewer?project=ai-film-studio-485900&advancedFilter=resource.type%3D%22cloud_run_job%22%0Aresource.labels.job_name%3D%22ai-film-studio-migrate%22%0Aresource.labels.location%3D%22us-central1%22%0Alabels.%22run.googleapis.com/execution_name%22%3D%22ai-film-studio-migrate-nnw68%22",
+          "observedGeneration": 1,
+          "retriedCount": 1,
+          "startTime": "2026-03-31T19:09:56.155364Z"
+        }
+      },
+      "serviceName": "run.googleapis.com",
+      "status": {
+        "code": 10,
+        "message": "Execution ai-film-studio-migrate-nnw68 has failed to complete, 0/1 tasks were a success."
+      }
+    },
+    "receiveTimestamp": "2026-03-31T19:17:42.670189403Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-03-31T19:17:42.378301Z"
+  },
+  {
+    "insertId": "69cc1dc8000575e3374ad81d",
+    "labels": {
+      "container_name": "worker",
+      "instanceId": "008c15ff087c14fe01a4e4fd17c98bf50fb3463fe09e6954f8439f73c9c2faa7211dc71a2d9c79889a31d5495f50115a5ef117f68ad9d8b6b3185adb1855014d4870ace52e8a4fd694969f5a75082e87b7733120c5e09e9b80d237c4",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-nnw68",
+      "run.googleapis.com/task_attempt": "3",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-31T19:17:28.361957116Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "severity": "WARNING",
+    "textPayload": "Container called exit(1).",
+    "timestamp": "2026-03-31T19:17:28.357734Z"
+  },
+  {
+    "insertId": "69cc1dc80004b553d46884e2",
+    "labels": {
+      "instanceId": "008c15ff087c14fe01a4e4fd17c98bf50fb3463fe09e6954f8439f73c9c2faa7211dc71a2d9c79889a31d5495f50115a5ef117f68ad9d8b6b3185adb1855014d4870ace52e8a4fd694969f5a75082e87b7733120c5e09e9b80d237c4",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-nnw68",
+      "run.googleapis.com/task_attempt": "3",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-31T19:17:28.610910523Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "/app/drizzle.config.ts file does not exist",
+    "timestamp": "2026-03-31T19:17:28.308563Z"
+  },
+  {
+    "insertId": "69cc1dc80000413e0a09cbaf",
+    "labels": {
+      "instanceId": "008c15ff087c14fe01a4e4fd17c98bf50fb3463fe09e6954f8439f73c9c2faa7211dc71a2d9c79889a31d5495f50115a5ef117f68ad9d8b6b3185adb1855014d4870ace52e8a4fd694969f5a75082e87b7733120c5e09e9b80d237c4",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-nnw68",
+      "run.googleapis.com/task_attempt": "3",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-31T19:17:28.276781287Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "> drizzle-kit push --config=drizzle.config.ts --force",
+    "timestamp": "2026-03-31T19:17:28.016702Z"
+  },
+  {
+    "insertId": "69cc1dc80000413458e9d5b7",
+    "labels": {
+      "instanceId": "008c15ff087c14fe01a4e4fd17c98bf50fb3463fe09e6954f8439f73c9c2faa7211dc71a2d9c79889a31d5495f50115a5ef117f68ad9d8b6b3185adb1855014d4870ace52e8a4fd694969f5a75082e87b7733120c5e09e9b80d237c4",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-nnw68",
+      "run.googleapis.com/task_attempt": "3",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-31T19:17:28.276781287Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "> ai_film_studio@1.0.0 db:push",
+    "timestamp": "2026-03-31T19:17:28.016692Z"
+  },
+  {
+    "insertId": "69cc1dc700042b00d4983579",
+    "labels": {
+      "instanceId": "008c15ff087c14fe01a4e4fd17c98bf50fb3463fe09e6954f8439f73c9c2faa7211dc71a2d9c79889a31d5495f50115a5ef117f68ad9d8b6b3185adb1855014d4870ace52e8a4fd694969f5a75082e87b7733120c5e09e9b80d237c4",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-nnw68",
+      "run.googleapis.com/task_attempt": "3",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-31T19:17:27.282182331Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "[Job] Starting Forced Schema Sync",
+    "timestamp": "2026-03-31T19:17:27.273152Z"
+  },
+  {
+    "insertId": "69cc1d800007cdb5147be4d9",
+    "labels": {
+      "container_name": "worker",
+      "instanceId": "008c15ff088be73c34ced63cfe7e55b615526cf767b9b8c89088bf898900edc7e12df717f09a0b3cbc87aace56cefd07992eef152d2dd2df6c2ea5ae2838594f5bc85e909c809f821f20b0cc04ff1a75d9efdc9515c7ee7a7a17c9",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-nnw68",
+      "run.googleapis.com/task_attempt": "2",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-31T19:16:16.517034628Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "severity": "WARNING",
+    "textPayload": "Container called exit(1).",
+    "timestamp": "2026-03-31T19:16:16.511361Z"
+  },
+  {
+    "insertId": "69cc1d8000070f83ac59c1c3",
+    "labels": {
+      "instanceId": "008c15ff088be73c34ced63cfe7e55b615526cf767b9b8c89088bf898900edc7e12df717f09a0b3cbc87aace56cefd07992eef152d2dd2df6c2ea5ae2838594f5bc85e909c809f821f20b0cc04ff1a75d9efdc9515c7ee7a7a17c9",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-nnw68",
+      "run.googleapis.com/task_attempt": "2",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-31T19:16:16.534950240Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "/app/drizzle.config.ts file does not exist",
+    "timestamp": "2026-03-31T19:16:16.462723Z"
+  },
+  {
+    "insertId": "69cc1d80000357ce66edae60",
+    "labels": {
+      "instanceId": "008c15ff088be73c34ced63cfe7e55b615526cf767b9b8c89088bf898900edc7e12df717f09a0b3cbc87aace56cefd07992eef152d2dd2df6c2ea5ae2838594f5bc85e909c809f821f20b0cc04ff1a75d9efdc9515c7ee7a7a17c9",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-nnw68",
+      "run.googleapis.com/task_attempt": "2",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-31T19:16:16.534950240Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "> drizzle-kit push --config=drizzle.config.ts --force",
+    "timestamp": "2026-03-31T19:16:16.219086Z"
+  },
+  {
+    "insertId": "69cc1d80000357c35239f198",
+    "labels": {
+      "instanceId": "008c15ff088be73c34ced63cfe7e55b615526cf767b9b8c89088bf898900edc7e12df717f09a0b3cbc87aace56cefd07992eef152d2dd2df6c2ea5ae2838594f5bc85e909c809f821f20b0cc04ff1a75d9efdc9515c7ee7a7a17c9",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-nnw68",
+      "run.googleapis.com/task_attempt": "2",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-31T19:16:16.534950240Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "> ai_film_studio@1.0.0 db:push",
+    "timestamp": "2026-03-31T19:16:16.219075Z"
+  },
+  {
+    "insertId": "69cc1d7f0008150c4acfd08c",
+    "labels": {
+      "instanceId": "008c15ff088be73c34ced63cfe7e55b615526cf767b9b8c89088bf898900edc7e12df717f09a0b3cbc87aace56cefd07992eef152d2dd2df6c2ea5ae2838594f5bc85e909c809f821f20b0cc04ff1a75d9efdc9515c7ee7a7a17c9",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-nnw68",
+      "run.googleapis.com/task_attempt": "2",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-31T19:16:15.537045086Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "[Job] Starting Forced Schema Sync",
+    "timestamp": "2026-03-31T19:16:15.529676Z"
+  },
+  {
+    "insertId": "69cc1cfe000b98da8ec80447",
+    "labels": {
+      "container_name": "worker",
+      "instanceId": "008c15ff08960b63d89b1acd515389bd751c976ed8d87a9095aa22abd578151813bf892c7ae04cc2fe42db556cb9693bfaa530233755e3dfc7170ce98c8c437086d4178a54b36004fac154acfaaf79552a42602aaf48c011624d88dea9cea821",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-nnw68",
+      "run.googleapis.com/task_attempt": "1",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-31T19:14:06.765121581Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "severity": "WARNING",
+    "textPayload": "Container called exit(1).",
+    "timestamp": "2026-03-31T19:14:06.759930Z"
+  },
+  {
+    "insertId": "69cc1cfe000a83b35cda842c",
+    "labels": {
+      "instanceId": "008c15ff08960b63d89b1acd515389bd751c976ed8d87a9095aa22abd578151813bf892c7ae04cc2fe42db556cb9693bfaa530233755e3dfc7170ce98c8c437086d4178a54b36004fac154acfaaf79552a42602aaf48c011624d88dea9cea821",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-nnw68",
+      "run.googleapis.com/task_attempt": "1",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-31T19:14:06.754655447Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "/app/drizzle.config.ts file does not exist",
+    "timestamp": "2026-03-31T19:14:06.689075Z"
+  },
+  {
+    "insertId": "69cc1cfe0006cae3cc209756",
+    "labels": {
+      "instanceId": "008c15ff08960b63d89b1acd515389bd751c976ed8d87a9095aa22abd578151813bf892c7ae04cc2fe42db556cb9693bfaa530233755e3dfc7170ce98c8c437086d4178a54b36004fac154acfaaf79552a42602aaf48c011624d88dea9cea821",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-nnw68",
+      "run.googleapis.com/task_attempt": "1",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-31T19:14:06.754655447Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "> drizzle-kit push --config=drizzle.config.ts --force",
+    "timestamp": "2026-03-31T19:14:06.445155Z"
+  },
+  {
+    "insertId": "69cc1cfe0006cad43730c6b2",
+    "labels": {
+      "instanceId": "008c15ff08960b63d89b1acd515389bd751c976ed8d87a9095aa22abd578151813bf892c7ae04cc2fe42db556cb9693bfaa530233755e3dfc7170ce98c8c437086d4178a54b36004fac154acfaaf79552a42602aaf48c011624d88dea9cea821",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-nnw68",
+      "run.googleapis.com/task_attempt": "1",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-31T19:14:06.754655447Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "> ai_film_studio@1.0.0 db:push",
+    "timestamp": "2026-03-31T19:14:06.445140Z"
+  },
+  {
+    "insertId": "69cc1cfd000b6d8522e69f11",
+    "labels": {
+      "instanceId": "008c15ff08960b63d89b1acd515389bd751c976ed8d87a9095aa22abd578151813bf892c7ae04cc2fe42db556cb9693bfaa530233755e3dfc7170ce98c8c437086d4178a54b36004fac154acfaaf79552a42602aaf48c011624d88dea9cea821",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-nnw68",
+      "run.googleapis.com/task_attempt": "1",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-31T19:14:05.754679211Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "[Job] Starting Forced Schema Sync",
+    "timestamp": "2026-03-31T19:14:05.748933Z"
+  },
+  {
+    "insertId": "69cc1c6f000763b68dcf6e36",
+    "labels": {
+      "container_name": "worker",
+      "instanceId": "008c15ff08a455029320827cc0ffb27463a9d8aecbe6f8d60514c888546a75f203a60b57af9e930e066b97929676b37fa5f261da7302a614c279ec4a9065b473aa1f224ef41c2d8eb88cf91d48342c20ea0cb1fbd92d1dd3ed8e90ac067d2a92",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-nnw68",
+      "run.googleapis.com/task_attempt": "0",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-31T19:11:43.489198310Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "severity": "WARNING",
+    "textPayload": "Container called exit(1).",
+    "timestamp": "2026-03-31T19:11:43.484138Z"
+  },
+  {
+    "insertId": "69cc1c6f000614303096530d",
+    "labels": {
+      "instanceId": "008c15ff08a455029320827cc0ffb27463a9d8aecbe6f8d60514c888546a75f203a60b57af9e930e066b97929676b37fa5f261da7302a614c279ec4a9065b473aa1f224ef41c2d8eb88cf91d48342c20ea0cb1fbd92d1dd3ed8e90ac067d2a92",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-nnw68",
+      "run.googleapis.com/task_attempt": "0",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-31T19:11:43.539973755Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "/app/drizzle.config.ts file does not exist",
+    "timestamp": "2026-03-31T19:11:43.398384Z"
+  },
+  {
+    "insertId": "69cc1c6f00026bb5cf15a2ee",
+    "labels": {
+      "instanceId": "008c15ff08a455029320827cc0ffb27463a9d8aecbe6f8d60514c888546a75f203a60b57af9e930e066b97929676b37fa5f261da7302a614c279ec4a9065b473aa1f224ef41c2d8eb88cf91d48342c20ea0cb1fbd92d1dd3ed8e90ac067d2a92",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-nnw68",
+      "run.googleapis.com/task_attempt": "0",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-31T19:11:43.208312331Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "> drizzle-kit push --config=drizzle.config.ts --force",
+    "timestamp": "2026-03-31T19:11:43.158645Z"
+  },
+  {
+    "insertId": "69cc1c6f00026bad19513227",
+    "labels": {
+      "instanceId": "008c15ff08a455029320827cc0ffb27463a9d8aecbe6f8d60514c888546a75f203a60b57af9e930e066b97929676b37fa5f261da7302a614c279ec4a9065b473aa1f224ef41c2d8eb88cf91d48342c20ea0cb1fbd92d1dd3ed8e90ac067d2a92",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-nnw68",
+      "run.googleapis.com/task_attempt": "0",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-31T19:11:43.208312331Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "> ai_film_studio@1.0.0 db:push",
+    "timestamp": "2026-03-31T19:11:43.158637Z"
+  },
+  {
+    "insertId": "69cc1c6e00082ed3acbd3cbb",
+    "labels": {
+      "instanceId": "008c15ff08a455029320827cc0ffb27463a9d8aecbe6f8d60514c888546a75f203a60b57af9e930e066b97929676b37fa5f261da7302a614c279ec4a9065b473aa1f224ef41c2d8eb88cf91d48342c20ea0cb1fbd92d1dd3ed8e90ac067d2a92",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-nnw68",
+      "run.googleapis.com/task_attempt": "0",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-31T19:11:42.542920544Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "[Job] Starting Forced Schema Sync",
+    "timestamp": "2026-03-31T19:11:42.536275Z"
+  },
+  {
+    "insertId": "2ifysmd14zo",
+    "logName": "projects/ai-film-studio-485900/logs/cloudaudit.googleapis.com%2Fsystem_event",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "methodName": "/Jobs.ReplaceJob",
+      "resourceName": "namespaces/ai-film-studio-485900/jobs/ai-film-studio-migrate",
+      "response": {
+        "@type": "type.googleapis.com/google.cloud.run.v1.Job",
+        "apiVersion": "run.googleapis.com/v1",
+        "kind": "Job",
+        "metadata": {
+          "annotations": {
+            "run.googleapis.com/client-name": "gcloud",
+            "run.googleapis.com/client-version": "556.0.0",
+            "run.googleapis.com/creator": "elvila@gmail.com",
+            "run.googleapis.com/lastModifier": "elvila@gmail.com",
+            "run.googleapis.com/operation-id": "a22dfd4e-a573-4532-80f9-8a2cc2938155"
+          },
+          "creationTimestamp": "2026-02-16T17:35:02.635555Z",
+          "generation": 29,
+          "labels": {
+            "cloud.googleapis.com/location": "us-central1",
+            "run.googleapis.com/lastUpdatedTime": "2026-03-31T19:09:44.771989Z"
+          },
+          "name": "ai-film-studio-migrate",
+          "namespace": "553654730386",
+          "resourceVersion": "AAZOVrXWNO0",
+          "selfLink": "/apis/run.googleapis.com/v1/namespaces/553654730386/jobs/ai-film-studio-migrate",
+          "uid": "2bcfaf97-7f65-4622-8c7c-0167bccb5f4d"
+        },
+        "spec": {
+          "template": {
+            "metadata": {
+              "annotations": {
+                "run.googleapis.com/client-name": "gcloud",
+                "run.googleapis.com/client-version": "556.0.0",
+                "run.googleapis.com/cloudsql-instances": "ai-film-studio-485900:us-central1:ai-film-studio-db",
+                "run.googleapis.com/execution-environment": "gen2"
+              },
+              "labels": {
+                "client.knative.dev/nonce": "ciq_bos_fiq"
+              }
+            },
+            "spec": {
+              "taskCount": 1,
+              "template": {
+                "spec": {
+                  "containers": [
+                    {
+                      "args": [
+                        "-c",
+                        "echo '[Job] Starting Forced Schema Sync'; npm run db:push -- --force"
+                      ],
+                      "command": [
+                        "sh"
+                      ],
+                      "env": [
+                        {
+                          "name": "NODE_ENV",
+                          "value": "production"
+                        },
+                        {
+                          "name": "GCP_PROJECT_ID",
+                          "value": "ai-film-studio-485900"
+                        },
+                        {
+                          "name": "DATABASE_URL",
+                          "valueFrom": {
+                            "secretKeyRef": {
+                              "key": "latest",
+                              "name": "DATABASE_URL"
+                            }
+                          }
+                        }
+                      ],
+                      "image": "gcr.io/ai-film-studio-485900/ai-film-studio:latest",
+                      "resources": {
+                        "limits": {
+                          "cpu": "1000m",
+                          "memory": "512Mi"
+                        }
+                      }
+                    }
+                  ],
+                  "maxRetries": 3,
+                  "serviceAccountName": "553654730386-compute@developer.gserviceaccount.com",
+                  "timeoutSeconds": "600"
+                }
+              }
+            }
+          }
+        },
+        "status": {
+          "conditions": [
+            {
+              "status": "True",
+              "type": "Ready"
+            }
+          ],
+          "executionCount": 29,
+          "latestCreatedExecution": {
+            "completionStatus": "EXECUTION_FAILED",
+            "completionTimestamp": "2026-03-30T22:31:23.782135Z",
+            "creationTimestamp": "2026-03-30T22:25:58.336959Z",
+            "name": "ai-film-studio-migrate-l2md5"
+          },
+          "observedGeneration": 29
+        }
+      },
+      "serviceName": "run.googleapis.com",
+      "status": {
+        "message": "Ready condition status changed to True for Job ai-film-studio-migrate."
+      }
+    },
+    "receiveTimestamp": "2026-03-31T19:09:46.013934647Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "severity": "INFO",
+    "timestamp": "2026-03-31T19:09:45.148975Z"
+  },
+  {
+    "insertId": "wsns8md2uv7",
+    "logName": "projects/ai-film-studio-485900/logs/cloudaudit.googleapis.com%2Factivity",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "oauthInfo": {
+          "oauthClientId": "32555940559.apps.googleusercontent.com"
+        },
+        "principalEmail": "elvila@gmail.com",
+        "principalSubject": "user:elvila@gmail.com"
+      },
+      "authorizationInfo": [
+        {
+          "granted": true,
+          "permission": "run.jobs.update",
+          "permissionType": "ADMIN_WRITE",
+          "resource": "namespaces/ai-film-studio-485900/jobs/ai-film-studio-migrate",
+          "resourceAttributes": {}
+        },
+        {
+          "granted": true,
+          "permission": "run.jobs.update",
+          "permissionType": "ADMIN_WRITE",
+          "resource": "namespaces/ai-film-studio-485900/jobs/ai-film-studio-migrate",
+          "resourceAttributes": {
+            "name": "namespaces/ai-film-studio-485900/jobs/ai-film-studio-migrate",
+            "service": "run.googleapis.com/",
+            "type": "run.googleapis.com/Job"
+          }
+        }
+      ],
+      "methodName": "google.cloud.run.v1.Jobs.ReplaceJob",
+      "request": {
+        "@type": "type.googleapis.com/google.cloud.run.v1.ReplaceJobRequest",
+        "job": {
+          "apiVersion": "run.googleapis.com/v1",
+          "kind": "Job",
+          "metadata": {
+            "annotations": {
+              "run.googleapis.com/client-name": "gcloud",
+              "run.googleapis.com/client-version": "556.0.0",
+              "run.googleapis.com/creator": "elvila@gmail.com",
+              "run.googleapis.com/lastModifier": "elvila@gmail.com",
+              "run.googleapis.com/operation-id": "908725cd-facb-46f0-b071-6f2820391d9e"
+            },
+            "creationTimestamp": "2026-02-16T17:35:02.635555Z",
+            "generation": 28,
+            "labels": {
+              "cloud.googleapis.com/location": "us-central1",
+              "run.googleapis.com/lastUpdatedTime": "2026-03-30T22:25:55.693345Z"
+            },
+            "name": "ai-film-studio-migrate",
+            "namespace": "553654730386",
+            "resourceVersion": "AAZORWlGQdE",
+            "selfLink": "/apis/run.googleapis.com/v1/namespaces/553654730386/jobs/ai-film-studio-migrate",
+            "uid": "2bcfaf97-7f65-4622-8c7c-0167bccb5f4d"
+          },
+          "spec": {
+            "template": {
+              "metadata": {
+                "annotations": {
+                  "run.googleapis.com/client-name": "gcloud",
+                  "run.googleapis.com/client-version": "556.0.0",
+                  "run.googleapis.com/cloudsql-instances": "ai-film-studio-485900:us-central1:ai-film-studio-db",
+                  "run.googleapis.com/execution-environment": "gen2"
+                },
+                "labels": {
+                  "client.knative.dev/nonce": "ciq_bos_fiq"
+                }
+              },
+              "spec": {
+                "taskCount": 1,
+                "template": {
+                  "spec": {
+                    "containers": [
+                      {
+                        "image": "gcr.io/ai-film-studio-485900/ai-film-studio:latest",
+                        "resources": {
+                          "limits": {
+                            "cpu": "1000m",
+                            "memory": "512Mi"
+                          }
+                        }
+                      }
+                    ],
+                    "maxRetries": 3,
+                    "serviceAccountName": "553654730386-compute@developer.gserviceaccount.com",
+                    "timeoutSeconds": "600"
+                  }
+                }
+              }
+            }
+          },
+          "status": {
+            "conditions": [
+              {
+                "status": "True",
+                "type": "Ready"
+              }
+            ],
+            "executionCount": 29,
+            "latestCreatedExecution": {
+              "completionStatus": "EXECUTION_FAILED",
+              "completionTimestamp": "2026-03-30T22:31:23.782135Z",
+              "creationTimestamp": "2026-03-30T22:25:58.336959Z",
+              "name": "ai-film-studio-migrate-l2md5"
+            },
+            "observedGeneration": 28
+          }
+        },
+        "name": "namespaces/ai-film-studio-485900/jobs/ai-film-studio-migrate"
+      },
+      "requestMetadata": {
+        "callerIp": "2806:107e:f:a0ea:499a:443f:7b4b:a708",
+        "callerSuppliedUserAgent": "google-cloud-sdk gcloud/556.0.0 command/gcloud.run.jobs.deploy invocation-id/bc1ca432eca144f68087bb4bc531ffac environment/None environment-version/None client-os/WINDOWS client-os-ver/10.0.26200 client-pltf-arch/x86_64 interactive/False from-script/False python/3.13.8 term/  (Windows NT 10.0.26200),gzip(gfe)",
+        "destinationAttributes": {},
+        "requestAttributes": {
+          "auth": {},
+          "time": "2026-03-31T19:09:44.843217Z"
+        }
+      },
+      "resourceLocation": {
+        "currentLocations": [
+          "us-central1"
+        ]
+      },
+      "resourceName": "namespaces/ai-film-studio-485900/jobs/ai-film-studio-migrate",
+      "serviceName": "run.googleapis.com",
+      "status": {}
+    },
+    "receiveTimestamp": "2026-03-31T19:09:45.837144583Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "severity": "NOTICE",
+    "timestamp": "2026-03-31T19:09:44.627884Z"
+  },
+  {
+    "insertId": "ictsglc65g",
+    "labels": {
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-l2md5"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/cloudaudit.googleapis.com%2Fsystem_event",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "methodName": "/Jobs.RunJob",
+      "resourceName": "namespaces/ai-film-studio-485900/executions/ai-film-studio-migrate-l2md5",
+      "response": {
+        "@type": "type.googleapis.com/google.cloud.run.v1.Execution",
+        "apiVersion": "run.googleapis.com/v1",
+        "kind": "Execution",
+        "metadata": {
+          "annotations": {
+            "run.googleapis.com/client-name": "gcloud",
+            "run.googleapis.com/client-version": "556.0.0",
+            "run.googleapis.com/cloudsql-instances": "ai-film-studio-485900:us-central1:ai-film-studio-db",
+            "run.googleapis.com/creator": "elvila@gmail.com",
+            "run.googleapis.com/execution-environment": "gen2",
+            "run.googleapis.com/lastModifier": "elvila@gmail.com",
+            "run.googleapis.com/operation-id": "be4a9cb1-8fa0-4dc5-851e-c3663c910d5b"
+          },
+          "creationTimestamp": "2026-03-30T22:25:58.336959Z",
+          "generation": 1,
+          "labels": {
+            "client.knative.dev/nonce": "zej_his_cuc",
+            "cloud.googleapis.com/location": "us-central1",
+            "run.googleapis.com/job": "ai-film-studio-migrate",
+            "run.googleapis.com/jobGeneration": "28",
+            "run.googleapis.com/jobResourceVersion": "1774909556039334",
+            "run.googleapis.com/jobUid": "2bcfaf97-7f65-4622-8c7c-0167bccb5f4d"
+          },
+          "name": "ai-film-studio-migrate-l2md5",
+          "namespace": "553654730386",
+          "ownerReferences": [
+            {
+              "apiVersion": "serving.knative.dev/v1",
+              "blockOwnerDeletion": true,
+              "controller": true,
+              "kind": "Job",
+              "name": "ai-film-studio-migrate",
+              "uid": "2bcfaf97-7f65-4622-8c7c-0167bccb5f4d"
+            }
+          ],
+          "resourceVersion": "AAZORWlFr1I",
+          "selfLink": "/apis/run.googleapis.com/v1/namespaces/553654730386/executions/ai-film-studio-migrate-l2md5",
+          "uid": "c33d3886-660a-4d30-b1b5-3989f5ffcfd2"
+        },
+        "spec": {
+          "parallelism": 1,
+          "taskCount": 1,
+          "template": {
+            "spec": {
+              "containers": [
+                {
+                  "args": [
+                    "-c",
+                    "echo '[Job] Starting Forced Schema Sync'; npm run db:push -- --force"
+                  ],
+                  "command": [
+                    "sh"
+                  ],
+                  "env": [
+                    {
+                      "name": "NODE_ENV",
+                      "value": "production"
+                    },
+                    {
+                      "name": "GCP_PROJECT_ID",
+                      "value": "ai-film-studio-485900"
+                    },
+                    {
+                      "name": "DATABASE_URL",
+                      "valueFrom": {
+                        "secretKeyRef": {
+                          "key": "latest",
+                          "name": "DATABASE_URL"
+                        }
+                      }
+                    }
+                  ],
+                  "image": "gcr.io/ai-film-studio-485900/ai-film-studio@sha256:2c0bebabf70125fda5aa6b798c65eaeae325e5a337fbe0a27d31493397c0ce9a",
+                  "resources": {
+                    "limits": {
+                      "cpu": "1000m",
+                      "memory": "512Mi"
+                    }
+                  }
+                }
+              ],
+              "maxRetries": 3,
+              "serviceAccountName": "553654730386-compute@developer.gserviceaccount.com",
+              "timeoutSeconds": "600"
+            }
+          }
+        },
+        "status": {
+          "completionTime": "2026-03-30T22:31:23.782135Z",
+          "conditions": [
+            {
+              "lastTransitionTime": "2026-03-30T22:31:23.782135Z",
+              "message": "Task ai-film-studio-migrate-l2md5-task0 failed with exit code: 1 and message: The container exited with an error.",
+              "reason": "NonZeroExitCode",
+              "status": "False",
+              "type": "Completed"
+            },
+            {
+              "lastTransitionTime": "2026-03-30T22:25:59.155204Z",
+              "message": "Provisioned imported containers.",
+              "status": "True",
+              "type": "ResourcesAvailable"
+            },
+            {
+              "lastTransitionTime": "2026-03-30T22:27:29.813957Z",
+              "message": "Started deployed execution in 1m30.65s.",
+              "status": "True",
+              "type": "Started"
+            },
+            {
+              "lastTransitionTime": "2026-03-30T22:25:59.032244Z",
+              "message": "Imported container image.",
+              "status": "True",
+              "type": "ContainerReady"
+            },
+            {
+              "lastTransitionTime": "2026-03-30T22:31:26.148434Z",
+              "message": "System will retry after 00:00 from lastTransitionTime for attempt 0.",
+              "reason": "ImmediateRetry",
+              "severity": "Info",
+              "status": "True",
+              "type": "Retry"
+            }
+          ],
+          "failedCount": 1,
+          "logUri": "https://console.cloud.google.com/logs/viewer?project=ai-film-studio-485900&advancedFilter=resource.type%3D%22cloud_run_job%22%0Aresource.labels.job_name%3D%22ai-film-studio-migrate%22%0Aresource.labels.location%3D%22us-central1%22%0Alabels.%22run.googleapis.com/execution_name%22%3D%22ai-film-studio-migrate-l2md5%22",
+          "observedGeneration": 1,
+          "retriedCount": 1,
+          "startTime": "2026-03-30T22:26:05.327656Z"
+        }
+      },
+      "serviceName": "run.googleapis.com",
+      "status": {
+        "code": 10,
+        "message": "Execution ai-film-studio-migrate-l2md5 has failed to complete, 0/1 tasks were a success."
+      }
+    },
+    "receiveTimestamp": "2026-03-30T22:31:26.446528016Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-03-30T22:31:26.159957Z"
+  },
+  {
+    "insertId": "69caf9b6000789e06488a1e5",
+    "labels": {
+      "container_name": "worker",
+      "instanceId": "008c15ff0831e225450909445efbf7f1120851393dac28337a085f2f25992d2cd63174a451b932fe6fa7abc4c59cab4b071f2cbf6bce7ecf4c38ef0da2624cbbd6f56c658488e57303cc0507fe95514863e19fb950de3a82a195a4",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-l2md5",
+      "run.googleapis.com/task_attempt": "3",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-30T22:31:18.500380713Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "severity": "WARNING",
+    "textPayload": "Container called exit(1).",
+    "timestamp": "2026-03-30T22:31:18.493854Z"
+  },
+  {
+    "insertId": "69caf9b6000705afcdaecea3",
+    "labels": {
+      "instanceId": "008c15ff0831e225450909445efbf7f1120851393dac28337a085f2f25992d2cd63174a451b932fe6fa7abc4c59cab4b071f2cbf6bce7ecf4c38ef0da2624cbbd6f56c658488e57303cc0507fe95514863e19fb950de3a82a195a4",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-l2md5",
+      "run.googleapis.com/task_attempt": "3",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-30T22:31:18.736421146Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "/app/drizzle.config.ts file does not exist",
+    "timestamp": "2026-03-30T22:31:18.460207Z"
+  },
+  {
+    "insertId": "69caf9b6000307595456a89e",
+    "labels": {
+      "instanceId": "008c15ff0831e225450909445efbf7f1120851393dac28337a085f2f25992d2cd63174a451b932fe6fa7abc4c59cab4b071f2cbf6bce7ecf4c38ef0da2624cbbd6f56c658488e57303cc0507fe95514863e19fb950de3a82a195a4",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-l2md5",
+      "run.googleapis.com/task_attempt": "3",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-30T22:31:18.403080877Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "> drizzle-kit push --config=drizzle.config.ts --force",
+    "timestamp": "2026-03-30T22:31:18.198489Z"
+  },
+  {
+    "insertId": "69caf9b6000307519e64428c",
+    "labels": {
+      "instanceId": "008c15ff0831e225450909445efbf7f1120851393dac28337a085f2f25992d2cd63174a451b932fe6fa7abc4c59cab4b071f2cbf6bce7ecf4c38ef0da2624cbbd6f56c658488e57303cc0507fe95514863e19fb950de3a82a195a4",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-l2md5",
+      "run.googleapis.com/task_attempt": "3",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-30T22:31:18.403080877Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "> ai_film_studio@1.0.0 db:push",
+    "timestamp": "2026-03-30T22:31:18.198481Z"
+  },
+  {
+    "insertId": "69caf9b500061882972ca5fd",
+    "labels": {
+      "instanceId": "008c15ff0831e225450909445efbf7f1120851393dac28337a085f2f25992d2cd63174a451b932fe6fa7abc4c59cab4b071f2cbf6bce7ecf4c38ef0da2624cbbd6f56c658488e57303cc0507fe95514863e19fb950de3a82a195a4",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-l2md5",
+      "run.googleapis.com/task_attempt": "3",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-30T22:31:17.405165829Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "[Job] Starting Forced Schema Sync",
+    "timestamp": "2026-03-30T22:31:17.399490Z"
+  },
+  {
+    "insertId": "69caf9630001cc4f103e7163",
+    "labels": {
+      "container_name": "worker",
+      "instanceId": "008c15ff0845f9d920e32ef1caeff4ecff4d6886c90eb0d930ec603c2dd51a952b93427f0c65b24ef6b29163eba0858842dbc107cc2cec5d97485337ea3aa091ed39749d1ebf5b8b687599a9436ce642e01abf4d233741269b9e",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-l2md5",
+      "run.googleapis.com/task_attempt": "2",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-30T22:29:55.122476845Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "severity": "WARNING",
+    "textPayload": "Container called exit(1).",
+    "timestamp": "2026-03-30T22:29:55.117692Z"
+  },
+  {
+    "insertId": "69caf9630000c98633d61926",
+    "labels": {
+      "instanceId": "008c15ff0845f9d920e32ef1caeff4ecff4d6886c90eb0d930ec603c2dd51a952b93427f0c65b24ef6b29163eba0858842dbc107cc2cec5d97485337ea3aa091ed39749d1ebf5b8b687599a9436ce642e01abf4d233741269b9e",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-l2md5",
+      "run.googleapis.com/task_attempt": "2",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-30T22:29:55.263421268Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "/app/drizzle.config.ts file does not exist",
+    "timestamp": "2026-03-30T22:29:55.051590Z"
+  },
+  {
+    "insertId": "69caf962000b75ac297207fb",
+    "labels": {
+      "instanceId": "008c15ff0845f9d920e32ef1caeff4ecff4d6886c90eb0d930ec603c2dd51a952b93427f0c65b24ef6b29163eba0858842dbc107cc2cec5d97485337ea3aa091ed39749d1ebf5b8b687599a9436ce642e01abf4d233741269b9e",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-l2md5",
+      "run.googleapis.com/task_attempt": "2",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-30T22:29:54.932546700Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "> drizzle-kit push --config=drizzle.config.ts --force",
+    "timestamp": "2026-03-30T22:29:54.751020Z"
+  },
+  {
+    "insertId": "69caf962000b75a0ffd9d883",
+    "labels": {
+      "instanceId": "008c15ff0845f9d920e32ef1caeff4ecff4d6886c90eb0d930ec603c2dd51a952b93427f0c65b24ef6b29163eba0858842dbc107cc2cec5d97485337ea3aa091ed39749d1ebf5b8b687599a9436ce642e01abf4d233741269b9e",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-l2md5",
+      "run.googleapis.com/task_attempt": "2",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-30T22:29:54.932546700Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "> ai_film_studio@1.0.0 db:push",
+    "timestamp": "2026-03-30T22:29:54.751008Z"
+  },
+  {
+    "insertId": "69caf961000e206a7fabfa41",
+    "labels": {
+      "instanceId": "008c15ff0845f9d920e32ef1caeff4ecff4d6886c90eb0d930ec603c2dd51a952b93427f0c65b24ef6b29163eba0858842dbc107cc2cec5d97485337ea3aa091ed39749d1ebf5b8b687599a9436ce642e01abf4d233741269b9e",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-l2md5",
+      "run.googleapis.com/task_attempt": "2",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-30T22:29:53.930219074Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "[Job] Starting Forced Schema Sync",
+    "timestamp": "2026-03-30T22:29:53.925802Z"
+  },
+  {
+    "insertId": "69caf91700061bed0f9f9acb",
+    "labels": {
+      "container_name": "worker",
+      "instanceId": "008c15ff085a6ce93571ae90a2cd2bb89982084984f171aa7ed9dea84df9db450b0bf8a08b01ff5f6af75dd7a2e27c70f4dd47ffb71538edb0b0c00fdd39e7e68c933ce98da212f9a420b6b28a9fe62a6e3f79b72af578e8f3c197",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-l2md5",
+      "run.googleapis.com/task_attempt": "1",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-30T22:28:39.407736608Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "severity": "WARNING",
+    "textPayload": "Container called exit(1).",
+    "timestamp": "2026-03-30T22:28:39.400285Z"
+  },
+  {
+    "insertId": "69caf917000536c625b04bd4",
+    "labels": {
+      "instanceId": "008c15ff085a6ce93571ae90a2cd2bb89982084984f171aa7ed9dea84df9db450b0bf8a08b01ff5f6af75dd7a2e27c70f4dd47ffb71538edb0b0c00fdd39e7e68c933ce98da212f9a420b6b28a9fe62a6e3f79b72af578e8f3c197",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-l2md5",
+      "run.googleapis.com/task_attempt": "1",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-30T22:28:39.379757678Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "/app/drizzle.config.ts file does not exist",
+    "timestamp": "2026-03-30T22:28:39.341702Z"
+  },
+  {
+    "insertId": "69caf917000101a27a90a35d",
+    "labels": {
+      "instanceId": "008c15ff085a6ce93571ae90a2cd2bb89982084984f171aa7ed9dea84df9db450b0bf8a08b01ff5f6af75dd7a2e27c70f4dd47ffb71538edb0b0c00fdd39e7e68c933ce98da212f9a420b6b28a9fe62a6e3f79b72af578e8f3c197",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-l2md5",
+      "run.googleapis.com/task_attempt": "1",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-30T22:28:39.379757678Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "> drizzle-kit push --config=drizzle.config.ts --force",
+    "timestamp": "2026-03-30T22:28:39.065954Z"
+  },
+  {
+    "insertId": "69caf91700010196041b53de",
+    "labels": {
+      "instanceId": "008c15ff085a6ce93571ae90a2cd2bb89982084984f171aa7ed9dea84df9db450b0bf8a08b01ff5f6af75dd7a2e27c70f4dd47ffb71538edb0b0c00fdd39e7e68c933ce98da212f9a420b6b28a9fe62a6e3f79b72af578e8f3c197",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-l2md5",
+      "run.googleapis.com/task_attempt": "1",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-30T22:28:39.379757678Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "> ai_film_studio@1.0.0 db:push",
+    "timestamp": "2026-03-30T22:28:39.065942Z"
+  },
+  {
+    "insertId": "69caf9160005bda1cc1bee2c",
+    "labels": {
+      "instanceId": "008c15ff085a6ce93571ae90a2cd2bb89982084984f171aa7ed9dea84df9db450b0bf8a08b01ff5f6af75dd7a2e27c70f4dd47ffb71538edb0b0c00fdd39e7e68c933ce98da212f9a420b6b28a9fe62a6e3f79b72af578e8f3c197",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-l2md5",
+      "run.googleapis.com/task_attempt": "1",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-30T22:28:38.380583208Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "[Job] Starting Forced Schema Sync",
+    "timestamp": "2026-03-30T22:28:38.376225Z"
+  },
+  {
+    "insertId": "69caf8d3000109d963849e16",
+    "labels": {
+      "container_name": "worker",
+      "instanceId": "008c15ff088fec0983cbb1dbf5b36785f72b3a8c775c72f2f8a6e90821411902f20c6e949fb93790759a491b0241fbaf31befaa7392e404697954bba27e4524c31d027ec1757c2a61e11df58ce12d22b764c6373730ee430b55996c2bd752cdc",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-l2md5",
+      "run.googleapis.com/task_attempt": "0",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-30T22:27:31.074040270Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "severity": "WARNING",
+    "textPayload": "Container called exit(1).",
+    "timestamp": "2026-03-30T22:27:31.067989Z"
+  },
+  {
+    "insertId": "69caf8d3000001d42b3f5c36",
+    "labels": {
+      "instanceId": "008c15ff088fec0983cbb1dbf5b36785f72b3a8c775c72f2f8a6e90821411902f20c6e949fb93790759a491b0241fbaf31befaa7392e404697954bba27e4524c31d027ec1757c2a61e11df58ce12d22b764c6373730ee430b55996c2bd752cdc",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-l2md5",
+      "run.googleapis.com/task_attempt": "0",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-30T22:27:31.150719305Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "/app/drizzle.config.ts file does not exist",
+    "timestamp": "2026-03-30T22:27:31.000468Z"
+  },
+  {
+    "insertId": "69caf8d2000b9ebc8d276e6a",
+    "labels": {
+      "instanceId": "008c15ff088fec0983cbb1dbf5b36785f72b3a8c775c72f2f8a6e90821411902f20c6e949fb93790759a491b0241fbaf31befaa7392e404697954bba27e4524c31d027ec1757c2a61e11df58ce12d22b764c6373730ee430b55996c2bd752cdc",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-l2md5",
+      "run.googleapis.com/task_attempt": "0",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-30T22:27:30.819490667Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "> drizzle-kit push --config=drizzle.config.ts --force",
+    "timestamp": "2026-03-30T22:27:30.761532Z"
+  },
+  {
+    "insertId": "69caf8d2000b9eaea0022e87",
+    "labels": {
+      "instanceId": "008c15ff088fec0983cbb1dbf5b36785f72b3a8c775c72f2f8a6e90821411902f20c6e949fb93790759a491b0241fbaf31befaa7392e404697954bba27e4524c31d027ec1757c2a61e11df58ce12d22b764c6373730ee430b55996c2bd752cdc",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-l2md5",
+      "run.googleapis.com/task_attempt": "0",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-30T22:27:30.819490667Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "> ai_film_studio@1.0.0 db:push",
+    "timestamp": "2026-03-30T22:27:30.761518Z"
+  },
+  {
+    "insertId": "69caf8d2000237fdda1c8f20",
+    "labels": {
+      "instanceId": "008c15ff088fec0983cbb1dbf5b36785f72b3a8c775c72f2f8a6e90821411902f20c6e949fb93790759a491b0241fbaf31befaa7392e404697954bba27e4524c31d027ec1757c2a61e11df58ce12d22b764c6373730ee430b55996c2bd752cdc",
+      "run.googleapis.com/execution_name": "ai-film-studio-migrate-l2md5",
+      "run.googleapis.com/task_attempt": "0",
+      "run.googleapis.com/task_index": "0"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-30T22:27:30.155524876Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "textPayload": "[Job] Starting Forced Schema Sync",
+    "timestamp": "2026-03-30T22:27:30.145405Z"
+  },
+  {
+    "insertId": "d1kvord15mw",
+    "logName": "projects/ai-film-studio-485900/logs/cloudaudit.googleapis.com%2Fsystem_event",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "methodName": "/Jobs.ReplaceJob",
+      "resourceName": "namespaces/ai-film-studio-485900/jobs/ai-film-studio-migrate",
+      "response": {
+        "@type": "type.googleapis.com/google.cloud.run.v1.Job",
+        "apiVersion": "run.googleapis.com/v1",
+        "kind": "Job",
+        "metadata": {
+          "annotations": {
+            "run.googleapis.com/client-name": "gcloud",
+            "run.googleapis.com/client-version": "556.0.0",
+            "run.googleapis.com/creator": "elvila@gmail.com",
+            "run.googleapis.com/lastModifier": "elvila@gmail.com",
+            "run.googleapis.com/operation-id": "908725cd-facb-46f0-b071-6f2820391d9e"
+          },
+          "creationTimestamp": "2026-02-16T17:35:02.635555Z",
+          "generation": 28,
+          "labels": {
+            "cloud.googleapis.com/location": "us-central1",
+            "run.googleapis.com/lastUpdatedTime": "2026-03-30T22:25:55.693345Z"
+          },
+          "name": "ai-film-studio-migrate",
+          "namespace": "553654730386",
+          "resourceVersion": "AAZORVWX5Sw",
+          "selfLink": "/apis/run.googleapis.com/v1/namespaces/553654730386/jobs/ai-film-studio-migrate",
+          "uid": "2bcfaf97-7f65-4622-8c7c-0167bccb5f4d"
+        },
+        "spec": {
+          "template": {
+            "metadata": {
+              "annotations": {
+                "run.googleapis.com/client-name": "gcloud",
+                "run.googleapis.com/client-version": "556.0.0",
+                "run.googleapis.com/cloudsql-instances": "ai-film-studio-485900:us-central1:ai-film-studio-db",
+                "run.googleapis.com/execution-environment": "gen2"
+              },
+              "labels": {
+                "client.knative.dev/nonce": "zej_his_cuc"
+              }
+            },
+            "spec": {
+              "taskCount": 1,
+              "template": {
+                "spec": {
+                  "containers": [
+                    {
+                      "args": [
+                        "-c",
+                        "echo '[Job] Starting Forced Schema Sync'; npm run db:push -- --force"
+                      ],
+                      "command": [
+                        "sh"
+                      ],
+                      "env": [
+                        {
+                          "name": "NODE_ENV",
+                          "value": "production"
+                        },
+                        {
+                          "name": "GCP_PROJECT_ID",
+                          "value": "ai-film-studio-485900"
+                        },
+                        {
+                          "name": "DATABASE_URL",
+                          "valueFrom": {
+                            "secretKeyRef": {
+                              "key": "latest",
+                              "name": "DATABASE_URL"
+                            }
+                          }
+                        }
+                      ],
+                      "image": "gcr.io/ai-film-studio-485900/ai-film-studio:latest",
+                      "resources": {
+                        "limits": {
+                          "cpu": "1000m",
+                          "memory": "512Mi"
+                        }
+                      }
+                    }
+                  ],
+                  "maxRetries": 3,
+                  "serviceAccountName": "553654730386-compute@developer.gserviceaccount.com",
+                  "timeoutSeconds": "600"
+                }
+              }
+            }
+          }
+        },
+        "status": {
+          "conditions": [
+            {
+              "status": "True",
+              "type": "Ready"
+            }
+          ],
+          "executionCount": 28,
+          "latestCreatedExecution": {
+            "completionStatus": "EXECUTION_FAILED",
+            "completionTimestamp": "2026-03-30T19:07:39.278731Z",
+            "creationTimestamp": "2026-03-30T19:01:03.324071Z",
+            "name": "ai-film-studio-migrate-z7khd"
+          },
+          "observedGeneration": 28
+        }
+      },
+      "serviceName": "run.googleapis.com",
+      "status": {
+        "message": "Ready condition status changed to True for Job ai-film-studio-migrate."
+      }
+    },
+    "receiveTimestamp": "2026-03-30T22:25:56.552191537Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "severity": "INFO",
+    "timestamp": "2026-03-30T22:25:56.007599Z"
+  },
+  {
+    "insertId": "9gcjsvc2tb",
+    "logName": "projects/ai-film-studio-485900/logs/cloudaudit.googleapis.com%2Factivity",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "oauthInfo": {
+          "oauthClientId": "32555940559.apps.googleusercontent.com"
+        },
+        "principalEmail": "elvila@gmail.com",
+        "principalSubject": "user:elvila@gmail.com"
+      },
+      "authorizationInfo": [
+        {
+          "granted": true,
+          "permission": "run.jobs.update",
+          "permissionType": "ADMIN_WRITE",
+          "resource": "namespaces/ai-film-studio-485900/jobs/ai-film-studio-migrate",
+          "resourceAttributes": {}
+        },
+        {
+          "granted": true,
+          "permission": "run.jobs.update",
+          "permissionType": "ADMIN_WRITE",
+          "resource": "namespaces/ai-film-studio-485900/jobs/ai-film-studio-migrate",
+          "resourceAttributes": {
+            "name": "namespaces/ai-film-studio-485900/jobs/ai-film-studio-migrate",
+            "service": "run.googleapis.com/",
+            "type": "run.googleapis.com/Job"
+          }
+        }
+      ],
+      "methodName": "google.cloud.run.v1.Jobs.ReplaceJob",
+      "request": {
+        "@type": "type.googleapis.com/google.cloud.run.v1.ReplaceJobRequest",
+        "job": {
+          "apiVersion": "run.googleapis.com/v1",
+          "kind": "Job",
+          "metadata": {
+            "annotations": {
+              "run.googleapis.com/client-name": "gcloud",
+              "run.googleapis.com/client-version": "556.0.0",
+              "run.googleapis.com/creator": "elvila@gmail.com",
+              "run.googleapis.com/lastModifier": "elvila@gmail.com",
+              "run.googleapis.com/operation-id": "c29961e8-deb1-49d9-ba6c-07e37268725e"
+            },
+            "creationTimestamp": "2026-02-16T17:35:02.635555Z",
+            "generation": 27,
+            "labels": {
+              "cloud.googleapis.com/location": "us-central1",
+              "run.googleapis.com/lastUpdatedTime": "2026-03-30T19:01:00.272492Z"
+            },
+            "name": "ai-film-studio-migrate",
+            "namespace": "553654730386",
+            "resourceVersion": "AAZOQpDYRK8",
+            "selfLink": "/apis/run.googleapis.com/v1/namespaces/553654730386/jobs/ai-film-studio-migrate",
+            "uid": "2bcfaf97-7f65-4622-8c7c-0167bccb5f4d"
+          },
+          "spec": {
+            "template": {
+              "metadata": {
+                "annotations": {
+                  "run.googleapis.com/client-name": "gcloud",
+                  "run.googleapis.com/client-version": "556.0.0",
+                  "run.googleapis.com/cloudsql-instances": "ai-film-studio-485900:us-central1:ai-film-studio-db",
+                  "run.googleapis.com/execution-environment": "gen2"
+                },
+                "labels": {
+                  "client.knative.dev/nonce": "zej_his_cuc"
+                }
+              },
+              "spec": {
+                "taskCount": 1,
+                "template": {
+                  "spec": {
+                    "containers": [
+                      {
+                        "image": "gcr.io/ai-film-studio-485900/ai-film-studio:latest",
+                        "resources": {
+                          "limits": {
+                            "cpu": "1000m",
+                            "memory": "512Mi"
+                          }
+                        }
+                      }
+                    ],
+                    "maxRetries": 3,
+                    "serviceAccountName": "553654730386-compute@developer.gserviceaccount.com",
+                    "timeoutSeconds": "600"
+                  }
+                }
+              }
+            }
+          },
+          "status": {
+            "conditions": [
+              {
+                "status": "True",
+                "type": "Ready"
+              }
+            ],
+            "executionCount": 28,
+            "latestCreatedExecution": {
+              "completionStatus": "EXECUTION_FAILED",
+              "completionTimestamp": "2026-03-30T19:07:39.278731Z",
+              "creationTimestamp": "2026-03-30T19:01:03.324071Z",
+              "name": "ai-film-studio-migrate-z7khd"
+            },
+            "observedGeneration": 27
+          }
+        },
+        "name": "namespaces/ai-film-studio-485900/jobs/ai-film-studio-migrate"
+      },
+      "requestMetadata": {
+        "callerIp": "2806:107e:f:6629:ccc7:b359:39fc:3b1f",
+        "callerSuppliedUserAgent": "google-cloud-sdk gcloud/556.0.0 command/gcloud.run.jobs.deploy invocation-id/852edec8b299441684179c36d9ed7b9d environment/None environment-version/None client-os/WINDOWS client-os-ver/10.0.26200 client-pltf-arch/x86_64 interactive/False from-script/False python/3.13.8 term/  (Windows NT 10.0.26200),gzip(gfe)",
+        "destinationAttributes": {},
+        "requestAttributes": {
+          "auth": {},
+          "time": "2026-03-30T22:25:55.749394Z"
+        }
+      },
+      "resourceLocation": {
+        "currentLocations": [
+          "us-central1"
+        ]
+      },
+      "resourceName": "namespaces/ai-film-studio-485900/jobs/ai-film-studio-migrate",
+      "serviceName": "run.googleapis.com",
+      "status": {}
+    },
+    "receiveTimestamp": "2026-03-30T22:25:56.426698555Z",
+    "resource": {
+      "labels": {
+        "job_name": "ai-film-studio-migrate",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900"
+      },
+      "type": "cloud_run_job"
+    },
+    "severity": "NOTICE",
+    "timestamp": "2026-03-30T22:25:55.540207Z"
+  }
+]

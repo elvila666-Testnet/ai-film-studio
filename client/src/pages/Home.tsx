@@ -25,7 +25,7 @@ import { ProjectVault } from "@/features/Project/ProjectVault";
 import { NewProjectPanel } from "@/features/Project/NewProjectPanel";
 import { PipelineStage, Project, PIPELINE_STAGES } from "@/features/Project/types";
 import { DirectorView } from "@/components/Director/DirectorView";
-import { DirectorConsole } from "@/components/DirectorConsole";
+import { DirectorConsoleHeader } from "@/components/Director/DirectorConsoleHeader";
 import { CostTicker } from "@/components/FinOps/CostTicker";
 import { BrandBrainOverlay } from "@/components/BrandBrain/BrandBrainOverlay";
 
@@ -265,6 +265,8 @@ export function Home() {
 
         <div className="flex items-center gap-4">
           <BrandBrainOverlay initialBrandId={selectedProject?.brandId} />
+          <span className="text-white/20 font-light">+</span>
+          <DirectorConsoleHeader projectId={selectedProjectId} />
           <div className="h-6 w-px bg-white/10" />
           <div className="text-[10px] font-mono text-slate-500 uppercase tracking-[0.2em]">
             SN: {selectedProjectId}
@@ -320,12 +322,7 @@ export function Home() {
           )}
         </main>
 
-        {selectedProjectId && selectedProjectId !== -1 && (
-          <>
-            <DirectorConsole projectId={selectedProjectId} />
             <CostTicker projectId={selectedProjectId} />
-          </>
-        )}
       </div>
     </div>
   );

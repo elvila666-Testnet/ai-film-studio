@@ -16,7 +16,7 @@ class MockPointerEvent extends Event {
     button: number;
     ctrlKey: boolean;
     pointerType: string;
-    constructor(type: string, props: unknown) {
+    constructor(type: string, props: any = {}) {
         super(type, props);
         this.button = props.button || 0;
         this.ctrlKey = props.ctrlKey || false;

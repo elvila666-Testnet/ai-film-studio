@@ -1,0 +1,534 @@
+﻿[
+  {
+    "httpRequest": {
+      "latency": "0.003568745s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://ai-film-studio-553654730386.us-central1.run.app/",
+      "remoteIp": "2806:107e:f:a0ea:499a:443f:7b4b:a708",
+      "requestMethod": "GET",
+      "requestSize": "1103",
+      "requestUrl": "https://ai-film-studio-553654730386.us-central1.run.app/vite.svg",
+      "responseSize": "214",
+      "serverIp": "2600:1900:4241:200::",
+      "status": 304,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+    },
+    "insertId": "69cc21a00005eb201f9437cb",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff083a57bd406bdcfa0cf13929469926322afdb7cc29268b23144a5a8a55efbd9156bf76e708367a3c6879876745ed003c934fdd305525ab93544694fc7c4b6b40172257ebfe819df50c7383",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-03-31T19:33:52.393701941Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00308-h9l",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "spanId": "2c42b370cc151023",
+    "timestamp": "2026-03-31T19:33:52.382304Z",
+    "trace": "projects/ai-film-studio-485900/traces/222397ee97e49b0c1aba4175fc7e0a9b",
+    "traceSampled": true
+  },
+  {
+    "httpRequest": {
+      "latency": "0.032445733s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://ai-film-studio-553654730386.us-central1.run.app/",
+      "remoteIp": "2806:107e:f:a0ea:499a:443f:7b4b:a708",
+      "requestMethod": "GET",
+      "requestSize": "1103",
+      "requestUrl": "https://ai-film-studio-553654730386.us-central1.run.app/vite.svg",
+      "responseSize": "214",
+      "serverIp": "2600:1900:4241:200::",
+      "status": 304,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+    },
+    "insertId": "69cc21a00004f0ec206cc709",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff084a0cc7f28868e06bf1190362b0e1da6f22f5284d0fa679d7f6849a4b31425ab8f74116ae4a0e1965b1629405abef246719b7ba81144d5c91e10e42412f96429363babe1424d617aa",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-03-31T19:33:52.329178355Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00308-h9l",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "spanId": "aaaf54d0cdc64547",
+    "timestamp": "2026-03-31T19:33:52.286374Z",
+    "trace": "projects/ai-film-studio-485900/traces/77298b64a696ec7a1aba4175fc7e0c12",
+    "traceSampled": true
+  },
+  {
+    "insertId": "69cc219d0003605ba4ef6fdb",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff0840714a6425d75f2a61489f0a0360f18e9fd32d5fa6f67b635026f44458e9001636f1f44d0cb04b21ed47003c5703edb04e3a748d103bfbe0f2ece3064b33303a202f305d20354d4064f7a7908974",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-31T19:33:49.561645835Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00308-h9l",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "}",
+    "timestamp": "2026-03-31T19:33:49.221275Z"
+  },
+  {
+    "insertId": "69cc219d00036057ea3888fa",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff0840714a6425d75f2a61489f0a0360f18e9fd32d5fa6f67b635026f44458e9001636f1f44d0cb04b21ed47003c5703edb04e3a748d103bfbe0f2ece3064b33303a202f305d20354d4064f7a7908974",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-31T19:33:49.561645835Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00308-h9l",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  }",
+    "timestamp": "2026-03-31T19:33:49.221271Z"
+  },
+  {
+    "insertId": "69cc219d00036053b8eb996e",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff0840714a6425d75f2a61489f0a0360f18e9fd32d5fa6f67b635026f44458e9001636f1f44d0cb04b21ed47003c5703edb04e3a748d103bfbe0f2ece3064b33303a202f305d20354d4064f7a7908974",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-31T19:33:49.561645835Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00308-h9l",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    sqlMessage: \"Access denied for user 'filmstudio'@'cloudsqlproxy~136.124.34.232' (using password: YES)\"",
+    "timestamp": "2026-03-31T19:33:49.221267Z"
+  },
+  {
+    "insertId": "69cc219d0003604fbd97ac1f",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff0840714a6425d75f2a61489f0a0360f18e9fd32d5fa6f67b635026f44458e9001636f1f44d0cb04b21ed47003c5703edb04e3a748d103bfbe0f2ece3064b33303a202f305d20354d4064f7a7908974",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-31T19:33:49.561645835Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00308-h9l",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    sqlState: '28000',",
+    "timestamp": "2026-03-31T19:33:49.221263Z"
+  },
+  {
+    "insertId": "69cc219d0003604b46fa9047",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff0840714a6425d75f2a61489f0a0360f18e9fd32d5fa6f67b635026f44458e9001636f1f44d0cb04b21ed47003c5703edb04e3a748d103bfbe0f2ece3064b33303a202f305d20354d4064f7a7908974",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-31T19:33:49.561645835Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00308-h9l",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    sql: undefined,",
+    "timestamp": "2026-03-31T19:33:49.221259Z"
+  },
+  {
+    "insertId": "69cc219d00036047b32fd477",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff0840714a6425d75f2a61489f0a0360f18e9fd32d5fa6f67b635026f44458e9001636f1f44d0cb04b21ed47003c5703edb04e3a748d103bfbe0f2ece3064b33303a202f305d20354d4064f7a7908974",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-31T19:33:49.561645835Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00308-h9l",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    errno: 1045,",
+    "timestamp": "2026-03-31T19:33:49.221255Z"
+  },
+  {
+    "insertId": "69cc219d0003604498152710",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff0840714a6425d75f2a61489f0a0360f18e9fd32d5fa6f67b635026f44458e9001636f1f44d0cb04b21ed47003c5703edb04e3a748d103bfbe0f2ece3064b33303a202f305d20354d4064f7a7908974",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-31T19:33:49.561645835Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00308-h9l",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    code: 'ER_ACCESS_DENIED_ERROR',",
+    "timestamp": "2026-03-31T19:33:49.221252Z"
+  },
+  {
+    "insertId": "69cc219d000360407892ca1e",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff0840714a6425d75f2a61489f0a0360f18e9fd32d5fa6f67b635026f44458e9001636f1f44d0cb04b21ed47003c5703edb04e3a748d103bfbe0f2ece3064b33303a202f305d20354d4064f7a7908974",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-31T19:33:49.561645835Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00308-h9l",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "      at MySqlSelectBase.then (file:///app/node_modules/drizzle-orm/query-promise.js:21:17) {",
+    "timestamp": "2026-03-31T19:33:49.221248Z"
+  },
+  {
+    "insertId": "69cc219d0003603c94295179",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff0840714a6425d75f2a61489f0a0360f18e9fd32d5fa6f67b635026f44458e9001636f1f44d0cb04b21ed47003c5703edb04e3a748d103bfbe0f2ece3064b33303a202f305d20354d4064f7a7908974",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-31T19:33:49.561645835Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00308-h9l",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "      at MySqlSelectBase.execute (file:///app/node_modules/drizzle-orm/mysql-core/query-builders/select.js:805:27)",
+    "timestamp": "2026-03-31T19:33:49.221244Z"
+  },
+  {
+    "insertId": "69cc219d0003603958bdf6e7",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff0840714a6425d75f2a61489f0a0360f18e9fd32d5fa6f67b635026f44458e9001636f1f44d0cb04b21ed47003c5703edb04e3a748d103bfbe0f2ece3064b33303a202f305d20354d4064f7a7908974",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-31T19:33:49.561645835Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00308-h9l",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "      at MySql2PreparedQuery.execute (file:///app/node_modules/drizzle-orm/mysql2/session.js:78:31)",
+    "timestamp": "2026-03-31T19:33:49.221241Z"
+  },
+  {
+    "insertId": "69cc219d00036035622ba42b",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff0840714a6425d75f2a61489f0a0360f18e9fd32d5fa6f67b635026f44458e9001636f1f44d0cb04b21ed47003c5703edb04e3a748d103bfbe0f2ece3064b33303a202f305d20354d4064f7a7908974",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-31T19:33:49.561645835Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00308-h9l",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "      at MySql2PreparedQuery.queryWithCache (file:///app/node_modules/drizzle-orm/mysql-core/session.js:23:22)",
+    "timestamp": "2026-03-31T19:33:49.221237Z"
+  },
+  {
+    "insertId": "69cc219d00036031c009f449",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff0840714a6425d75f2a61489f0a0360f18e9fd32d5fa6f67b635026f44458e9001636f1f44d0cb04b21ed47003c5703edb04e3a748d103bfbe0f2ece3064b33303a202f305d20354d4064f7a7908974",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-31T19:33:49.561645835Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00308-h9l",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "      at file:///app/node_modules/drizzle-orm/mysql2/session.js:79:27",
+    "timestamp": "2026-03-31T19:33:49.221233Z"
+  },
+  {
+    "insertId": "69cc219d0003602d23d07f69",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff0840714a6425d75f2a61489f0a0360f18e9fd32d5fa6f67b635026f44458e9001636f1f44d0cb04b21ed47003c5703edb04e3a748d103bfbe0f2ece3064b33303a202f305d20354d4064f7a7908974",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-31T19:33:49.561645835Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00308-h9l",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "      at PromisePool.query (/app/node_modules/mysql2/lib/promise/pool.js:36:22)",
+    "timestamp": "2026-03-31T19:33:49.221229Z"
+  },
+  {
+    "insertId": "69cc219d0003602a5f17dc7d",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff0840714a6425d75f2a61489f0a0360f18e9fd32d5fa6f67b635026f44458e9001636f1f44d0cb04b21ed47003c5703edb04e3a748d103bfbe0f2ece3064b33303a202f305d20354d4064f7a7908974",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-31T19:33:49.561645835Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00308-h9l",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  cause: Error: Access denied for user 'filmstudio'@'cloudsqlproxy~136.124.34.232' (using password: YES)",
+    "timestamp": "2026-03-31T19:33:49.221226Z"
+  },
+  {
+    "insertId": "69cc219d0003602143907b47",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff0840714a6425d75f2a61489f0a0360f18e9fd32d5fa6f67b635026f44458e9001636f1f44d0cb04b21ed47003c5703edb04e3a748d103bfbe0f2ece3064b33303a202f305d20354d4064f7a7908974",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-31T19:33:49.561645835Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00308-h9l",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  params: [ 'admin@filmstudio.ai', 1 ],",
+    "timestamp": "2026-03-31T19:33:49.221217Z"
+  },
+  {
+    "insertId": "69cc219d0003601df0e70e49",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff0840714a6425d75f2a61489f0a0360f18e9fd32d5fa6f67b635026f44458e9001636f1f44d0cb04b21ed47003c5703edb04e3a748d103bfbe0f2ece3064b33303a202f305d20354d4064f7a7908974",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-31T19:33:49.561645835Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00308-h9l",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  query: 'select `id`, `openId`, `name`, `email`, `loginMethod`, `role`, `createdAt`, `updatedAt`, `lastSignedIn` from `users` where `users`.`email` = ? limit ?',",
+    "timestamp": "2026-03-31T19:33:49.221213Z"
+  },
+  {
+    "insertId": "69cc219d00036019cd10130f",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff0840714a6425d75f2a61489f0a0360f18e9fd32d5fa6f67b635026f44458e9001636f1f44d0cb04b21ed47003c5703edb04e3a748d103bfbe0f2ece3064b33303a202f305d20354d4064f7a7908974",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-31T19:33:49.561645835Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00308-h9l",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    at async file:///app/dist/index.js:11136:20 {",
+    "timestamp": "2026-03-31T19:33:49.221209Z"
+  },
+  {
+    "insertId": "69cc219d000360159a753bb4",
+    "labels": {
+      "commit-sha": "6a65c008c926fd3bdefe1a998dca9bf07f991db5",
+      "gcb-build-id": "3c64330a-c690-4068-84b5-2622c81e63ae",
+      "gcb-trigger-id": "9e18f59f-6366-44fd-afd6-ec7091d03a67",
+      "gcb-trigger-region": "global",
+      "instanceId": "008c15ff0840714a6425d75f2a61489f0a0360f18e9fd32d5fa6f67b635026f44458e9001636f1f44d0cb04b21ed47003c5703edb04e3a748d103bfbe0f2ece3064b33303a202f305d20354d4064f7a7908974",
+      "managed-by": "gcp-cloud-build-deploy-cloud-run"
+    },
+    "logName": "projects/ai-film-studio-485900/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-31T19:33:49.561645835Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "ai-film-studio",
+        "location": "us-central1",
+        "project_id": "ai-film-studio-485900",
+        "revision_name": "ai-film-studio-00308-h9l",
+        "service_name": "ai-film-studio"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    at async ensureUserInDb (file:///app/dist/index.js:11107:20)",
+    "timestamp": "2026-03-31T19:33:49.221205Z"
+  }
+]

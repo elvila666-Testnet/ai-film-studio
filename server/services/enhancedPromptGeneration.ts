@@ -424,6 +424,6 @@ export function extractEnhancedPromptsFromBible(
     sceneContext: scene.title,
     cinematographyNotes: (shot as any).tecnica,
     audioNotes: shot.audioDescription,
-    style: bible.visualStyle?.style,
+    style: bible.cinematography.visualStyle,
   }));
 }

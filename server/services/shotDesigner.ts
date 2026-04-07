@@ -4,10 +4,9 @@
  * Integrates with Nanobanana 2.0 for premium visual output
  */
 
-import { GeminiProvider } from "./providers/geminiProvider";
 import { generateEnhancedShotPrompt, EnhancedPromptRequest } from "./enhancedPromptGeneration";
 import type { ImageGenerationParams } from "./providers/types";
-import { ensurePermanentUrl } from "./aiGeneration";
+import { ensurePermanentUrl, getReplicateProvider } from "./aiGeneration";
 
 export interface ShotDesignRequest {
   projectId: number;
@@ -53,7 +52,7 @@ export interface GeneratedMoment {
 export async function generateShotDesign(
   request: ShotDesignRequest
 ): Promise<ShotDesignResult> {
-  const geminiProvider = new GeminiProvider();
+  const replicateProvider = getReplicateProvider();
   const moments: GeneratedMoment[] = [];
   const resolutionMap = {
     "1080p": { width: 1920, height: 1080 },
@@ -90,7 +89,7 @@ export async function generateShotDesign(
           ],
         };
 
-        const result = await geminiProvider.generateImage(params);
+        const result = await replicateProvider.generateImage(params, "flux-pro");
         const permanentUrl = await ensurePermanentUrl(result.url, "shot-designer");
 
         console.log(

@@ -13,13 +13,8 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 
 describe('AI Film Studio API Integration Tests', () => {
-  let testProjectId: string;
-  let testUserId: string;
-
   beforeAll(async () => {
     // Setup: Create test user and project
-    testUserId = 'test-user-' + Date.now();
-    testProjectId = 'test-project-' + Date.now();
   });
 
   afterAll(async () => {

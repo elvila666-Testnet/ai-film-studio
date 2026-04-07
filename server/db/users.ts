@@ -1,10 +1,7 @@
-import { users, projects, projectContent, storyboardImages, referenceImages, generatedVideos, editorProjects, editorClips, editorTracks, editorExports, editorComments, animaticConfigs, storyboardFrameOrder, storyboardFrameHistory, storyboardFrameNotes, modelConfigs, userModelFavorites, brands, characters, InsertUser, InsertProjectContent, InsertEditorProject, InsertEditorClip, InsertEditorTrack, InsertEditorExport, InsertEditorComment, InsertAnimaticConfig, InsertModelConfig, InsertUserModelFavorite } from "../../drizzle/schema";
-import { eq, and, sql } from "drizzle-orm";
-
+import { users, InsertUser } from "../../drizzle/schema";
+import { eq } from "drizzle-orm";
 import { getDb } from "../db";
 import { ENV } from "../_core/env";
-
-import * as schema from "../../drizzle/schema";
 
 export * from "../../drizzle/schema";
 

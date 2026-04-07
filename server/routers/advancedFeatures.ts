@@ -255,7 +255,7 @@ export const advancedFeaturesRouter = router({
     getProviderStats: protectedProcedure
       .input(z.object({
         projectId: z.number(),
-        provider: z.enum(['veo3', 'sora', 'flow']),
+        provider: z.enum(['veo3', 'sora', 'flow', 'kie']),
       }))
       .query(async ({ input }) => {
         // In a real implementation, fetch costs from database
@@ -283,8 +283,8 @@ export const advancedFeaturesRouter = router({
     compareProviders: protectedProcedure
       .input(z.object({
         projectId: z.number(),
-        provider1: z.enum(['veo3', 'sora', 'flow']),
-        provider2: z.enum(['veo3', 'sora', 'flow']),
+        provider1: z.enum(['veo3', 'sora', 'flow', 'kie']),
+        provider2: z.enum(['veo3', 'sora', 'flow', 'kie']),
       }))
       .query(async ({ input }) => {
         // In a real implementation, fetch costs from database
@@ -315,7 +315,7 @@ export const advancedFeaturesRouter = router({
      */
     estimateCost: protectedProcedure
       .input(z.object({
-        provider: z.enum(['veo3', 'sora', 'flow']),
+        provider: z.enum(['veo3', 'sora', 'flow', 'kie']),
         quality: z.enum(['low', 'medium', 'high', '4k']),
         durationSeconds: z.number(),
       }))

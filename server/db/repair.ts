@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { getDb } from "../db.js";
+import { getDb } from "../db";
 
 /**
  * Ensures the production database matches the latest schema for Brand Intelligence.

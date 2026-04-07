@@ -4,10 +4,10 @@
  */
 
 import "dotenv/config";
-import { getDb } from "../server/db";
-import { createProject } from "../server/db/projects";
-import { breakupScriptToScenes, breakupSceneToShots } from "../server/src/services/aiOrchestrator";
-import { generations, scenes, shots, projects } from "../drizzle/schema";
+import { getDb } from "../server/db.ts";
+import { createProject } from "../server/db/projects.ts";
+import { breakupScriptToScenes, breakupSceneToShots } from "../server/services/aiOrchestrator.ts";
+import { generations, scenes, shots, projects } from "../drizzle/schema.ts";
 import { eq } from "drizzle-orm";
 import { execSync } from "child_process";
 import fs from "fs";
@@ -61,7 +61,7 @@ async function runAudit() {
     }
 
     // Orchestrate generateShotImage call manually since we are in script
-    const { generateImagePromptForShot, generateStoryboardImage } = await import("../server/src/services/aiGeneration");
+    const { generateImagePromptForShot, generateStoryboardImage } = await import("../server/services/aiGeneration.ts");
 
     const promptInput = {
         shot: shot.order,

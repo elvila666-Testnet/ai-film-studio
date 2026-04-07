@@ -29,6 +29,20 @@ export async function scrapeBrandFromUrl(url: string): Promise<any> {
             .trim()
             .substring(0, 15000); // Limit to 15k chars to avoid token limits
 
+        // --- NEW: Logo Extraction ---
+        let logoUrl = "";
+        const logoMatch = html.match(/<link[^>]+rel="icon"[^>]+href="([^"]+)"/) || 
+                          html.match(/<link[^>]+rel="shortcut icon"[^>]+href="([^"]+)"/) ||
+                          html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/);
+        
+        if (logoMatch && logoMatch[1]) {
+            logoUrl = logoMatch[1];
+            if (!logoUrl.startsWith("http")) {
+                const urlObj = new URL(url);
+                logoUrl = new URL(logoUrl, urlObj.origin).toString();
+            }
+        }
+
         // 3. Analyze with LLM
         const llmResponse = await invokeLLM({
             messages: [
@@ -43,12 +57,13 @@ export async function scrapeBrandFromUrl(url: string): Promise<any> {
           - mission: Valid mission statement or purpose
           - coreMessaging: Key slogans or value propositions
           - description: A brief summary
+          - logoUrl: String (Optional, found on page)
           
           If a field cannot be found, make a best guess or leave blank strings.`
                 },
                 {
                     role: "user",
-                    content: `Website Content (${url}):\n\n${cleanText}`
+                    content: `Website Content (${url}):\n\nPotential Logo: ${logoUrl}\n\n${cleanText}`
                 }
             ],
             response_format: { type: "json_object" }

@@ -126,7 +126,7 @@ export default function VideoComparisonTab({ projectId: _projectId }: VideoCompa
 
       {/* Sort Options */}
       <div className="flex gap-2">
-        <Select value={sortBy} onValueChange={(v: unknown) => setSortBy(v)}>
+        <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
           <SelectTrigger className="w-48 bg-card border-border">
             <SelectValue />
           </SelectTrigger>

@@ -87,16 +87,15 @@ The array MUST contain exactly 12 items. Make the actions direct, simple, and cl
             // Assemble the final prompt with INDUSTRIAL CONTACT SHEET SPECIFICATIONS
             let masterPrompt = `
 [STRICT INDUSTRIAL CONTACT SHEET ARCHITECTURE]
-Generate a SINGLE high-fidelity 16:9 image containing a RIGID 3×4 STORYBOARD GRID.
-The grid MUST consist of EXACTLY 12 IDENTICAL RECTANGULAR PANELS arranged in 3 rows and 4 columns.
+Generate a SINGLE high-fidelity PHOTOREALISTIC grid on a 4:3 technical canvas (1344x1024).
+The grid MUST consist of EXACTLY 12 IDENTICAL RECTANGULAR PANELS arranged in 4 rows and 3 columns.
 
 [GEOMETRIC CONSTRAINTS - NON-NEGOTIABLE]
 - GRID LAYOUT: 3 columns across, 4 rows down.
 - CELL SYMMETRY: Every single cell MUST have the EXACT SAME dimensions.
 - ASPECT RATIO: Each individual cell MUST be a perfect 16:9 cinematic frame.
-- NO MASONRY: Disable all dynamic or flexible layouts. All horizontal and vertical lines must be perfectly straight and continuous.
-- BORDERS: Use a thin 2px solid black or dark gray divider between all cells to ensure clear separation.
-- STYLE: Photorealistic cinematic render, cinematic lighting, ultra-detailed 8k resolution. No sketches.
+- NO MASONRY: All rows and columns must be perfectly aligned with straight, continuous 2px solid dividers. No overlapping.
+- STYLE: Highly detailed photorealistic cinematic renders, cinematic lighting, ultra-detailed 8k resolution. No sketches.
 
 [INTEGRATED TECHNICAL LABELS]
 - MANDATORY: Render a small, legible text label in the BOTTOM-LEFT corner of EVERY cell.
@@ -147,7 +146,7 @@ ${projectSets.map((s: any) => `- ${s.name}: ${s.description}`).join('\n')}`;
 - Lighting/Color: Apply consistent ${visualStyle} grade and lighting scheme to entire sheet.
 - Composition: Center-weighted compositions for each cell.
 - CONSISTENCY RULE: Every character appearance must be identical across all 12 panels. Every environment must match its assigned set.
-- FINAL OUTPUT: A single, professionally organized 1792x1024 technical storyboard sheet.`
+- FINAL OUTPUT: A single, professionally organized 1792x1024 technical storyboard sheet.`;
 
             // We offload generation so we don't block the UI
             (async () => {

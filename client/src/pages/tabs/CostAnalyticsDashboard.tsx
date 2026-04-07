@@ -11,8 +11,8 @@ interface CostAnalyticsDashboardProps {
 
 export default function CostAnalyticsDashboard({ projectId }: CostAnalyticsDashboardProps) {
   const [budget, setBudget] = useState<number>(5000);
-  const [selectedProvider1, setSelectedProvider1] = useState<'veo3' | 'sora' | 'flow'>('veo3');
-  const [selectedProvider2, setSelectedProvider2] = useState<'veo3' | 'sora' | 'flow'>('sora');
+  const [selectedProvider1, setSelectedProvider1] = useState<'veo3' | 'sora' | 'flow' | 'kie'>('veo3');
+  const [selectedProvider2, setSelectedProvider2] = useState<'veo3' | 'sora' | 'flow' | 'kie'>('sora');
 
   // Fetch cost statistics
   const statsQuery = trpc.advancedFeatures.costAnalytics.getStats.useQuery({ projectId });
@@ -261,6 +261,7 @@ export default function CostAnalyticsDashboard({ projectId }: CostAnalyticsDashb
               <option value="veo3">Veo3</option>
               <option value="sora">Sora</option>
               <option value="flow">Flow</option>
+              <option value="kie">KIE API</option>
             </select>
             <span className="text-gray-400">vs</span>
             <select
@@ -271,6 +272,7 @@ export default function CostAnalyticsDashboard({ projectId }: CostAnalyticsDashb
               <option value="veo3">Veo3</option>
               <option value="sora">Sora</option>
               <option value="flow">Flow</option>
+              <option value="kie">KIE API</option>
             </select>
           </div>
 
@@ -327,7 +329,7 @@ export default function CostAnalyticsDashboard({ projectId }: CostAnalyticsDashb
             <CardContent>
               {trendsQuery.data && trendsQuery.data.length > 0 ? (
                 <div className="space-y-3">
-                  {trendsQuery.data.slice(-7).map((trend: unknown) => (
+                  {trendsQuery.data.slice(-7).map((trend: any) => (
                     <div key={trend.date.toString()} className="flex items-center justify-between">
                       <span className="text-sm text-gray-400">
                         {new Date(trend.date).toLocaleDateString()}

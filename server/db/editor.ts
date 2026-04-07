@@ -1,9 +1,6 @@
-import { users, projects, projectContent, storyboardImages, referenceImages, generatedVideos, editorProjects, editorClips, editorTracks, editorExports, editorComments, animaticConfigs, storyboardFrameOrder, storyboardFrameHistory, storyboardFrameNotes, modelConfigs, userModelFavorites, brands, characters, InsertUser, InsertProjectContent, InsertEditorProject, InsertEditorClip, InsertEditorTrack, InsertEditorExport, InsertEditorComment, InsertAnimaticConfig, InsertModelConfig, InsertUserModelFavorite } from "../../drizzle/schema";
-import { eq, and, sql } from "drizzle-orm";
-
+import { editorProjects, editorClips, editorTracks, editorExports, editorComments, InsertEditorProject, InsertEditorClip, InsertEditorTrack, InsertEditorExport, InsertEditorComment } from "../../drizzle/schema";
+import { eq } from "drizzle-orm";
 import { getDb } from "../db";
-
-import * as schema from "../../drizzle/schema";
 
 export * from "../../drizzle/schema";
 
@@ -42,6 +39,14 @@ export async function getEditorClips(editorProjectId: number) {
   if (!db) throw new Error("Database not available");
 
   return db.select().from(editorClips).where(eq(editorClips.editorProjectId, editorProjectId));
+}
+
+export async function getEditorClip(clipId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const [clip] = await db.select().from(editorClips).where(eq(editorClips.id, clipId)).limit(1);
+  return clip;
 }
 
 export async function updateEditorClip(clipId: number, updates: Partial<InsertEditorClip>) {

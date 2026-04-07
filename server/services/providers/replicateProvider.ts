@@ -47,12 +47,12 @@ export class ReplicateProvider {
 
         // Default to schnëll for fast text-to-image, or dev/pro for high quality/image-to-image
         // If image inputs are provided, we must use a model that supports image_prompt or image-to-image
+        // Default to schnëll for fast text-to-image.
+        // We prioritize google/nano-banana-pro for ALL anchoring (Img2Img) requests as it supports multi-anchor logic.
         let replicateModel = "black-forest-labs/flux-schnell";
         
-        if (modelId?.toLowerCase().includes("banana") || modelId?.toLowerCase().includes("nano")) {
+        if (modelId?.toLowerCase().includes("banana") || modelId?.toLowerCase().includes("nano") || hasImageRefs) {
             replicateModel = "google/nano-banana-pro";
-        } else if (hasImageRefs) {
-            replicateModel = "black-forest-labs/flux-pro";
         } else if (params.quality === "hd" || modelId?.includes("pro") || modelId?.includes("1.1")) {
             replicateModel = "black-forest-labs/flux-1.1-pro";
         }
@@ -139,6 +139,27 @@ export class ReplicateProvider {
         } catch (error: any) {
             console.error(`[ReplicateProvider] Critical Failure with model ${replicateModel}:`, error.message);
             throw error; // Re-throw the already sanitized error from withRetry
+        }
+    }
+    async upscaleImage(imageUrl: string, factor: number = 2): Promise<string> {
+        try {
+            console.log(`[ReplicateProvider] Upscaling image ${imageUrl} by factor ${factor}`);
+            const output = await this.withRetry(() => 
+                this.replicate.run(
+                    "nightmareai/real-esrgan:42fed1c4974146d4d2414e2be2c5277c7fcf05fcc3a73abf41610695738c1d7b",
+                    {
+                        input: {
+                            image: imageUrl,
+                            scale: factor,
+                            face_enhance: true
+                        }
+                    }
+                )
+            );
+            return String(output);
+        } catch (error: any) {
+            console.error(`[ReplicateProvider] Upscale failed:`, error.message);
+            throw error;
         }
     }
 }

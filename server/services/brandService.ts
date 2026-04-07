@@ -1,10 +1,12 @@
 import { z } from "zod";
 import { getDb } from "../db";
-import { brands, brandAssets, projects, usageLedger } from "../../drizzle/schema";
+import { brands, brandAssets, projects } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import { TRPCError } from "@trpc/server";
 import { randomUUID } from "node:crypto";
+import axios from "axios";
+import { storagePut } from "../storage";
 
 /**
  * 🏢 BRAND INTELLIGENCE SERVICE
@@ -145,6 +147,34 @@ export async function ingestBrandIdentity(brandId: string, sourceUrl: string) {
 
     console.log(`[BrandService] Analyzing brand source: ${sourceUrl}`);
 
+    // If logoUrl is missing, try to find one
+    let logoUrlToSave: string | undefined = undefined;
+    try {
+        const logoDiscovery = await invokeLLM({
+            messages: [
+                {
+                    role: "system",
+                    content: "Identify the high-resolution logo URL from this website content or common logo patterns (e.g. /logo.png, /favicon.ico). Return only the URL or 'NONE'."
+                },
+                {
+                    role: "user",
+                    content: `Find logo for: ${sourceUrl}`
+                }
+            ]
+        });
+        const foundLogo = (logoDiscovery.choices[0]?.message.content as string)?.trim();
+        if (foundLogo && foundLogo.startsWith("http") && !foundLogo.includes("NONE")) {
+            console.log(`[BrandService] Found potential logo: ${foundLogo}`);
+            // Download and store in GCS
+            const response = await axios.get(foundLogo, { responseType: 'arraybuffer' });
+            const contentType = response.headers['content-type'] || 'image/png';
+            const { url } = await storagePut(`brands/logos/${brandId}`, response.data, contentType);
+            logoUrlToSave = url;
+        }
+    } catch (e) {
+        console.warn(`[BrandService] Logo discovery failed for ${sourceUrl}:`, e);
+    }
+
     const response = await invokeLLM({
         messages: [
             {
@@ -192,6 +222,7 @@ export async function ingestBrandIdentity(brandId: string, sourceUrl: string) {
             brandVoice: identity.brandVoice,
             targetAudience: identity.targetAudience,
             negativeConstraints: identity.negativeConstraints,
+            ...(logoUrlToSave ? { logoUrl: logoUrlToSave } : {})
         })
         .where(eq(brands.id, brandId));
 

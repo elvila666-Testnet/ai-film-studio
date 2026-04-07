@@ -5,15 +5,15 @@
 
 import "dotenv/config";
 import fs from "fs";
-import { getDb } from "../server/db";
-import { createProject, updateProjectContent, setProjectBrand } from "../server/db/projects";
+import { getDb } from "../server/db.ts";
+import { createProject, updateProjectContent, setProjectBrand } from "../server/db/projects.ts";
 import {
     generateScriptFromBrief,
     generateTechnicalShots,
     generateImagePromptForShot,
     generateStoryboardImage
-} from "../server/services/aiGeneration";
-import { brands, storyboardImages } from "../drizzle/schema";
+} from "../server/services/aiGeneration.ts";
+import { brands, storyboardImages } from "../drizzle/schema.ts";
 
 async function runLiveAudit() {
     console.log("🎬 STARTING LIVE FULL-PIPELINE CONSISTENCY AUDIT");

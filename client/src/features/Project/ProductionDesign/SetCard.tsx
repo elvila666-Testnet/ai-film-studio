@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Trash2, Sparkles, ImageIcon, X, Maximize2, Package } from "lucide-react";
+import { Loader2, Trash2, Sparkles, ImageIcon, X, Maximize2, Package, ThumbsUp } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useAIProcessing } from "@/lib/aiProcessingContext";
+import { VoiceInput } from "@/components/ui/VoiceInput";
+import { CheckCircle2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 
 interface SetCardProps {
   projectId: number;
@@ -18,9 +21,16 @@ export function SetCard({ projectId, set, onDelete, onRefresh, onLightbox }: Set
   const [notes, setNotes] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const { startProcessing, stopProcessing, updateProgress } = useAIProcessing();
+  const utils = trpc.useUtils();
 
   const renderSetMutation = trpc.productionDesign.renderSet.useMutation();
   const updateSetMutation = trpc.productionDesign.updateSetReference.useMutation();
+  const updateSetFeedbackMutation = trpc.directorV2.updateSetFeedback.useMutation({
+    onSuccess: () => {
+      toast.success("Set feedback updated.");
+      utils.productionDesign.getSets.invalidate({ projectId: set.projectId });
+    }
+  });
   const [isUploadingRef, setIsUploadingRef] = useState(false);
 
   const handleRender = async () => {
@@ -88,12 +98,18 @@ export function SetCard({ projectId, set, onDelete, onRefresh, onLightbox }: Set
       <div className="space-y-2 pt-2 border-t border-white/5">
         <div className="flex gap-2">
           <div className="flex-1 space-y-2">
-            <Input
-              placeholder="Visual notes: 'Icy textures', 'Cinematic glow'..."
-              className="h-8 text-[10px] bg-black/40 border-white/10 focus:border-primary/50"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
+            <div className="relative">
+              <Input
+                id={`set-refinement-${set.id}`}
+                placeholder="Visual notes: 'Icy textures', 'Cinematic glow'..."
+                className="h-8 pr-8 text-[10px] bg-black/40 border-white/10 focus:border-primary/50"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+              <div className="absolute right-0 top-0">
+                <VoiceInput onResult={(text) => setNotes(prev => (prev + " " + text).trim())} />
+              </div>
+            </div>
             <Button
               size="sm"
               onClick={handleRender}
@@ -161,6 +177,32 @@ export function SetCard({ projectId, set, onDelete, onRefresh, onLightbox }: Set
             <div className="text-[7px] uppercase tracking-tighter text-center text-slate-500 font-bold">Reference</div>
           </div>
         </div>
+      </div>
+
+      <div className={`pt-4 border-t border-white/10 flex flex-col gap-4 bg-primary/5 -mx-5 -mb-5 p-5 rounded-b-[2rem] transition-all ${set.isApproved ? 'bg-primary/10' : ''}`}>
+        <div className="flex items-center justify-between">
+            <label className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">Director Verdict</label>
+            <div className="flex items-center gap-2">
+                <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => updateSetFeedbackMutation.mutate({ 
+                        setId: set.id, 
+                        isApproved: !set.isApproved 
+                    })}
+                    className={`h-7 px-3 text-[9px] font-black uppercase tracking-widest gap-2 rounded-lg transition-all ${set.isApproved ? 'bg-primary text-black' : 'bg-white/5 text-slate-400'}`}
+                >
+                    <ThumbsUp className={`w-3.5 h-3.5 ${set.isApproved ? "fill-current" : ""}`} />
+                    {set.isApproved ? "Approved" : "Approve Set"}
+                </Button>
+            </div>
+        </div>
+        <Textarea
+            id={`set-feedback-${set.id}`}
+            placeholder="Feedback for the set designer..."
+            defaultValue={set.directorNotes || ""}
+            className="bg-black/30 border-white/5 min-h-[60px] text-[10px] italic text-slate-400 rounded-xl focus:border-primary/30 transition-colors"
+        />
       </div>
     </div>
   );

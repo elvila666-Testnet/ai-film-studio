@@ -33,11 +33,12 @@ const mockBrand: BrandGuidelines = {
 const mockCharacterLibrary: CharacterLibrary[] = [
   {
     id: 1,
-    brandId: 1,
+    brandId: "uuid-brand-1",
     name: "Alex",
     description: "Tech-savvy protagonist",
     imageUrl: "https://example.com/alex.jpg",
     traits: JSON.stringify({ age: 28, personality: "ambitious", style: "modern" }),
+    poses: null,
     isLocked: false,
     usageCount: 5,
     createdAt: new Date(),
@@ -45,11 +46,12 @@ const mockCharacterLibrary: CharacterLibrary[] = [
   },
   {
     id: 2,
-    brandId: 1,
+    brandId: "uuid-brand-1",
     name: "Jordan",
     description: "Wise mentor figure",
     imageUrl: "https://example.com/jordan.jpg",
     traits: JSON.stringify({ age: 45, personality: "wise", style: "professional" }),
+    poses: null,
     isLocked: true,
     usageCount: 3,
     createdAt: new Date(),
@@ -59,7 +61,7 @@ const mockCharacterLibrary: CharacterLibrary[] = [
 
 const mockVoiceProfile: BrandVoiceProfile = {
   id: 1,
-  brandId: 1,
+  brandId: "uuid-brand-1",
   name: "Professional Voice",
   elevenLabsVoiceId: "21m00Tcm4TlvDq8ikWAM",
   description: "Clear, professional tone",

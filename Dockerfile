@@ -29,6 +29,11 @@ RUN npm install --production
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
 
+# Copy Drizzle schema and config for runtime migrations
+COPY drizzle.config.ts ./
+COPY drizzle ./drizzle
+COPY scripts ./scripts
+
 # Copy client dist
 COPY --from=builder /app/dist ./dist
 

@@ -444,9 +444,25 @@ MIDJOURNEY_API_KEY=your_key
 - [x] **Phase 12: Storyboard Grid & Layout** - Standardized 3x4 grid generation at 4:3 aspect ratio (1344x1024) to prevent cropping. Implemented strict 12-panel padding with placeholder support in `PromptSynthesis`. Enhanced `ReplicateProvider` for multi-image referencing with Nano Banana Pro.
 - [x] **Phase 13: Veo3 Vertex AI Integration** — Migrated `Veo3Provider` from broken Generative Language API to official Vertex AI `predictLongRunning` endpoint with OAuth service account auth. Implemented `fetchPredictOperation` LRO polling. Aligned payload with Google's spec (`image.mimeType`, `storageUri`, `personGeneration`). Video generation confirmed operational.
 
+## Phase 14: Replicate-First & PCI Standard (COMPLETED ✅)
+
+### Architectural Shift
+- **Primary Engine:** Migrated all high-fidelity image generation to **Replicate**.
+- **Model Standard:** Standardized on `google/nano-banana-pro` for visual anchoring and `black-forest-labs/flux-pro` for production shots.
+- **Visual Anchoring:** Implemented multi-input Img2Img anchoring support (`imageInputs`) in `ReplicateProvider`.
+
+### PCI (Photorealistic Character Identity) Implementation
+- **Standardized Output:** Enforced the 2-row, 7-shot contact sheet for character creation.
+- **Prompt Logic:** Automated injection of positional (Facing, Profile, Away) and detail (Close-up) directives into the `aiGeneration` pipeline.
+- **Anchor Persistence:** Integrated locked characters from the database directly into the Replicate generation loop as visual anchors.
+
+---
+
 ## Next Steps
 
 1. **VFX Supervisor Integration:** Deepening the Nuke script generation features.
 2. **Veo 3.1 Upgrade:** Migrate to `veo-3.1-generate-001` for 1080p/4K resolution and audio support.
 3. **Video Pipeline UX:** Add progress indicators for LRO polling and multi-shot batch animation.
 
+---
+**Last Updated:** April 6, 2026

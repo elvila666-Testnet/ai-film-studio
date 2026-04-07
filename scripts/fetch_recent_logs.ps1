@@ -1,0 +1,1 @@
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=ai-film-studio AND severity>=ERROR" --limit=20 --format=json | Out-File -FilePath recent_errors.json -Encoding utf8

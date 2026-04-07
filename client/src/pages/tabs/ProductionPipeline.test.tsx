@@ -55,9 +55,9 @@ vi.mock('@/lib/trpc', () => ({
         },
         video: {
             list: { useQuery: vi.fn() },
-            create: { useMutation: vi.fn() },
             render: { useMutation: vi.fn() },
-            status: { useQuery: vi.fn() },
+            checkStatus: { useQuery: vi.fn() },
+            animateFrame: { useMutation: vi.fn() },
         },
         editor: {
             projects: { list: { useQuery: vi.fn() }, create: { useMutation: vi.fn() } },
@@ -94,7 +94,7 @@ describe('Production Pipeline Stages Verification', () => {
         (trpc.referenceImages.list.useQuery as any).mockReturnValue({ data: [], isLoading: false });
         (trpc.storyboard.getImages.useQuery as any).mockReturnValue({ data: [], isLoading: false });
         (trpc.video.list.useQuery as any).mockReturnValue({ data: [], isLoading: false });
-        (trpc.video.status.useQuery as any).mockReturnValue({ data: { status: 'pending', progress: 50 }, isLoading: false });
+        (trpc.video.checkStatus.useQuery as any).mockReturnValue({ data: { status: 'pending', progress: 50 }, isLoading: false });
         (trpc.editor.projects.list.useQuery as any).mockReturnValue({ data: [{ id: 1, title: 'Test Editor' }], isLoading: false });
         (trpc.editor.clips.list.useQuery as any).mockReturnValue({ data: [], isLoading: false });
         (trpc.editor.getAnimaticConfig.useQuery as any).mockReturnValue({ data: null, isLoading: false });
@@ -107,7 +107,7 @@ describe('Production Pipeline Stages Verification', () => {
         (trpc.ai.refineVisualStyle.useMutation as any).mockReturnValue(mockMutation);
         (trpc.ai.generateTechnicalShots.useMutation as any).mockReturnValue(mockMutation);
         (trpc.video.render.useMutation as any).mockReturnValue(mockMutation);
-        (trpc.video.create.useMutation as any).mockReturnValue(mockMutation);
+        (trpc.video.animateFrame.useMutation as any).mockReturnValue(mockMutation);
         (trpc.editor.projects.create.useMutation as any).mockReturnValue(mockMutation);
         (trpc.editor.clips.upload.useMutation as any).mockReturnValue(mockMutation);
         (trpc.editor.clips.delete.useMutation as any).mockReturnValue(mockMutation);

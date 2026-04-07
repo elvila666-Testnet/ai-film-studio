@@ -224,7 +224,7 @@ export async function analyzeCharacterConsistency(
       .map((f) => ({
         frameId: f.id,
         shotNumber: f.shotNumber,
-        appearance: JSON.parse(f.characterAppearance || "{}"),
+        appearance: JSON.parse((f.characterAppearance as unknown as string) || "{}"),
       }));
 
   if (appearances.length === 0) {

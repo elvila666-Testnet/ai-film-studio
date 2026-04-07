@@ -114,6 +114,31 @@ export default function BrandIntelligenceTab({ projectId }: BrandIntelligenceTab
         });
     }, [autoSave]);
 
+    // NEW: Auto-populate if fields are empty and brand is selected
+    useEffect(() => {
+        if (selectedBrandId && projectQuery.data) {
+            const currentVoice = brandData.brandVoice;
+            const currentVisual = brandData.visualIdentity;
+            
+            if (!currentVoice || !currentVisual) {
+                // Fetch brand from utils/trpc directly or assume it's available?
+                // Better to check if we should auto-sync.
+                utils.brand.get.fetch({ id: selectedBrandId }).then(brand => {
+                    if (brand) {
+                        const updates: Partial<BrandData> = {};
+                        if (!currentVoice && brand.brandVoice) updates.brandVoice = brand.brandVoice;
+                        if (!currentVisual && brand.visualIdentity) updates.visualIdentity = brand.visualIdentity;
+                        
+                        if (Object.keys(updates).length > 0) {
+                            handleDataChange(updates);
+                        }
+                    }
+                });
+            }
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedBrandId, projectQuery.data?.content?.id]);
+
     const handleSave = async () => {
         setIsSaving(true);
         try {
@@ -226,6 +251,30 @@ export default function BrandIntelligenceTab({ projectId }: BrandIntelligenceTab
     return (
         <div className="space-y-8 animate-fade-in mb-20">
 
+
+            <div className="flex items-center justify-between mb-2">
+                <div />
+                {selectedBrandId && (
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                            const brand = await utils.brand.get.fetch({ id: selectedBrandId });
+                            if (brand) {
+                                handleDataChange({
+                                    brandVoice: brand.brandVoice || "",
+                                    visualIdentity: brand.visualIdentity || "",
+                                })
+                                toast.success("Populated from Brand Brain DNA");
+                            }
+                        }}
+                        className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 text-[10px] h-8 font-black uppercase tracking-widest gap-2"
+                    >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        Sync from Brand Brain
+                    </Button>
+                )}
+            </div>
 
             <div className="space-y-8">
                 <IdentityEditor

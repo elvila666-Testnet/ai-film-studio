@@ -3,7 +3,7 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getProjectContent, getDb } from "../db";
 import * as pdDb from "../db/productionDesign";
-import { runProductionDesignAgent } from "../services/agents/production/productionDesignAgent";
+import { performProductionDesignBreakdown } from "../services/productionDesignService";
 import { generateSetNano, generatePropNano } from "../services/aiGeneration";
 import { logUsage } from "../services/ledgerService";
 import { estimateCost } from "../services/pricingService";
@@ -20,45 +20,12 @@ export const productionDesignRouter = router({
             refinementNotes: z.string().optional(),
         }))
         .mutation(async ({ input, ctx }) => {
-            const db = await getDb();
-            if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unreachable" });
-
-            // 1. Clear existing sets and props for this project (Casting-style refresh)
-            console.log(`[PD_Router] Clearing existing PD data for project ${input.projectId}`);
-            await db.delete(productionDesignProps).where(eq(productionDesignProps.projectId, input.projectId));
-            await db.delete(productionDesignSets).where(eq(productionDesignSets.projectId, input.projectId));
-
-            const content = await getProjectContent(input.projectId);
-            if (!content?.technicalShots) {
-                 throw new TRPCError({ code: "BAD_REQUEST", message: "Director breakdown required first." });
-            }
-
-            const technicalScript = JSON.parse(content.technicalShots);
-            console.log(`[PD_Router] Running Production Design Agent...`);
-            const pdOutput = await runProductionDesignAgent(
-                technicalScript,
-                input.projectId,
-                content?.globalDirectorNotes ?? undefined,
-                input.refinementNotes
-            );
-
-            // 2. Save new sets and props to DB
-            const savedSets = [];
-            for (const set of pdOutput.sets) {
-                const setId = await pdDb.createPDSet(input.projectId, set);
-                
-                const savedProps = [];
-                for (const prop of set.props) {
-                    const propId = await pdDb.createPDProp(input.projectId, setId, prop);
-                    savedProps.push({ ...prop, id: propId });
-                }
-                savedSets.push({ ...set, id: setId, props: savedProps });
-            }
+            const result = await performProductionDesignBreakdown(input.projectId, { userId: ctx.user.id.toString() }, input.refinementNotes);
 
             const cost = estimateCost("gemini-1.5-flash", 1);
             await logUsage(input.projectId, ctx.user.id.toString(), "gemini-1.5-flash", cost, "PD_BREAKDOWN");
 
-            return { sets: savedSets, generalStyle: pdOutput.generalStyle };
+            return result;
         }),
 
     /**
@@ -106,7 +73,14 @@ export const productionDesignRouter = router({
                         {
                             role: "system",
                             content: `You are a PRODUCTION_DESIGN_REFINEMENT_AGENT. 
-                            Your goal is to transform a set description into a high-fidelity cinematic image generation prompt.
+                            Your goal is to transform a set description into a hyper-realistic, high-fidelity cinematic image generation prompt.
+                            
+                            ### PHOTOREALISM & CINEMATOGRAPHY COMMANDS ###
+                            - ENFORCE hyper-realistic textures: aged wood, cold brushed steel, porous concrete, soft fabric weaves.
+                            - LENS: Specify professional optics (e.g., 'Shot on Arri Alexa 35, 35mm Master Prime, f/2.8').
+                            - LIGHTING: Use high-end production terms (e.g., 'Volumetric lighting', 'Soft Rembrandt lighting', 'Natural dawn light through hazy windows', 'Cyan/Amber color contrast').
+                            - FILM STOCK: Mimic premium stock (e.g., 'Kodak Vision3 500T, fine grain, subtle halation').
+                            - NO CGI LOOK: Avoid generic 3D render terms. Focus on physical realism, dust motes, surface imperfections, and realistic depth of field.
                             
                             ### GLOBAL VISUAL VISION ###
                             ${content?.masterVisual || "High-fidelity cinematic look."}
@@ -171,11 +145,12 @@ export const productionDesignRouter = router({
                         {
                             role: "system",
                             content: `You are a HERO_PROP_REFINEMENT_AGENT. 
-                            Your goal is to transform a prop description into a macro-detail cinematic image generation prompt.
+                             Your goal is to transform a prop description into a hyper-realistic macro-detail cinematic image generation prompt.
                             
-                            ### COLOR PALETTE & MATERIAL LOGIC ###
-                            STRICTLY ENFORCE the color palette and material logic defined in the Notes or original description.
-                            Highlight specific tech finishes and textures that match the mandated visual style.
+                            ### MACRO REALISM COMMANDS ###
+                            - FOCUS: Extremely shallow depth of field, macro photography, sharp focus on specific tactile textures (fingerprints on glass, metallic grain, fabric fibers).
+                            - LIGHTING: High-contrast product lighting, rim light to define edges, subtle lens flares or caustic reflections.
+                            - MATERIAL RIGOR: Ensure materials described (e.g., carbon fiber, hand-stitched leather) look physically authentic and weathered.
                             
                             ### TASK ###
                             Return ONLY a descriptive narrative paragraph for a macro product shot.

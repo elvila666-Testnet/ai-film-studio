@@ -74,7 +74,7 @@ export const storyboardRouter = router({
             "nano-banana-pro", 
             input.projectId, 
             ctx.user.id.toString(), 
-            "1024x1024",
+            "1216x832",
             visualAnchors
           );
           await saveStoryboardImage(input.projectId, Number(shot.globalShotNumber), url, prompt);
@@ -227,7 +227,7 @@ export const storyboardRouter = router({
             if (setsInShot[0].referenceImageUrl && !imageAnchors.includes(setsInShot[0].referenceImageUrl)) imageAnchors.push(setsInShot[0].referenceImageUrl);
         }
 
-        const finalAnchors = imageAnchors.slice(0, 3);
+        const finalAnchors = imageAnchors.slice(0, 1); // Enforce 1 anchor for Vertex AI Img2Img bounds
         const targetModel = "nano-banana-pro"; // Strict consistency requires Pro
 
         // 5. Generate
@@ -236,7 +236,7 @@ export const storyboardRouter = router({
           targetModel,
           input.projectId,
           ctx.user.id.toString(),
-          "1024x1024",
+          "1216x832",
           finalAnchors
         );
 
@@ -355,7 +355,7 @@ export const storyboardRouter = router({
             if (setsInShot[0].referenceImageUrl) imageAnchors.push(setsInShot[0].referenceImageUrl);
         }
 
-        const finalAnchors = imageAnchors.slice(0, 3);
+        const finalAnchors = imageAnchors.slice(0, 1); // Enforce 1 anchor for Vertex AI Img2Img bounds
         const targetModel = finalAnchors.length > 0 ? "nano-banana-pro" : "flux-fast";
 
         // 4. Generate
@@ -364,7 +364,7 @@ export const storyboardRouter = router({
           targetModel,
           input.projectId,
           ctx.user.id.toString(),
-          "1024x1024",
+          "1216x832",
           finalAnchors
         );
 
@@ -431,7 +431,7 @@ export const storyboardRouter = router({
               input.projectId,
               ctx.user.id.toString(),
               pageIdx + 1, // Pass pageNumber for visual burnins
-              ...visualAnchors
+              visualAnchors
             );
           } catch (err: any) {
             const fs = await import("fs");

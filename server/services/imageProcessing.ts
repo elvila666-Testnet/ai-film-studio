@@ -66,7 +66,7 @@ export async function burnPanelNumbers(
         
         for (let i = 0; i < 12; i++) {
             const rowIdx = Math.floor(i / 3);
-            const colIdx = (rowIdx === 1) ? 2 - (i % 3) : (i % 3);
+            const colIdx = i % 3;
             
             const x = colIdx * tileWidth + 15; 
             const y = rowIdx * tileHeight + 45; 

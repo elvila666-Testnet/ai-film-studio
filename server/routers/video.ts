@@ -6,7 +6,7 @@ import path from "path";
 import fs from "fs";
 import { getDb } from "../db";
 import { generatedVideos, storyboardImages, modelConfigs } from "../../drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or, inArray } from "drizzle-orm";
 import { ProviderFactory } from "../services/providers/providerFactory";
 import { VideoProvider } from "../services/providers/types";
 
@@ -132,7 +132,7 @@ export const videoRouter = router({
             projectId: z.number(),
             shotNumber: z.number(),
             motionPrompt: z.string().optional(),
-            provider: z.enum(["veo3", "sora", "replicate", "gemini", "flow", "kling", "whan"]).default("replicate"),
+            provider: z.enum(["veo3", "sora", "replicate", "gemini", "flow", "kling", "whan", "kie"]).default("replicate"),
             modelId: z.string().optional(),
             duration: z.number().default(4),
             resolution: z.enum(["720p", "1080p", "4k"]).default("720p"),
@@ -153,8 +153,19 @@ export const videoRouter = router({
 
 
             // Get API Key
+            const normalizedProvider = provider.toLowerCase();
+            const searchProviders = [
+                provider, 
+                provider.charAt(0).toUpperCase() + provider.slice(1), 
+                provider.toUpperCase()
+            ];
+            
+            // Special cases
+            if (normalizedProvider === "veo3") searchProviders.push("Google");
+            if (normalizedProvider === "kie") searchProviders.push("Kie", "KIE");
+
             const config = await db.select().from(modelConfigs).where(and(
-                eq(modelConfigs.provider, provider.charAt(0).toUpperCase() + provider.slice(1)),
+                inArray(modelConfigs.provider, searchProviders),
                 eq(modelConfigs.isActive, true)
             )).limit(1);
 
@@ -167,6 +178,7 @@ export const videoRouter = router({
                 if (provider === "replicate") apiKey = process.env.REPLICATE_API_TOKEN || "";
                 else if (provider === "sora") apiKey = process.env.SORA_API_KEY || "";
                 else if (provider === "veo3" || (provider as any) === "gemini") apiKey = process.env.BUILT_IN_FORGE_API_KEY || "";
+                else if (provider === "kie") apiKey = process.env.KIE_API_KEY || "";
             }
 
             console.log(`[VideoRouter] Selected provider: ${provider}, modelId: ${modelId}, hasApiKey: ${!!apiKey}`);
@@ -248,7 +260,7 @@ export const videoRouter = router({
                     .set({
                         status: "completed",
                         videoUrl: finalVideoUrl,
-                        taskId: result.metadata?.id as string
+                        taskId: (result.metadata as any)?.id as string || (result.metadata as any)?.predictionId as string
                     })
                     .where(eq(generatedVideos.id, videoId));
 

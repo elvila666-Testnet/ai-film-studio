@@ -2,7 +2,7 @@ import express from "express";
 import axios from "axios";
 import jwt from "jsonwebtoken";
 import { ENV } from "../_core/env";
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME } from "../../shared/const";
 import { upsertUser, getUserByEmail } from "../db";
 
 const router = express.Router();

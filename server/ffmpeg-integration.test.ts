@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import * as ffmpegService from './services/ffmpegService';
 import * as ffmpegFallback from './services/ffmpegFallback';
 import * as thumbnailGeneration from './services/thumbnailGeneration';

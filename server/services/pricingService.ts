@@ -10,6 +10,11 @@ const PRICING_REGISTRY: Record<string, number> = {
     // Video Models (estimated)
     'stability-ai/stable-video-diffusion': 0.20, // per second/run
     'replicate/cogvideox-5b': 0.15,
+    'veo3': 0.055,
+    'sora': 0.25,
+    'kie-seedance-2-0': 0.15,
+    'kie-kling-3-0': 0.18,
+    'kie-wan-2-6': 0.15,
 
     // Audio Models
     'elevenlabs/tts': 0.010,
