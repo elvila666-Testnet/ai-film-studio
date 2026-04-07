@@ -103,6 +103,27 @@ export default function Timeline({
     },
   });
 
+  const deleteTrackMutation = trpc.editor.tracks.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Track deleted");
+      tracksQuery.refetch();
+      clipsQuery.refetch();
+    },
+    onError: (error) => {
+      toast.error(`Failed to delete track: ${error.message}`);
+    },
+  });
+
+  const trimClipMutation = trpc.editor.clips.trim.useMutation({
+    onSuccess: () => {
+      toast.success("Trim saved");
+      clipsQuery.refetch();
+    },
+    onError: (error) => {
+      toast.error(`Trim failed: ${error.message}`);
+    },
+  });
+
   // Note: Delete track mutation not yet implemented in backend
 
   // Update local state from queries
@@ -154,9 +175,8 @@ export default function Timeline({
     });
   };
 
-  const handleDeleteTrack = (_trackId: number) => {
-    // Delete track functionality to be implemented
-    toast.info("Delete track feature coming soon");
+  const handleDeleteTrack = (trackId: number) => {
+    deleteTrackMutation.mutate({ trackId });
   };
 
   const handleTrimStart = (e: React.MouseEvent, clipId: number, side: "left" | "right") => {
@@ -200,8 +220,18 @@ export default function Timeline({
   };
 
   const handleTrimEnd = () => {
+    // Persist the trim to the database
+    if (selectedClipId !== null) {
+      const clip = clips.find(c => c.id === selectedClipId);
+      if (clip) {
+        trimClipMutation.mutate({
+          clipId: clip.id,
+          startTime: clip.startTime,
+          duration: clip.duration,
+        });
+      }
+    }
     setTrimMode(null);
-    toast.success("Clip trimmed successfully");
   };
 
   const handleCutClip = (clipId: number) => {
@@ -802,8 +832,8 @@ export default function Timeline({
           </div>
 
           {/* Timeline Content */}
-          <div className="flex-1 overflow-x-auto">
-            <div className="flex flex-col">
+          <div className="flex-1 overflow-x-auto relative">
+            <div className="flex flex-col relative">
               {tracks.map((track) => (
                 <div
                   key={track.id}
@@ -867,6 +897,19 @@ export default function Timeline({
                                 </span>
                              </div>
                              <div className="text-[8px] font-mono text-white/40 mt-0.5">{(clip.duration).toFixed(1)}s</div>
+
+                             {/* Simulated Waveform for Audio Clips */}
+                             {track.type === 'audio' && (
+                               <div className="flex items-end gap-[1px] h-3 mt-0.5 opacity-60">
+                                 {Array.from({ length: Math.min(40, Math.floor(clipWidth / 3)) }).map((_, i) => (
+                                   <div
+                                     key={i}
+                                     className="w-[2px] bg-purple-400 rounded-full"
+                                     style={{ height: `${3 + Math.sin(i * 0.7) * 5 + Math.random() * 4}px` }}
+                                   />
+                                 ))}
+                               </div>
+                             )}
                           </div>
 
                           {/* Trim handles - only show if selection mode and not dragging */}
@@ -892,16 +935,17 @@ export default function Timeline({
                         </div>
                       );
                     })}
-
-                  {/* Playhead indicator (only on first track) */}
-                  {track.id === tracks[0]?.id && (
-                    <div
-                      className="absolute top-0 bottom-0 w-0.5 bg-red-500 pointer-events-none"
-                      style={{ left: `${currentTime * pixelsPerSecond}px` }}
-                    />
-                  )}
                 </div>
               ))}
+            </div>
+
+            {/* ═══ GLOBAL PLAYHEAD — crosses ALL tracks ═══ */}
+            <div
+              className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-50 pointer-events-none"
+              style={{ left: `${currentTime * pixelsPerSecond}px` }}
+            >
+              {/* Playhead triangle indicator */}
+              <div className="absolute -top-1 -left-[5px] w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-red-500" />
             </div>
           </div>
         </div>

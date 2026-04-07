@@ -78,6 +78,24 @@ export async function getEditorTracks(editorProjectId: number) {
   return db.select().from(editorTracks).where(eq(editorTracks.editorProjectId, editorProjectId));
 }
 
+export async function getEditorTrack(trackId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const [track] = await db.select().from(editorTracks).where(eq(editorTracks.id, trackId)).limit(1);
+  return track;
+}
+
+export async function deleteEditorTrack(trackId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // First delete all clips on this track
+  await db.delete(editorClips).where(eq(editorClips.trackId, trackId));
+  // Then delete the track itself
+  await db.delete(editorTracks).where(eq(editorTracks.id, trackId));
+}
+
 export async function createEditorExport(data: InsertEditorExport) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

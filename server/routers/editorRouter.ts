@@ -1,9 +1,8 @@
 import {
-  createEditorProject, getEditorProjectsByProjectId, getEditorClips, createEditorClip, updateEditorClip, deleteEditorClip, createEditorTrack, getEditorTracks, createEditorExport, getEditorExports, updateEditorExport, createComment, getClipComments, updateComment, deleteComment, getAnimaticConfig, updateFrameDurations, updateAnimaticAudio, getStoryboardFrameOrder, updateFrameOrder, getFrameHistory, createFrameHistoryVersion, getFrameNotes, saveFrameNotes, deleteFrameNotes,
+  createEditorProject, getEditorProjectsByProjectId, getEditorClips, createEditorClip, updateEditorClip, deleteEditorClip, createEditorTrack, getEditorTracks, deleteEditorTrack, createEditorExport, getEditorExports, updateEditorExport, createComment, getClipComments, updateComment, deleteComment, getAnimaticConfig, updateFrameDurations, updateAnimaticAudio, getStoryboardFrameOrder, updateFrameOrder, getFrameHistory, createFrameHistoryVersion, getFrameNotes, saveFrameNotes, deleteFrameNotes,
   getStoryboardImages
 } from "../db";
 import { z } from "zod";
-import { TimelineClip } from "../../shared/types";
 import { publicProcedure, router } from "../_core/trpc";
 
 export const editorRouter = router({
@@ -143,6 +142,21 @@ export const editorRouter = router({
 
         return { success: true, newClipId: (result as any).insertId || 0 };
       }),
+
+    trim: publicProcedure
+      .input(z.object({
+        clipId: z.number(),
+        startTime: z.number().optional(), // new absolute startTime in ms
+        duration: z.number().optional(),  // new duration in ms
+        trimStart: z.number().optional(), // trim offset from source start in ms
+        trimEnd: z.number().optional(),   // trim offset from source end in ms
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new Error("Unauthorized");
+        const { clipId, ...updates } = input;
+        await updateEditorClip(clipId, updates);
+        return { success: true };
+      }),
   }),
 
   tracks: router({
@@ -163,6 +177,14 @@ export const editorRouter = router({
           name: input.name,
         });
         return { success: true, trackId: (result as any).insertId || 0 };
+      }),
+
+    delete: publicProcedure
+      .input(z.object({ trackId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new Error("Unauthorized");
+        await deleteEditorTrack(input.trackId);
+        return { success: true };
       }),
   }),
 
