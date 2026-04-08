@@ -146,3 +146,45 @@ export async function deleteComment(commentId: number) {
 
   await db.delete(editorComments).where(eq(editorComments.id, commentId));
 }
+export async function deleteEditorTrack(trackId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.delete(editorTracks).where(eq(editorTracks.id, trackId));
+}
+
+export async function splitEditorClip(clipId: number, splitTime: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const originalClip = await db.select().from(editorClips).where(eq(editorClips.id, clipId)).limit(1);
+
+  if (originalClip.length === 0) {
+    throw new Error("Original clip not found");
+  }
+
+  const clip = originalClip[0];
+
+  // Calculate new duration for the first part
+  const firstPartDuration = splitTime - clip.startTime;
+
+  // Update the original clip (first part)
+  await db.update(editorClips).set({ duration: firstPartDuration }).where(eq(editorClips.id, clipId));
+
+  // Create a new clip for the second part
+  const newClipData = {
+    editorProjectId: clip.editorProjectId,
+    trackId: clip.trackId,
+    fileUrl: clip.fileUrl,
+    fileName: `${clip.fileName} (Part 2)`,
+    fileType: clip.fileType,
+    duration: clip.duration - firstPartDuration,
+    startTime: splitTime,
+    order: clip.order + 1, // Place it right after the original clip
+    trimStart: clip.trimStart + firstPartDuration, // Adjust trimStart for the new clip
+    volume: clip.volume,
+  };
+
+  const result = await db.insert(editorClips).values(newClipData);
+  return { success: true, newClipId: (result as any).insertId || 0 };
+}

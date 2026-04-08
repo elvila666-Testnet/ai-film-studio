@@ -17,17 +17,26 @@ interface EditorTabProps {
 export default function EditorTab({ projectId }: EditorTabProps) {
     const [editorProjectId, setEditorProjectId] = useState<string>("");
     const [isPlaying, setIsPlaying] = useState(false);
-    const [currentTime, setCurrentTime] = useState(0);
-    const [duration, setDuration] = useState(0);
+    const [playbackTime, setPlaybackTime] = useState(0);
+    const [currentTime, setCurrentTime] = useState(0); // in milliseconds
+    const [duration, setDuration] = useState(0); // in milliseconds
     const [selectedClipId, setSelectedClipId] = useState<number | null>(null);
     const [zoom, setZoom] = useState(1);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string>("");
+<<<<<<< HEAD
     const [sourcePreviewUrl, setSourcePreviewUrl] = useState<string>("");
     const [isMuted, setIsMuted] = useState(false);
     const [lightboxClip, setLightboxClip] = useState<Clip | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const sourceVideoRef = useRef<HTMLVideoElement>(null);
+=======
+    const [currentPlayingClip, setCurrentPlayingClip] = useState<Clip | null>(null);
+    const [isMuted, setIsMuted] = useState(false);
+    const [lightboxClip, setLightboxClip] = useState<Clip | null>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+>>>>>>> 125637c (feat: Implement full editor functionality)
     const containerRef = useRef<HTMLDivElement>(null);
 
     const editorProjId = editorProjectId ? Number(editorProjectId) : 0;
@@ -103,6 +112,7 @@ export default function EditorTab({ projectId }: EditorTabProps) {
             order: nextOrder,
             startTime,
         });
+        clipsQuery.refetch(); // Refetch clips after adding one
     }, [editorProjId, clipsQuery.data, uploadClipMutation]);
 
     // Add storyboard shot to timeline
@@ -125,10 +135,25 @@ export default function EditorTab({ projectId }: EditorTabProps) {
             order: nextOrder,
             startTime,
         });
+        clipsQuery.refetch(); // Refetch clips after adding one
     }, [editorProjId, clipsQuery.data, uploadClipMutation]);
 
     const handlePlayPause = () => {
+<<<<<<< HEAD
         setIsPlaying(prev => !prev);
+=======
+        if (isPlaying) {
+            setIsPlaying(false);
+            if (intervalRef.current) clearInterval(intervalRef.current);
+            if (videoRef.current) videoRef.current.pause();
+        } else {
+            setIsPlaying(true);
+            if (videoRef.current) videoRef.current.play();
+            intervalRef.current = setInterval(() => {
+                setPlaybackTime(prev => prev + 100); // Update every 100ms
+            }, 100);
+        }
+>>>>>>> 125637c (feat: Implement full editor functionality)
     };
 
     const toggleFullscreen = () => {
@@ -146,6 +171,7 @@ export default function EditorTab({ projectId }: EditorTabProps) {
         return () => document.removeEventListener("fullscreenchange", handleFsChange);
     }, []);
 
+<<<<<<< HEAD
     // Source Monitor Sync: Preview selected clip
     useEffect(() => {
         if (selectedClipId && clipsQuery.data) {
@@ -156,9 +182,66 @@ export default function EditorTab({ projectId }: EditorTabProps) {
                     sourceVideoRef.current.src = clip.fileUrl;
                     sourceVideoRef.current.play().catch(() => {});
                 }
+=======
+    // Sequencer Monitor Logic
+    useEffect(() => {
+        if (!isPlaying) return;
+
+        const activeClip = clips.find(
+            (c) => playbackTime >= c.startTime && playbackTime < c.startTime + c.duration
+        );
+
+        if (activeClip && activeClip.id !== currentPlayingClip?.id) {
+            setCurrentPlayingClip(activeClip);
+            if (videoRef.current) {
+                videoRef.current.src = activeClip.fileUrl;
+                videoRef.current.currentTime = (playbackTime - activeClip.startTime) / 1000;
+                videoRef.current.play();
+>>>>>>> 125637c (feat: Implement full editor functionality)
             }
+        } else if (!activeClip && currentPlayingClip) {
+            // No active clip, pause video and clear current playing clip
+            if (videoRef.current) videoRef.current.pause();
+            setCurrentPlayingClip(null);
         }
-    }, [selectedClipId, clipsQuery.data]);
+
+        // Loop playback if end of timeline is reached
+        if (playbackTime >= duration) {
+            setPlaybackTime(0);
+            if (videoRef.current) videoRef.current.currentTime = 0;
+        }
+
+    }, [playbackTime, isPlaying, clips, duration, currentPlayingClip]);
+
+    // Update duration when clips change
+    useEffect(() => {
+        if (clips.length > 0) {
+            const maxEndTime = Math.max(...clips.map(c => c.startTime + c.duration));
+            setDuration(maxEndTime);
+        } else {
+            setDuration(0);
+        }
+    }, [clips]);
+
+    // Sync video player time with timeline current time
+    useEffect(() => {
+        if (videoRef.current) {
+            const handleVideoTimeUpdate = () => {
+                setCurrentTime(Math.round(videoRef.current!.currentTime * 1000));
+            };
+            videoRef.current.addEventListener("timeupdate", handleVideoTimeUpdate);
+            return () => {
+                videoRef.current?.removeEventListener("timeupdate", handleVideoTimeUpdate);
+            };
+        }
+    }, []);
+
+    // Cleanup interval on unmount
+    useEffect(() => {
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
+    }, []);
 
     // Ref-based video sync (called directly from tick loop, NOT via useEffect)
     // This avoids 60fps React re-renders and eliminates stutter.
@@ -310,6 +393,7 @@ export default function EditorTab({ projectId }: EditorTabProps) {
                         <h1 className="text-sm font-black text-white/90 uppercase tracking-widest">{activeEditorProject?.title || "SEQUENCER_UNNAMED"}</h1>
                     </div>
                 </div>
+<<<<<<< HEAD
                 
                 <div className="flex items-center gap-6">
                     <div className="flex flex-col items-center">
@@ -317,6 +401,11 @@ export default function EditorTab({ projectId }: EditorTabProps) {
                         <div className="px-4 py-1.5 bg-black/60 border border-white/10 rounded-xl font-mono text-primary text-xl tracking-tighter shadow-inner ring-1 ring-white/5">
                             {formatTime(currentTime)}
                         </div>
+=======
+                <div className="flex items-center gap-4">
+                    <div className="px-3 py-1.5 bg-black/40 border border-white/5 rounded-lg font-mono text-primary text-[11px] tracking-wider">
+                        {formatTime(playbackTime)} / {formatTime(duration)}
+>>>>>>> 125637c (feat: Implement full editor functionality)
                     </div>
                     
                     <div className="flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/5">
@@ -343,28 +432,30 @@ export default function EditorTab({ projectId }: EditorTabProps) {
                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Media Pool</span>
                         <label className="cursor-pointer hover:text-primary transition-colors text-slate-500">
                             <Plus className="w-3.5 h-3.5" />
-                            <input type="file" hidden accept="video/*,audio/*,image/*" onChange={async (e) => {
-                                const file = e.target.files?.[0];
-                                if (!file || !editorProjId) return;
-                                try {
-                                    const isAudio = file.type.startsWith("audio/");
-                                    const fileType = isAudio ? "audio" : file.type.startsWith("image/") ? "image" : "video";
-                                    const mediaUrl = URL.createObjectURL(file);
-                                    const mediaDuration = await new Promise<number>((resolve, reject) => {
-                                        const media = isAudio ? new Audio() : document.createElement("video");
-                                        media.src = mediaUrl;
-                                        media.onloadedmetadata = () => resolve(media.duration);
-                                        media.onerror = () => reject(new Error("Metadata error"));
-                                    });
-                                    uploadClipMutation.mutate({
-                                        editorProjectId: editorProjId, trackId: 1, fileUrl: mediaUrl,
-                                        fileName: file.name, fileType, duration: Math.round(mediaDuration * 1000),
-                                        order: (clipsQuery.data?.length || 0) + 1,
-                                    });
-                                } catch { toast.error("File processing error"); }
+                            <input type="file" className="sr-only" onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                    const file = e.target.files[0];
+                                    const reader = new FileReader();
+                                    reader.onload = (event) => {
+                                        if (event.target?.result) {
+                                            uploadClipMutation.mutate({
+                                                editorProjectId: editorProjId,
+                                                trackId: 1, // Default to track 1 for now
+                                                fileUrl: event.target.result as string,
+                                                fileName: file.name,
+                                                fileType: file.type.startsWith("video") ? "video" : file.type.startsWith("audio") ? "audio" : "image",
+                                                duration: 5000, // Default duration for now
+                                                order: (clipsQuery.data?.length || 0) + 1,
+                                                startTime: (clipsQuery.data && clipsQuery.data.length > 0) ? ((clipsQuery.data[clipsQuery.data.length - 1].startTime || 0) + (clipsQuery.data[clipsQuery.data.length - 1].duration || 0)) : 0,
+                                            });
+                                        }
+                                    };
+                                    reader.readAsDataURL(file);
+                                }
                             }} />
                         </label>
                     </div>
+<<<<<<< HEAD
 
                     {/* Storyboard shots section */}
                     <div className="flex-1 overflow-y-auto">
@@ -539,19 +630,128 @@ export default function EditorTab({ projectId }: EditorTabProps) {
                                     <Button size="sm" variant="destructive" className="w-full h-8 text-[9px] rounded-lg font-bold uppercase tracking-widest mt-4"
                                         onClick={() => { deleteClipMutation.mutate({ clipId: clip.id }); setSelectedClipId(null); }}>
                                         <Trash2 className="w-3 h-3 mr-1.5" /> Remove
+=======
+                    <div className="flex-1 overflow-y-auto p-3">
+                        {clipsQuery.data?.map((clip) => (
+                            <div
+                                key={clip.id}
+                                className={`relative group mb-2 rounded-lg overflow-hidden cursor-pointer border ${selectedClipId === clip.id ? "border-primary" : "border-white/10 hover:border-white/20"}`}
+                                onClick={() => setSelectedClipId(clip.id)}
+                                draggable
+                                onDragStart={(e) => {
+                                    e.dataTransfer.setData("text/plain", JSON.stringify(clip));
+                                    e.dataTransfer.effectAllowed = "move";
+                                }}
+                            >
+                                {clip.fileType === "video" && (
+                                    <video src={clip.fileUrl} className="w-full h-24 object-cover" muted />
+                                )}
+                                {clip.fileType === "image" && (
+                                    <img src={clip.fileUrl} alt={clip.fileName} className="w-full h-24 object-cover" />
+                                )}
+                                {clip.fileType === "audio" && (
+                                    <div className="w-full h-24 bg-slate-700 flex items-center justify-center text-slate-400">
+                                        <Music className="w-8 h-8" />
+                                    </div>
+                                )}
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-xs font-medium">
+                                    {clip.fileName}
+                                </div>
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="absolute top-1 right-1 w-6 h-6 text-white/70 hover:text-white hover:bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        deleteClipMutation.mutate({ clipId: clip.id });
+                                    }}
+                                >
+                                    <Trash2 className="w-3 h-3" />
+                                </Button>
+                            </div>
+                        ))}
+                        <div className="mt-4">
+                            <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Storyboard Shots</h4>
+                            {storyboardShots.map((shot) => (
+                                <div
+                                    key={shot.id}
+                                    className="relative group mb-2 rounded-lg overflow-hidden cursor-pointer border border-white/10 hover:border-white/20"
+                                    onClick={() => handleAddStoryboardShot(shot)}
+                                >
+                                    {shot.videoUrl && (
+                                        <video src={shot.videoUrl} className="w-full h-24 object-cover" muted />
+                                    )}
+                                    {!shot.videoUrl && shot.imageUrl && (
+                                        <img src={shot.imageUrl} alt={`Shot ${shot.shotNumber}`} className="w-full h-24 object-cover" />
+                                    )}
+                                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-xs font-medium">
+                                        Shot {shot.shotNumber}
+                                    </div>
+                                    <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="absolute top-1 right-1 w-6 h-6 text-white/70 hover:text-white hover:bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            // Handle deletion if needed
+                                        }}
+                                    >
+                                        <Plus className="w-3 h-3" />
+>>>>>>> 125637c (feat: Implement full editor functionality)
                                     </Button>
                                 </div>
-                            );
-                        })() : (
-                            <div className="h-full flex flex-col items-center justify-center opacity-15">
-                                <ChevronDown className="w-8 h-8 mb-2" />
-                                <p className="text-[8px] font-black uppercase tracking-widest text-center">Select a clip</p>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* ─── Preview Panel ─── */}
+                <div className="flex-1 flex flex-col items-center justify-center bg-black relative">
+                    <video
+                        ref={videoRef}
+                        className="max-w-full max-h-full object-contain"
+                        onLoadedMetadata={() => {
+                            if (videoRef.current) {
+                                // This duration is for the current playing clip, not the whole timeline
+                            }
+                        }}
+                        onPlay={() => setIsPlaying(true)}
+                        onPause={() => setIsPlaying(false)}
+                        crossOrigin="anonymous"
+                        preload="metadata"
+                        muted={isMuted}
+                    />
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        className="absolute bottom-4 left-4 w-8 h-8 text-white/70 hover:text-white hover:bg-black/50"
+                        onClick={() => setIsMuted(!isMuted)}
+                    >
+                        {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                    </Button>
+                </div>
+
+                {/* ─── Inspector Panel (Right Sidebar) ─── */}
+                <div className="w-56 flex-shrink-0 border-l border-white/5 bg-[#0a0a0f]">
+                    <div className="px-3 py-2 border-b border-white/5">
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Inspector</span>
+                    </div>
+                    <div className="p-3 text-sm text-slate-400">
+                        {selectedClipId ? (
+                            <div className="space-y-2">
+                                <p>Clip ID: {selectedClipId}</p>
+                                <p>File: {clips.find(c => c.id === selectedClipId)?.fileName}</p>
+                                <p>Start: {formatTime(clips.find(c => c.id === selectedClipId)?.startTime || 0)}</p>
+                                <p>Duration: {formatTime(clips.find(c => c.id === selectedClipId)?.duration || 0)}</p>
                             </div>
+                        ) : (
+                            <p>Select a clip to inspect</p>
                         )}
                     </div>
                 </div>
             </div>
 
+<<<<<<< HEAD
             {/* ─── Timeline (Bottom 50%) ─── */}
             <div className="border-t border-white/5 bg-[#0a0a0f] flex flex-col overflow-hidden" style={{ height: "50%" }}>
                 <div className="px-4 py-1 border-b border-white/5 flex items-center justify-between flex-shrink-0 bg-white/[0.015]">
@@ -567,12 +767,33 @@ export default function EditorTab({ projectId }: EditorTabProps) {
                         duration={duration || 30}
                     />
                 </div>
+=======
+            {/* ─── Timeline ─── */}
+            <div className="flex-shrink-0 h-[calc(50%-48px)] border-t border-white/5 bg-[#0a0a0f]">
+                <Timeline
+                    editorProjectId={editorProjId}
+                    currentTime={playbackTime}
+                    onTimeChange={(t) => {
+                        setPlaybackTime(t);
+                        if (videoRef.current) {
+                            const activeClip = clips.find(
+                                (c) => t >= c.startTime && t < c.startTime + c.duration
+                            );
+                            if (activeClip) {
+                                videoRef.current.src = activeClip.fileUrl;
+                                videoRef.current.currentTime = (t - activeClip.startTime) / 1000;
+                                if (isPlaying) videoRef.current.play();
+                            } else {
+                                videoRef.current.pause();
+                                videoRef.current.removeAttribute("src"); // Clear source
+                            }
+                        }
+                    }}
+                    isPlaying={isPlaying}
+                    duration={duration || 300000} // Default to 5 minutes if no clips
+                />
+>>>>>>> 125637c (feat: Implement full editor functionality)
             </div>
-
-            {/* ─── Clip Lightbox (same as Motion Synthesis) ─── */}
-            {lightboxClip && (
-                <ClipLightbox clip={lightboxClip} onClose={() => setLightboxClip(null)} />
-            )}
         </div>
     );
 }
@@ -588,91 +809,115 @@ function ClipLightbox({ clip, onClose }: { clip: Clip; onClose: () => void }) {
     const hasInteracted = useRef(false);
 
     const togglePlay = useCallback(() => {
-        if (!videoRef.current) return;
-        if (!hasInteracted.current) {
-            hasInteracted.current = true;
-            videoRef.current.muted = false;
-            setIsMuted(false);
+        if (videoRef.current) {
+            if (isPlaying) {
+                videoRef.current.pause();
+            } else {
+                videoRef.current.play();
+            }
+            setIsPlaying(!isPlaying);
         }
-        if (videoRef.current.paused) { videoRef.current.play(); setIsPlaying(true); }
-        else { videoRef.current.pause(); setIsPlaying(false); }
-    }, []);
+    }, [isPlaying]);
 
     const toggleMute = useCallback(() => {
-        if (!videoRef.current) return;
-        videoRef.current.muted = !videoRef.current.muted;
-        setIsMuted(videoRef.current.muted);
+        if (videoRef.current) {
+            videoRef.current.muted = !videoRef.current.muted;
+            setIsMuted(videoRef.current.muted);
+        }
     }, []);
 
     useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === "Escape") onClose();
-            if (e.key === " ") { e.preventDefault(); togglePlay(); }
-            if (e.key === "m") toggleMute();
+        if (clip.fileUrl && videoRef.current) {
+            videoRef.current.src = clip.fileUrl;
+            videoRef.current.load();
+            videoRef.current.onloadedmetadata = () => {
+                if (videoRef.current) {
+                    setProgress(0);
+                    videoRef.current.currentTime = 0;
+                    if (hasInteracted.current) {
+                        videoRef.current.play();
+                        setIsPlaying(true);
+                    }
+                }
+            };
+        }
+    }, [clip.fileUrl]);
+
+    useEffect(() => {
+        const videoElement = videoRef.current;
+        if (!videoElement) return;
+
+        const updateProgress = () => {
+            if (videoElement.duration) {
+                setProgress((videoElement.currentTime / videoElement.duration) * 100);
+            }
         };
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [onClose, togglePlay, toggleMute]);
 
-    const handleTimeUpdate = useCallback(() => {
-        if (!videoRef.current) return;
-        setProgress((videoRef.current.currentTime / videoRef.current.duration) * 100);
+        videoElement.addEventListener('timeupdate', updateProgress);
+        return () => {
+            videoElement.removeEventListener('timeupdate', updateProgress);
+        };
     }, []);
-
-    const handleProgressClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-        if (!videoRef.current) return;
-        const rect = e.currentTarget.getBoundingClientRect();
-        videoRef.current.currentTime = ((e.clientX - rect.left) / rect.width) * videoRef.current.duration;
-    }, []);
-
-    const isVideo = clip.fileType === "video";
 
     return (
-        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center animate-fade-in" onClick={onClose}>
-            <button onClick={onClose} className="absolute top-6 right-6 z-[110] p-2 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 text-white hover:bg-white/20 group">
-                <X className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-            </button>
-            <div className="absolute top-6 left-6 z-[110]">
-                <div className="px-4 py-2 bg-black/60 backdrop-blur-xl rounded-xl border border-white/10">
-                    <span className="text-[11px] font-black text-white uppercase tracking-[0.3em]">{clip.fileName}</span>
-                </div>
-            </div>
-
-            <div className="relative max-w-[90vw] max-h-[85vh] rounded-2xl overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
-                {isVideo ? (
-                    <>
-                        <video ref={videoRef} src={clip.fileUrl} autoPlay muted={isMuted} loop onTimeUpdate={handleTimeUpdate} onClick={togglePlay}
-                            className="max-w-[90vw] max-h-[75vh] object-contain cursor-pointer" />
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-12">
-                            <div className="w-full h-1 bg-white/20 rounded-full mb-4 cursor-pointer group" onClick={handleProgressClick}>
-                                <div className="h-full bg-primary rounded-full relative" style={{ width: `${progress}%` }}>
-                                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <button onClick={togglePlay} className="p-2 rounded-full bg-white/10 hover:bg-white/20">
-                                    {isPlaying ? <Pause className="w-4 h-4 text-white" /> : <Play className="w-4 h-4 text-white" />}
-                                </button>
-                                <button onClick={toggleMute} className="p-2 rounded-full bg-white/10 hover:bg-white/20">
-                                    {isMuted ? <VolumeX className="w-4 h-4 text-white" /> : <Volume2 className="w-4 h-4 text-white" />}
-                                </button>
-                                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">{clip.fileName}</span>
-                            </div>
-                        </div>
-                    </>
-                ) : clip.fileType === "image" ? (
-                    <img src={clip.fileUrl} className="max-w-[90vw] max-h-[80vh] object-contain" alt={clip.fileName} />
-                ) : (
-                    <div className="w-96 h-48 bg-black/60 flex items-center justify-center">
-                        <Music className="w-12 h-12 text-slate-500" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={onClose}>
+            <div className="relative" onClick={(e) => e.stopPropagation()}>
+                {clip.fileType === "video" && (
+                    <video
+                        ref={videoRef}
+                        src={clip.fileUrl}
+                        className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
+                        autoPlay
+                        loop
+                        muted={isMuted}
+                        onClick={togglePlay}
+                        onLoadedData={() => hasInteracted.current = true}
+                    />
+                )}
+                {clip.fileType === "image" && (
+                    <img
+                        src={clip.fileUrl}
+                        alt={clip.fileName}
+                        className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
+                    />
+                )}
+                {clip.fileType === "audio" && (
+                    <div className="max-w-[90vw] max-h-[90vh] w-[800px] h-[450px] bg-slate-900 flex flex-col items-center justify-center rounded-lg p-8">
+                        <Music className="w-24 h-24 text-primary mb-4" />
+                        <p className="text-xl font-bold text-white mb-2">{clip.fileName}</p>
+                        <audio
+                            ref={videoRef}
+                            src={clip.fileUrl}
+                            controls
+                            autoPlay
+                            loop
+                            muted={isMuted}
+                            onPlay={() => setIsPlaying(true)}
+                            onPause={() => setIsPlaying(false)}
+                            onVolumeChange={(e) => setIsMuted(e.currentTarget.muted)}
+                        />
                     </div>
                 )}
-            </div>
 
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-4 text-[9px] text-slate-600 uppercase tracking-widest font-bold">
-                <span>Space — Play/Pause</span>
-                <span>M — Mute</span>
-                <span>Esc — Close</span>
+                <div className="absolute top-4 right-4">
+                    <Button size="icon" variant="ghost" onClick={onClose} className="text-white/70 hover:text-white">
+                        <X className="w-5 h-5" />
+                    </Button>
+                </div>
+
+                {clip.fileType === "video" && (
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/50 px-4 py-2 rounded-full">
+                        <Button size="icon" variant="ghost" onClick={togglePlay} className="text-white/70 hover:text-white">
+                            {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current" />}
+                        </Button>
+                        <Button size="icon" variant="ghost" onClick={toggleMute} className="text-white/70 hover:text-white">
+                            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                        </Button>
+                        <div className="w-40 h-1 bg-white/20 rounded-full">
+                            <div className="h-full bg-primary rounded-full" style={{ width: `${progress}%` }} />
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

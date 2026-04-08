@@ -1,5 +1,9 @@
 import {
+<<<<<<< HEAD
   createEditorProject, getEditorProjectsByProjectId, getEditorClips, createEditorClip, updateEditorClip, deleteEditorClip, createEditorTrack, getEditorTracks, deleteEditorTrack, createEditorExport, getEditorExports, updateEditorExport, createComment, getClipComments, updateComment, deleteComment, getAnimaticConfig, updateFrameDurations, updateAnimaticAudio, getStoryboardFrameOrder, updateFrameOrder, getFrameHistory, createFrameHistoryVersion, getFrameNotes, saveFrameNotes, deleteFrameNotes,
+=======
+  createEditorProject, getEditorProjectsByProjectId, getEditorClips, createEditorClip, updateEditorClip, deleteEditorClip, createEditorTrack, getEditorTracks, deleteEditorTrack, splitEditorClip, createEditorExport, getEditorExports, updateEditorExport, createComment, getClipComments, updateComment, deleteComment, getAnimaticConfig, updateFrameDurations, updateAnimaticAudio, getStoryboardFrameOrder, updateFrameOrder, getFrameHistory, createFrameHistoryVersion, getFrameNotes, saveFrameNotes, deleteFrameNotes,
+>>>>>>> 125637c (feat: Implement full editor functionality)
   getStoryboardImages
 } from "../db";
 import { z } from "zod";
@@ -61,6 +65,17 @@ export const editorRouter = router({
         return { success: true, clipId: (result as any).insertId || 0 };
       }),
 
+    split: publicProcedure
+      .input(z.object({
+        clipId: z.number(),
+        splitTime: z.number(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new Error("Unauthorized");
+        const result = await splitEditorClip(input.clipId, input.splitTime);
+        return { success: true, newClipId: result.newClipId };
+      }),
+
     update: publicProcedure
       .input(z.object({
         clipId: z.number(),
@@ -68,6 +83,7 @@ export const editorRouter = router({
         trimEnd: z.number().optional(),
         volume: z.number().optional(),
         startTime: z.number().optional(),
+        duration: z.number().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         if (!ctx.user) throw new Error("Unauthorized");
