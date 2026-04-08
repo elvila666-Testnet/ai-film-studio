@@ -169,18 +169,24 @@ export default function EditorTab({ projectId }: EditorTabProps) {
 
     // Sequencer Monitor Logic
     useEffect(() => {
-        if (!isPlaying) return;
-
         const activeClip = clips.find(
             (c) => playbackTime >= c.startTime && playbackTime < c.startTime + c.duration
         );
 
-        if (activeClip && activeClip.id !== currentPlayingClip?.id) {
-            setCurrentPlayingClip(activeClip);
-            if (videoRef.current) {
-                videoRef.current.src = activeClip.fileUrl;
-                videoRef.current.currentTime = (playbackTime - activeClip.startTime) / 1000;
-                videoRef.current.play();
+        if (activeClip) {
+            if (activeClip.id !== currentPlayingClip?.id) {
+                setCurrentPlayingClip(activeClip);
+                if (videoRef.current) {
+                    videoRef.current.src = activeClip.fileUrl;
+                    videoRef.current.currentTime = (playbackTime - activeClip.startTime) / 1000;
+                    if (isPlaying) videoRef.current.play();
+                }
+            } else if (!isPlaying && videoRef.current) {
+                // Synchronize time when seeking while paused
+                const targetTime = (playbackTime - activeClip.startTime) / 1000;
+                if (Math.abs(videoRef.current.currentTime - targetTime) > 0.1) {
+                    videoRef.current.currentTime = targetTime;
+                }
             }
         } else if (!activeClip && currentPlayingClip) {
             if (videoRef.current) videoRef.current.pause();
@@ -311,30 +317,54 @@ export default function EditorTab({ projectId }: EditorTabProps) {
                             crossOrigin="anonymous"
                             preload="metadata"
                             muted={isMuted}
-                            style={selectedClip?.colorCorrection ? {
-                                filter: `brightness(${100 + (selectedClip.colorCorrection as any).brightness}%) contrast(${100 + (selectedClip.colorCorrection as any).contrast}%) saturate(${100 + (selectedClip.colorCorrection as any).saturation}%) hue-rotate(${(selectedClip.colorCorrection as any).hue}deg)`
-                            } : {}}
+                            style={(() => {
+                                const clip = currentPlayingClip || selectedClip;
+                                if (!clip) return {};
+                                
+                                let filters = "";
+                                if (clip.colorCorrection) {
+                                    const cc = clip.colorCorrection as any;
+                                    filters += `brightness(${100 + (cc.brightness || 0)}%) `;
+                                    filters += `contrast(${100 + (cc.contrast || 0)}%) `;
+                                    filters += `saturate(${100 + (cc.saturation || 0)}%) `;
+                                    filters += `hue-rotate(${cc.hue || 0}deg) `;
+                                }
+                                
+                                if (clip.effects && Array.isArray(clip.effects)) {
+                                    (clip.effects as any[]).forEach((fx: any) => {
+                                        if (!fx.enabled) return;
+                                        switch (fx.type) {
+                                            case 'blur': filters += `blur(${fx.intensity}px) `; break;
+                                            case 'sepia': filters += `sepia(${fx.intensity}%) `; break;
+                                            case 'grayscale': filters += `grayscale(${fx.intensity}%) `; break;
+                                            case 'invert': filters += `invert(${fx.intensity}%) `; break;
+                                        }
+                                    });
+                                }
+                                
+                                return { filter: filters.trim() };
+                            })()}
                         />
                         
                         {/* Text Overlay Layer */}
-                        {selectedClip?.textOverlay && (
+                        {(currentPlayingClip || selectedClip)?.textOverlay && (
                             <div 
                                 className="absolute pointer-events-none"
                                 style={{
-                                    left: `${(selectedClip.textOverlay as any).x}%`,
-                                    top: `${(selectedClip.textOverlay as any).y}%`,
-                                    fontSize: `${(selectedClip.textOverlay as any).fontSize}px`,
-                                    fontFamily: (selectedClip.textOverlay as any).fontFamily,
-                                    color: (selectedClip.textOverlay as any).color,
-                                    backgroundColor: (selectedClip.textOverlay as any).backgroundColor,
-                                    opacity: (selectedClip.textOverlay as any).opacity,
-                                    textAlign: (selectedClip.textOverlay as any).alignment as any,
+                                    left: `${((currentPlayingClip || selectedClip)!.textOverlay as any).x}%`,
+                                    top: `${((currentPlayingClip || selectedClip)!.textOverlay as any).y}%`,
+                                    fontSize: `${((currentPlayingClip || selectedClip)!.textOverlay as any).fontSize}px`,
+                                    fontFamily: ((currentPlayingClip || selectedClip)!.textOverlay as any).fontFamily,
+                                    color: ((currentPlayingClip || selectedClip)!.textOverlay as any).color,
+                                    backgroundColor: ((currentPlayingClip || selectedClip)!.textOverlay as any).backgroundColor,
+                                    opacity: ((currentPlayingClip || selectedClip)!.textOverlay as any).opacity,
+                                    textAlign: ((currentPlayingClip || selectedClip)!.textOverlay as any).alignment as any,
                                     padding: '8px',
                                     borderRadius: '4px',
                                     transform: 'translate(-50%, -50%)'
                                 }}
                             >
-                                {(selectedClip.textOverlay as any).text}
+                                {((currentPlayingClip || selectedClip)!.textOverlay as any).text}
                             </div>
                         )}
                     </div>

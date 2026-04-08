@@ -49,6 +49,7 @@ export default function Timeline({
   const [tracks, setTracks] = useState<Track[]>([]);
   const [clips, setClips] = useState<TimelineClip[]>([]);
   const [internalSelectedClipId, setInternalSelectedClipId] = useState<number | null>(null);
+  const [dragOverTrackId, setDragOverTrackId] = useState<number | null>(null);
   
   const selectedClipId = externalSelectedClipId !== undefined ? externalSelectedClipId : internalSelectedClipId;
 
@@ -218,6 +219,24 @@ export default function Timeline({
     setClips(clips.map((c) => c.id === draggedClipId ? { ...c, startTime: newStartTime } : c));
   };
 
+  const handleDragOver = (e: React.DragEvent, trackId: number) => {
+    e.preventDefault();
+    setDragOverTrackId(trackId);
+  };
+
+  const handleDrop = (e: React.DragEvent, trackId: number) => {
+    e.preventDefault();
+    if (draggedClipId !== null) {
+      setClips(clips.map(c => c.id === draggedClipId ? { ...c, trackId } : c));
+      updateClipMutation.mutate({ clipId: draggedClipId, trackId });
+    }
+    setDragOverTrackId(null);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverTrackId(null);
+  };
+
   const handleClipDragEnd = () => {
     if (draggedClipId !== null) {
       const clip = clips.find(c => c.id === draggedClipId);
@@ -226,6 +245,14 @@ export default function Timeline({
       }
     }
     setDraggedClipId(null);
+  };
+
+  const handleDeleteTrack = (trackId: number) => {
+    deleteTrackMutation.mutate({ trackId });
+  };
+
+  const handleAddTrack = (type: "video" | "audio") => {
+    createTrackMutation.mutate({ editorProjectId, name: `New ${type} Track`, trackType: type });
   };
 
   useEffect(() => {
@@ -284,7 +311,15 @@ export default function Timeline({
       <div className="flex-1 overflow-auto relative" ref={timelineRef}>
         <div className="absolute top-0 left-0 w-full h-6 bg-[#0a0a0f] border-b border-white/5 z-20 flex">
           <div className="w-24 border-r border-white/5 flex-shrink-0" />
-          <div className="flex-1 relative">
+          <div 
+            className="flex-1 relative cursor-pointer"
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const x = e.clientX - rect.left;
+              const time = x / pixelsPerMillisecond;
+              onTimeChange(Math.max(0, Math.min(duration, time)));
+            }}
+          >
             {Array.from({ length: Math.ceil(duration / 1000) + 1 }).map((_, i) => (
               <div key={i} className="absolute top-0 text-[8px] font-mono text-slate-600 border-l border-white/5 h-full pl-1" style={{ left: i * 1000 * pixelsPerMillisecond }}>
                 {i}s
@@ -304,7 +339,20 @@ export default function Timeline({
                   <Button size="icon" variant="ghost" className="w-5 h-5 rounded hover:bg-red-500/10" onClick={() => handleDeleteTrack(track.id)}><Trash2 className="w-3 h-3 text-red-500/50 hover:text-red-500" /></Button>
                 </div>
               </div>
-              <div className="flex-1 relative bg-white/[0.01] h-[60px]">
+              <div 
+                className={`flex-1 relative h-[60px] cursor-crosshair transition-colors ${dragOverTrackId === track.id ? 'bg-primary/10' : 'bg-white/[0.01]'}`}
+                onDragOver={(e) => handleDragOver(e, track.id)}
+                onDrop={(e) => handleDrop(e, track.id)}
+                onDragLeave={handleDragLeave}
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const time = x / pixelsPerMillisecond;
+                    onTimeChange(Math.max(0, Math.min(duration, time)));
+                  }
+                }}
+              >
                 {clips.filter(c => c.trackId === track.id).map(clip => (
                   <div
                     key={clip.id}
@@ -313,6 +361,12 @@ export default function Timeline({
                       left: clip.startTime * pixelsPerMillisecond,
                       width: clip.duration * pixelsPerMillisecond,
                       backgroundColor: clip.color + '44',
+                    }}
+                    draggable
+                    onDragStart={(e) => {
+                      const img = new Image();
+                      img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                      e.dataTransfer.setDragImage(img, 0, 0);
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
