@@ -1,10 +1,26 @@
 import {
-<<<<<<< HEAD
-  createEditorProject, getEditorProjectsByProjectId, getEditorClips, createEditorClip, updateEditorClip, deleteEditorClip, createEditorTrack, getEditorTracks, deleteEditorTrack, createEditorExport, getEditorExports, updateEditorExport, createComment, getClipComments, updateComment, deleteComment, getAnimaticConfig, updateFrameDurations, updateAnimaticAudio, getStoryboardFrameOrder, updateFrameOrder, getFrameHistory, createFrameHistoryVersion, getFrameNotes, saveFrameNotes, deleteFrameNotes,
-=======
-  createEditorProject, getEditorProjectsByProjectId, getEditorClips, createEditorClip, updateEditorClip, deleteEditorClip, createEditorTrack, getEditorTracks, deleteEditorTrack, splitEditorClip, createEditorExport, getEditorExports, updateEditorExport, createComment, getClipComments, updateComment, deleteComment, getAnimaticConfig, updateFrameDurations, updateAnimaticAudio, getStoryboardFrameOrder, updateFrameOrder, getFrameHistory, createFrameHistoryVersion, getFrameNotes, saveFrameNotes, deleteFrameNotes,
->>>>>>> 125637c (feat: Implement full editor functionality)
-  getStoryboardImages
+  createEditorProject,
+  getEditorProjectsByProjectId,
+  getEditorClips,
+  createEditorClip,
+  updateEditorClip,
+  deleteEditorClip,
+  splitEditorClip,
+  createEditorTrack,
+  getEditorTracks,
+  deleteEditorTrack,
+  createEditorKeyframe,
+  getEditorKeyframes,
+  deleteEditorKeyframe,
+  createEditorTransition,
+  getEditorTransitions,
+  createEditorExport,
+  getEditorExports,
+  updateEditorExport,
+  createComment,
+  getClipComments,
+  updateComment,
+  deleteComment
 } from "../db";
 import { z } from "zod";
 import { publicProcedure, router } from "../_core/trpc";
@@ -12,7 +28,13 @@ import { publicProcedure, router } from "../_core/trpc";
 export const editorRouter = router({
   projects: router({
     create: publicProcedure
-      .input(z.object({ projectId: z.number(), title: z.string().min(1), description: z.string().optional(), fps: z.number().default(24), resolution: z.string().default("1920x1080") }))
+      .input(z.object({ 
+        projectId: z.number(), 
+        title: z.string().min(1), 
+        description: z.string().optional(), 
+        fps: z.number().default(24), 
+        resolution: z.string().default("1920x1080") 
+      }))
       .mutation(async ({ input, ctx }) => {
         if (!ctx.user) throw new Error("Unauthorized");
         const result = await createEditorProject(input.projectId, {
@@ -65,17 +87,6 @@ export const editorRouter = router({
         return { success: true, clipId: (result as any).insertId || 0 };
       }),
 
-    split: publicProcedure
-      .input(z.object({
-        clipId: z.number(),
-        splitTime: z.number(),
-      }))
-      .mutation(async ({ input, ctx }) => {
-        if (!ctx.user) throw new Error("Unauthorized");
-        const result = await splitEditorClip(input.clipId, input.splitTime);
-        return { success: true, newClipId: result.newClipId };
-      }),
-
     update: publicProcedure
       .input(z.object({
         clipId: z.number(),
@@ -84,6 +95,9 @@ export const editorRouter = router({
         volume: z.number().optional(),
         startTime: z.number().optional(),
         duration: z.number().optional(),
+        effects: z.any().optional(),
+        colorCorrection: z.any().optional(),
+        textOverlay: z.any().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         if (!ctx.user) throw new Error("Unauthorized");
@@ -100,15 +114,14 @@ export const editorRouter = router({
         return { success: true };
       }),
 
-    updatePosition: publicProcedure
+    split: publicProcedure
       .input(z.object({
         clipId: z.number(),
-        startTime: z.number(),
+        splitTime: z.number(),
       }))
       .mutation(async ({ input, ctx }) => {
         if (!ctx.user) throw new Error("Unauthorized");
-        await updateEditorClip(input.clipId, { startTime: input.startTime });
-        return { success: true };
+        return await splitEditorClip(input.clipId, input.splitTime);
       }),
 
     batchUpdatePositions: publicProcedure
@@ -125,53 +138,60 @@ export const editorRouter = router({
         }
         return { success: true, count: input.updates.length };
       }),
+  }),
 
-    split: publicProcedure
-      .input(z.object({
-        clipId: z.number(),
-        splitTime: z.number(), // Offset from clip start in ms
-      }))
-      .mutation(async ({ input, ctx }) => {
-        const { getEditorClip, createEditorClip, updateEditorClip } = await import("../db/editor");
-        const originalClip = await getEditorClip(input.clipId);
-        if (!originalClip) throw new Error("Clip not found");
-
-        const leftDuration = input.splitTime;
-        const rightDuration = (originalClip.duration || 0) - input.splitTime;
-
-        if (leftDuration <= 0 || rightDuration <= 0) {
-          throw new Error("Split point must be within clip duration");
-        }
-
-        // 1. Update left part
-        await updateEditorClip(input.clipId, { duration: leftDuration });
-
-        // 2. Create right part
-        const result = await createEditorClip({
-          ...originalClip,
-          id: undefined, // New ID
-          startTime: (originalClip.startTime || 0) + leftDuration,
-          duration: rightDuration,
-          order: (originalClip.order || 0) + 1,
-          fileName: `${originalClip.fileName} (Part 2)`
-        } as any);
-
-        return { success: true, newClipId: (result as any).insertId || 0 };
+  keyframes: router({
+    list: publicProcedure
+      .input(z.object({ clipId: z.number() }))
+      .query(async ({ input }) => {
+        return getEditorKeyframes(input.clipId);
       }),
 
-    trim: publicProcedure
+    create: publicProcedure
       .input(z.object({
         clipId: z.number(),
-        startTime: z.number().optional(), // new absolute startTime in ms
-        duration: z.number().optional(),  // new duration in ms
-        trimStart: z.number().optional(), // trim offset from source start in ms
-        trimEnd: z.number().optional(),   // trim offset from source end in ms
+        time: z.number(),
+        property: z.string(),
+        value: z.number(),
+        easing: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         if (!ctx.user) throw new Error("Unauthorized");
-        const { clipId, ...updates } = input;
-        await updateEditorClip(clipId, updates);
+        const result = await createEditorKeyframe(input as any);
+        return { success: true, keyframeId: (result as any).insertId || 0 };
+      }),
+
+    delete: publicProcedure
+      .input(z.object({ keyframeId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new Error("Unauthorized");
+        await deleteEditorKeyframe(input.keyframeId);
         return { success: true };
+      }),
+  }),
+
+  transitions: router({
+    list: publicProcedure
+      .input(z.object({ editorProjectId: z.number() }))
+      .query(async ({ input }) => {
+        return getEditorTransitions(input.editorProjectId);
+      }),
+
+    create: publicProcedure
+      .input(z.object({
+        editorProjectId: z.number(),
+        fromClipId: z.number(),
+        toClipId: z.number(),
+        type: z.string(),
+        duration: z.number(),
+        easing: z.string().optional(),
+        direction: z.string().optional(),
+        parameters: z.any().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new Error("Unauthorized");
+        const result = await createEditorTransition(input as any);
+        return { success: true, transitionId: (result as any).insertId || 0 };
       }),
   }),
 
@@ -183,7 +203,12 @@ export const editorRouter = router({
       }),
 
     create: publicProcedure
-      .input(z.object({ editorProjectId: z.number(), trackType: z.enum(["video", "audio"]), trackNumber: z.number(), name: z.string().optional() }))
+      .input(z.object({ 
+        editorProjectId: z.number(), 
+        trackType: z.enum(["video", "audio"]), 
+        trackNumber: z.number(), 
+        name: z.string().optional() 
+      }))
       .mutation(async ({ input, ctx }) => {
         if (!ctx.user) throw new Error("Unauthorized");
         const result = await createEditorTrack({
@@ -212,7 +237,11 @@ export const editorRouter = router({
       }),
 
     create: publicProcedure
-      .input(z.object({ editorProjectId: z.number(), format: z.enum(["mp4", "webm", "mov", "mkv"]), quality: z.enum(["720p", "1080p", "4k"]).default("1080p") }))
+      .input(z.object({ 
+        editorProjectId: z.number(), 
+        format: z.enum(["mp4", "webm", "mov", "mkv"]), 
+        quality: z.enum(["720p", "1080p", "4k"]).default("1080p") 
+      }))
       .mutation(async ({ input, ctx }) => {
         if (!ctx.user) throw new Error("Unauthorized");
         const result = await createEditorExport({
@@ -225,7 +254,12 @@ export const editorRouter = router({
       }),
 
     updateStatus: publicProcedure
-      .input(z.object({ exportId: z.number(), status: z.string().optional(), exportUrl: z.string().optional(), error: z.string().optional() }))
+      .input(z.object({ 
+        exportId: z.number(), 
+        status: z.string().optional(), 
+        exportUrl: z.string().optional(), 
+        error: z.string().optional() 
+      }))
       .mutation(async ({ input, ctx }) => {
         if (!ctx.user) throw new Error("Unauthorized");
         const { exportId, ...updates } = input;
@@ -242,7 +276,11 @@ export const editorRouter = router({
       }),
 
     create: publicProcedure
-      .input(z.object({ clipId: z.number(), content: z.string(), timestamp: z.number().optional() }))
+      .input(z.object({ 
+        clipId: z.number(), 
+        content: z.string(), 
+        timestamp: z.number().optional() 
+      }))
       .mutation(async ({ input, ctx }) => {
         if (!ctx.user) throw new Error("Unauthorized");
         await createComment({
@@ -255,7 +293,11 @@ export const editorRouter = router({
       }),
 
     update: publicProcedure
-      .input(z.object({ commentId: z.number(), content: z.string().optional(), resolved: z.boolean().optional() }))
+      .input(z.object({ 
+        commentId: z.number(), 
+        content: z.string().optional(), 
+        resolved: z.boolean().optional() 
+      }))
       .mutation(async ({ input, ctx }) => {
         if (!ctx.user) throw new Error("Unauthorized");
         const { commentId, ...updates } = input;
@@ -271,160 +313,4 @@ export const editorRouter = router({
         return { success: true };
       }),
   }),
-
-  populateFromStoryboard: publicProcedure
-    .input(z.object({ projectId: z.number(), editorProjectId: z.number() }))
-    .mutation(async ({ input, ctx }) => {
-      if (!ctx.user) throw new Error("Unauthorized");
-      const storyboardImages = await getStoryboardImages(input.projectId);
-      const editorClipsToCreate = storyboardImages.map((img: { imageUrl: string }, index: number) => ({
-        editorProjectId: input.editorProjectId,
-        trackId: 1,
-        fileUrl: img.imageUrl,
-        fileName: `Storyboard Frame ${index + 1}`,
-        fileType: "image" as const,
-        duration: 2000,
-        startTime: index * 2000,
-        order: index + 1,
-      }));
-
-      for (const clip of editorClipsToCreate) {
-        await createEditorClip(clip);
-      }
-
-      return { success: true, clipsCreated: editorClipsToCreate.length };
-    }),
-
-  exportAnimatic: publicProcedure
-    .input(z.object({ projectId: z.number(), durationPerFrame: z.number().default(2), fps: z.number().default(24), resolution: z.string().default("1920x1080"), audioUrl: z.string().optional(), audioVolume: z.number().default(100), frameDurations: z.record(z.string(), z.number()).optional() }))
-    .mutation(async ({ input, ctx }) => {
-      if (!ctx.user) throw new Error("Unauthorized");
-      const { projectId, durationPerFrame, fps, resolution, audioUrl, audioVolume, frameDurations } = input;
-      const { getDb } = await import("../db");
-      const { scenes, shots, generations } = await import("../../drizzle/schema");
-      const { eq, inArray, desc } = await import("drizzle-orm");
-
-      const db = await getDb();
-      if (!db) throw new Error("Database unreachable");
-
-      // 1. Get all scenes ordered
-      const sceneList = await db.select().from(scenes).where(eq(scenes.projectId, projectId)).orderBy(scenes.order);
-      if (sceneList.length === 0) throw new Error("No scenes found for this project");
-
-      // 2. Get all shots for these scenes
-      const sceneIds = sceneList.map((s: { id: number }) => s.id);
-      const shotList = await db.select().from(shots).where(inArray(shots.sceneId, sceneIds)).orderBy(shots.sceneId, shots.order);
-      if (shotList.length === 0) throw new Error("No shots found for this project");
-
-      // 3. Get latest generations for these shots
-      const shotIds = shotList.map((s: { id: number }) => s.id);
-      const latestGens = await db.select().from(generations).where(inArray(generations.shotId, shotIds)).orderBy(desc(generations.createdAt));
-
-      // 4. Map images to shots (preserving scene->shot order)
-      const imageUrls: string[] = [];
-      const finalFrameDurations: Record<number, number> = {};
-
-      let frameCount = 0;
-      for (const scene of sceneList) {
-        const sceneShots = shotList.filter((s: { sceneId: number }) => s.sceneId === scene.id);
-        for (const shot of sceneShots) {
-          const latestGen = latestGens.find((g: { shotId: number, imageUrl?: string }) => g.shotId === shot.id);
-          if (latestGen?.imageUrl) {
-            frameCount++;
-            imageUrls.push(latestGen.imageUrl);
-            // Map duration using the new relational ID if provided in input, else fallback to default
-            if (frameDurations && frameDurations[shot.id.toString()]) {
-              finalFrameDurations[frameCount] = frameDurations[shot.id.toString()];
-            }
-          }
-        }
-      }
-
-      if (imageUrls.length === 0) {
-        throw new Error("No generated visuals found for this project");
-      }
-
-      const { videoEditorService } = await import("../services/videoEditor");
-      const localVideoPath = await videoEditorService.createAnimatic(imageUrls, durationPerFrame, fps, resolution, audioUrl, audioVolume, finalFrameDurations);
-
-      const { storagePut } = await import("../storage");
-      const fs = await import("fs/promises");
-      const fileBuffer = await fs.readFile(localVideoPath);
-      const { url: videoUrl } = await storagePut(`animatic/${projectId}-${Date.now()}.mp4`, fileBuffer, "video/mp4");
-
-      await fs.unlink(localVideoPath).catch(() => { });
-
-      return { success: true, videoUrl };
-    }),
-
-  getAnimaticConfig: publicProcedure
-    .input(z.object({ projectId: z.number() }))
-    .query(async ({ input }) => {
-      return await getAnimaticConfig(input.projectId);
-    }),
-
-  saveAnimaticConfig: publicProcedure
-    .input(z.object({ projectId: z.number(), frameDurations: z.record(z.string(), z.number()).optional(), audioUrl: z.string().optional(), audioVolume: z.number().optional() }))
-    .mutation(async ({ input, ctx }) => {
-      if (!ctx.user) throw new Error("Unauthorized");
-      const { projectId, frameDurations, audioUrl, audioVolume } = input;
-      if (frameDurations) {
-        const parsed = Object.entries(frameDurations).reduce((acc, [k, v]) => ({ ...acc, [parseInt(k)]: v }), {} as Record<number, number>);
-        await updateFrameDurations(projectId, parsed);
-      }
-      if (audioUrl !== undefined) {
-        await updateAnimaticAudio(projectId, audioUrl, audioVolume ?? 100);
-      }
-      return { success: true };
-    }),
-
-  getFrameOrder: publicProcedure
-    .input(z.object({ projectId: z.number() }))
-    .query(async ({ input }) => {
-      return await getStoryboardFrameOrder(input.projectId);
-    }),
-
-  updateFrameOrder: publicProcedure
-    .input(z.object({ projectId: z.number(), frameOrders: z.array(z.object({ shotNumber: z.number(), displayOrder: z.number() })) }))
-    .mutation(async ({ input, ctx }) => {
-      if (!ctx.user) throw new Error("Unauthorized");
-      await updateFrameOrder(input.projectId, input.frameOrders);
-      return { success: true };
-    }),
-
-  getFrameHistory: publicProcedure
-    .input(z.object({ projectId: z.number(), shotNumber: z.number() }))
-    .query(async ({ input }) => {
-      return await getFrameHistory(input.projectId, input.shotNumber);
-    }),
-
-  createFrameVersion: publicProcedure
-    .input(z.object({ projectId: z.number(), shotNumber: z.number(), imageUrl: z.string(), prompt: z.string(), notes: z.string().optional() }))
-    .mutation(async ({ input, ctx }) => {
-      if (!ctx.user) throw new Error("Unauthorized");
-      await createFrameHistoryVersion(input.projectId, input.shotNumber, input.imageUrl, input.prompt, input.notes);
-      return { success: true };
-    }),
-
-  getFrameNotes: publicProcedure
-    .input(z.object({ projectId: z.number(), shotNumber: z.number() }))
-    .query(async ({ input }) => {
-      return await getFrameNotes(input.projectId, input.shotNumber);
-    }),
-
-  saveFrameNotes: publicProcedure
-    .input(z.object({ projectId: z.number(), shotNumber: z.number(), notes: z.string(), metadata: z.record(z.string(), z.any()).optional() }))
-    .mutation(async ({ input, ctx }) => {
-      if (!ctx.user) throw new Error("Unauthorized");
-      await saveFrameNotes(input.projectId, input.shotNumber, input.notes, input.metadata);
-      return { success: true };
-    }),
-
-  deleteFrameNotes: publicProcedure
-    .input(z.object({ projectId: z.number(), shotNumber: z.number() }))
-    .mutation(async ({ input, ctx }) => {
-      if (!ctx.user) throw new Error("Unauthorized");
-      await deleteFrameNotes(input.projectId, input.shotNumber);
-      return { success: true };
-    }),
 });

@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Volume2, Eye, Lock, Scissors, MousePointer2, Music, Video as VideoIcon } from "lucide-react";
+import { 
+  Plus, Trash2, Volume2, Eye, EyeOff, Lock, Unlock, 
+  Scissors, MousePointer2, Music, Video as VideoIcon 
+} from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 
@@ -10,6 +13,8 @@ interface TimelineProps {
   onTimeChange: (time: number) => void;
   isPlaying: boolean;
   duration: number;
+  onClipSelect?: (clipId: number | null) => void;
+  selectedClipId?: number | null;
 }
 
 interface Track {
@@ -38,15 +43,18 @@ export default function Timeline({
   onTimeChange,
   isPlaying: _isPlaying,
   duration,
+  onClipSelect,
+  selectedClipId: externalSelectedClipId,
 }: TimelineProps) {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [clips, setClips] = useState<TimelineClip[]>([]);
+  const [internalSelectedClipId, setInternalSelectedClipId] = useState<number | null>(null);
+  
+  const selectedClipId = externalSelectedClipId !== undefined ? externalSelectedClipId : internalSelectedClipId;
+
   const updateClipMutation = trpc.editor.clips.update.useMutation();
   const splitClipMutation = trpc.editor.clips.split.useMutation();
-  const [selectedTrackId, setSelectedTrackId] = useState<number | null>(null);
   const [zoom, setZoom] = useState(1);
-  const [dragOverTrackId, setDragOverTrackId] = useState<number | null>(null);
-  const [selectedClipId, setSelectedClipId] = useState<number | null>(null);
   const [trimMode, setTrimMode] = useState<"left" | "right" | null>(null);
   const [trimStartX, setTrimStartX] = useState(0);
   const [draggedClipId, setDraggedClipId] = useState<number | null>(null);
@@ -54,26 +62,10 @@ export default function Timeline({
   const [dragStartTime, setDragStartTime] = useState(0);
   const [snapToGrid, setSnapToGrid] = useState(true);
   const [gridSize, setGridSize] = useState(0.5); // in seconds
-  const [history, setHistory] = useState<Array<{ clips: TimelineClip[]; timestamp: number }>>([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
-  const [pendingUpdates, setPendingUpdates] = useState<Map<number, number>>(new Map());
   const [editMode, setEditMode] = useState<"select" | "blade">("select");
   const timelineRef = useRef<HTMLDivElement>(null);
-  const batchSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const pixelsPerMillisecond = (50 * zoom) / 1000; // 50 pixels per second at zoom 1
+  const pixelsPerMillisecond = (50 * zoom) / 1000;
 
-  // Mutations for adding clips
-  const addClipMutation = trpc.editor.clips.upload.useMutation({
-    onSuccess: () => {
-      toast.success("Clip added to timeline");
-      clipsQuery.refetch();
-    },
-    onError: (error) => {
-      toast.error(`Failed to add clip: ${error.message}`);
-    },
-  });
-
-  // Queries
   const tracksQuery = trpc.editor.tracks.list.useQuery(
     { editorProjectId },
     { enabled: !!editorProjectId }
@@ -84,25 +76,12 @@ export default function Timeline({
     { enabled: !!editorProjectId }
   );
 
-  // Mutations
   const createTrackMutation = trpc.editor.tracks.create.useMutation({
     onSuccess: () => {
       toast.success("Track created");
       tracksQuery.refetch();
     },
-    onError: (error) => {
-      toast.error(`Failed to create track: ${error.message}`);
-    },
-  });
-
-  const splitClipMutation = trpc.editor.clips.split.useMutation({
-    onSuccess: () => {
-      toast.success("Clip split successfully");
-      clipsQuery.refetch();
-    },
-    onError: (error) => {
-      toast.error(`Split failed: ${error.message}`);
-    },
+    onError: (error) => toast.error(`Failed to create track: ${error.message}`),
   });
 
   const deleteTrackMutation = trpc.editor.tracks.delete.useMutation({
@@ -111,29 +90,23 @@ export default function Timeline({
       tracksQuery.refetch();
       clipsQuery.refetch();
     },
-    onError: (error) => {
-      toast.error(`Failed to delete track: ${error.message}`);
-    },
+    onError: (error) => toast.error(`Failed to delete track: ${error.message}`),
   });
 
   const trimClipMutation = trpc.editor.clips.trim.useMutation({
     onSuccess: () => {
-      toast.success("Trim saved");
       clipsQuery.refetch();
     },
-    onError: (error) => {
-      toast.error(`Trim failed: ${error.message}`);
-    },
+    onError: (error) => toast.error(`Trim failed: ${error.message}`),
   });
 
-  // Update local state from queries
   useEffect(() => {
     if (tracksQuery.data) {
       setTracks(
-        tracksQuery.data.map((track: Record<string, any>) => ({
+        tracksQuery.data.map((track: any) => ({
           id: track.id,
           name: track.name || `Track ${track.id}`,
-          type: track.type || "video",
+          type: track.trackType || "video",
           isMuted: false,
           isSolo: false,
           isLocked: false,
@@ -147,44 +120,35 @@ export default function Timeline({
   useEffect(() => {
     if (clipsQuery.data) {
       setClips(
-        clipsQuery.data.map((clip: Record<string, any>) => {
-          const durationMs = clip.duration || 5000;
-          return {
-            id: clip.id,
-            trackId: clip.trackId || 0,
-            startTime: clip.startTime || 0,
-            duration: durationMs,
-            name: clip.fileName || `Clip ${clip.id}`,
-            color: `hsl(${(clip.id * 137) % 360}, 70%, 60%)`, // Stable color
-          };
-        })
+        clipsQuery.data.map((clip: any) => ({
+          id: clip.id,
+          trackId: clip.trackId || 0,
+          startTime: clip.startTime || 0,
+          duration: clip.duration || 5000,
+          name: clip.fileName || `Clip ${clip.id}`,
+          color: clip.fileType === 'audio' ? '#1e40af' : '#15803d',
+        }))
       );
     }
   }, [clipsQuery.data]);
 
-  const handleAddTrack = (type: "video" | "audio") => {
-    createTrackMutation.mutate({
-      editorProjectId,
-      trackType: type,
-      trackNumber: tracks.length,
-      name: `${type.charAt(0).toUpperCase() + type.slice(1)} Track ${tracks.length + 1}`,
-    });
-  };
-
-  const handleDeleteTrack = (trackId: number) => {
-    deleteTrackMutation.mutate({ trackId });
+  const handleClipSelect = (id: number | null) => {
+    if (onClipSelect) {
+      onClipSelect(id);
+    } else {
+      setInternalSelectedClipId(id);
+    }
   };
 
   const handleTrimStart = (e: React.MouseEvent, clipId: number, side: "left" | "right") => {
     e.stopPropagation();
-    setSelectedClipId(clipId);
+    handleClipSelect(clipId);
     setTrimMode(side);
     setTrimStartX(e.clientX);
   };
 
-  const handleTrimMove = (e: React.MouseEvent) => {
+  const handleTrimMove = (e: MouseEvent) => {
     if (!trimMode || selectedClipId === null) return;
-
     const clip = clips.find((c) => c.id === selectedClipId);
     if (!clip) return;
 
@@ -194,23 +158,13 @@ export default function Timeline({
     if (trimMode === "left") {
       const newStartTime = Math.max(0, Math.round(clip.startTime + deltaTime));
       const newDuration = clip.duration - (newStartTime - clip.startTime);
-      if (newDuration > 0.5) {
-        setClips(
-          clips.map((c) =>
-            c.id === selectedClipId
-              ? { ...c, startTime: newStartTime, duration: newDuration }
-              : c
-          )
-        );
+      if (newDuration > 500) {
+        setClips(clips.map((c) => c.id === selectedClipId ? { ...c, startTime: newStartTime, duration: newDuration } : c));
         setTrimStartX(e.clientX);
       }
-    } else if (trimMode === "right") {
+    } else {
       const newDuration = Math.max(500, Math.round(clip.duration + deltaTime));
-      setClips(
-        clips.map((c) =>
-          c.id === selectedClipId ? { ...c, duration: newDuration } : c
-        )
-      );
+      setClips(clips.map((c) => c.id === selectedClipId ? { ...c, duration: newDuration } : c));
       setTrimStartX(e.clientX);
     }
   };
@@ -218,62 +172,29 @@ export default function Timeline({
   const handleTrimEnd = () => {
     if (selectedClipId === null) return;
     const clip = clips.find((c) => c.id === selectedClipId);
-    if (!clip) return;
-
-    trimClipMutation.mutate(
-      { clipId: clip.id, startTime: clip.startTime, duration: clip.duration },
-      {
-        onSuccess: () => {
-          toast.success("Clip trimmed successfully");
-          clipsQuery.refetch();
-        },
-        onError: (error) => {
-          toast.error(`Failed to trim clip: ${error.message}`);
-        },
-      }
-    );
+    if (clip) {
+      trimClipMutation.mutate({ clipId: clip.id, startTime: clip.startTime, duration: clip.duration });
+    }
     setTrimMode(null);
   };
 
   const handleCutClip = (clipId: number) => {
     const clip = clips.find((c) => c.id === clipId);
     if (!clip) return;
-
-    const cutPosition = currentTime; // currentTime is already in milliseconds
-    if (cutPosition <= clip.startTime || cutPosition >= clip.startTime + clip.duration) {
+    if (currentTime <= clip.startTime || currentTime >= clip.startTime + clip.duration) {
       toast.error("Playhead must be inside the clip to cut");
       return;
     }
-
-    const leftDuration = cutPosition - clip.startTime;
-
-    // Update the original clip (left part)
-    updateClipMutation.mutate(
-      { clipId, duration: leftDuration },
-      {
-        onSuccess: () => {
-          // Then create new clip for the right part
-          splitClipMutation.mutate(
-            { clipId, splitTime: cutPosition },
-            {
-              onSuccess: () => {
-                toast.success("Clip cut successfully");
-                clipsQuery.refetch();
-              },
-              onError: (error) => {
-                toast.error(`Failed to create new clip after cut: ${error.message}`);
-              },
-            }
-          );
-        },
-        onError: (error) => {
-          toast.error(`Failed to update original clip before cut: ${error.message}`);
-        },
+    splitClipMutation.mutate({ clipId, splitTime: currentTime }, {
+      onSuccess: () => {
+        toast.success("Clip cut");
+        clipsQuery.refetch();
       }
-    );
+    });
   };
 
-  const handleClipDragStart = (e: React.DragEvent<HTMLDivElement>, clipId: number) => {
+  const handleClipDragStart = (e: React.MouseEvent, clipId: number) => {
+    if (editMode === "blade") return;
     e.stopPropagation();
     const clip = clips.find((c) => c.id === clipId);
     if (!clip) return;
@@ -281,294 +202,145 @@ export default function Timeline({
     setDraggedClipId(clipId);
     setDragStartX(e.clientX);
     setDragStartTime(clip.startTime);
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", clipId.toString());
+    handleClipSelect(clipId);
   };
 
   const handleClipDragMove = (e: MouseEvent) => {
     if (draggedClipId === null) return;
-
-    const clip = clips.find((c) => c.id === draggedClipId);
-    if (!clip) return;
-
-    const deltaX = (e as any).clientX - dragStartX;
+    const deltaX = e.clientX - dragStartX;
     const deltaTime = deltaX / pixelsPerMillisecond;
     let newStartTime = Math.max(0, Math.round(dragStartTime + deltaTime));
-
-    // Apply snap to grid
-    newStartTime = snapTime(newStartTime);
-
-    setClips(
-      clips.map((c) =>
-        c.id === draggedClipId ? { ...c, startTime: newStartTime } : c
-      )
-    );
-  };
-
-  const _updateClipPositionMutation = trpc.editor.clips.updatePosition.useMutation();
-  void _updateClipPositionMutation;
-  const batchUpdateClipsMutation = trpc.editor.clips.batchUpdatePositions.useMutation();
-
-  // Snap to grid helper
-  const snapTime = (time: number): number => {
-    if (!snapToGrid) return time;
-    return Math.round(time / (gridSize * 1000)) * (gridSize * 1000);
-  };
-
-  // Add to history for undo/redo
-  const addToHistory = (newClips: TimelineClip[]) => {
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push({ clips: newClips, timestamp: Date.now() });
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
-  };
-
-  // Undo handler
-  const handleUndo = () => {
-    if (historyIndex > 0) {
-      const newIndex = historyIndex - 1;
-      setHistoryIndex(newIndex);
-      setClips(history[newIndex].clips);
-      toast.success("Undo");
+    
+    if (snapToGrid) {
+      newStartTime = Math.round(newStartTime / (gridSize * 1000)) * (gridSize * 1000);
     }
+
+    setClips(clips.map((c) => c.id === draggedClipId ? { ...c, startTime: newStartTime } : c));
   };
 
-  // Redo handler
-  const handleRedo = () => {
-    if (historyIndex < history.length - 1) {
-      const newIndex = historyIndex + 1;
-      setHistoryIndex(newIndex);
-      setClips(history[newIndex].clips);
-      toast.success("Redo");
-    }
-  };
-
-  // Batch save pending updates
-  const flushPendingUpdates = () => {
-    if (pendingUpdates.size === 0) return;
-
-    const updates = Array.from(pendingUpdates.entries()).map(([clipId, startTime]) => ({
-      clipId,
-      startTime,
-    }));
-
-    batchUpdateClipsMutation.mutate(
-      { updates },
-      {
-        onSuccess: () => {
-          toast.success("Clips saved");
-          setPendingUpdates(new Map());
-          clipsQuery.refetch();
-        },
-        onError: (error) => {
-          toast.error(`Failed to save clips: ${error.message}`);
-        },
+  const handleClipDragEnd = () => {
+    if (draggedClipId !== null) {
+      const clip = clips.find(c => c.id === draggedClipId);
+      if (clip) {
+        updateClipMutation.mutate({ clipId: clip.id, startTime: clip.startTime });
       }
-    );
+    }
+    setDraggedClipId(null);
   };
 
   useEffect(() => {
-    if (batchSaveTimeoutRef.current) {
-      clearTimeout(batchSaveTimeoutRef.current);
-    }
-    if (pendingUpdates.size > 0) {
-      batchSaveTimeoutRef.current = setTimeout(flushPendingUpdates, 1000);
-    }
-    return () => {
-      if (batchSaveTimeoutRef.current) {
-        clearTimeout(batchSaveTimeoutRef.current);
-      }
+    const handleMouseMove = (e: MouseEvent) => {
+      if (trimMode) handleTrimMove(e);
+      if (draggedClipId !== null) handleClipDragMove(e);
     };
-  }, [pendingUpdates]);
-
-  const handleClipDragEnd = () => {
-    if (draggedClipId === null) return;
-    const clip = clips.find((c) => c.id === draggedClipId);
-    if (!clip) return;
-
-    // Add to pending updates for batch saving
-    setPendingUpdates((prev) => new Map(prev).set(clip.id, clip.startTime));
-
-    setDraggedClipId(null);
-    setDragStartX(0);
-    setDragStartTime(0);
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>, trackId: number) => {
-    e.preventDefault();
-    setDragOverTrackId(trackId);
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>, trackId: number) => {
-    e.preventDefault();
-    setDragOverTrackId(null);
-
-    const clipData = e.dataTransfer.getData("text/plain");
-    try {
-      const droppedClip = JSON.parse(clipData);
-      if (droppedClip && droppedClip.id) {
-        // This is a clip being moved within the timeline
-        const existingClip = clips.find((c) => c.id === droppedClip.id);
-        if (existingClip) {
-          const timelineRect = timelineRef.current?.getBoundingClientRect();
-          if (!timelineRect) return;
-
-          const dropX = e.clientX - timelineRect.left;
-          let newStartTime = Math.round(dropX / pixelsPerMillisecond);
-
-          // Snap to grid
-          newStartTime = snapTime(newStartTime);
-
-          setClips(
-            clips.map((c) =>
-              c.id === droppedClip.id ? { ...c, trackId, startTime: newStartTime } : c
-            )
-          );
-          // Add to pending updates for batch saving
-          setPendingUpdates((prev) => new Map(prev).set(droppedClip.id, newStartTime));
-        }
-      } else {
-        // This is a new asset being dropped from the media pool
-        // The EditorTab component handles adding new clips, so we just refetch
-        clipsQuery.refetch();
-      }
-    } catch (error) {
-      console.error("Failed to parse dropped clip data:", error);
-      toast.error("Failed to add clip to timeline.");
-    }
-  };
-
-  const handleDragLeave = () => {
-    setDragOverTrackId(null);
-  };
-
-  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.1, 5));
-  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.1, 0.5));
-
-  const formatTime = (ms: number) => {
-    const s = Math.floor(ms / 1000);
-    const m = Math.floor(s / 60);
-    const rs = s % 60;
-    const f = Math.floor((ms % 1000) / 41.66);
-    return `${m.toString().padStart(2, "0")}:${rs.toString().padStart(2, "0")}:${f.toString().padStart(2, "0")}`;
-  };
-
-  // Calculate total duration of all clips
-  const totalDuration = clips.reduce((max, clip) => Math.max(max, clip.startTime + clip.duration), 0);
-
-  // Update timeline width based on total duration and zoom
-  const timelineWidth = Math.max(duration * pixelsPerMillisecond, 1000); // Minimum width of 1000px
+    const handleMouseUp = () => {
+      if (trimMode) handleTrimEnd();
+      if (draggedClipId !== null) handleClipDragEnd();
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [trimMode, draggedClipId, clips, selectedClipId]);
 
   return (
     <div className="flex flex-col h-full bg-[#0a0a0f] text-white">
-      {/* Timeline Controls */}
-      <div className="flex items-center justify-between p-2 border-b border-white/5 flex-shrink-0">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 bg-white/[0.02]">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => handleAddTrack("video")} className="text-primary hover:bg-primary/20">
-            <VideoIcon className="w-4 h-4" />
+          <Button 
+            size="sm" 
+            variant={editMode === "select" ? "default" : "ghost"} 
+            className="h-7 w-7 p-0"
+            onClick={() => setEditMode("select")}
+          >
+            <MousePointer2 className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => handleAddTrack("audio")} className="text-primary hover:bg-primary/20">
-            <Music className="w-4 h-4" />
+          <Button 
+            size="sm" 
+            variant={editMode === "blade" ? "default" : "ghost"} 
+            className="h-7 w-7 p-0"
+            onClick={() => setEditMode("blade")}
+          >
+            <Scissors className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => setEditMode(editMode === "select" ? "blade" : "select")} className="text-primary hover:bg-primary/20">
-            {editMode === "select" ? <MousePointer2 className="w-4 h-4" /> : <Scissors className="w-4 h-4" />}
+          <div className="w-px h-4 bg-white/10 mx-1" />
+          <Button size="sm" variant="ghost" className="h-7 text-[9px] uppercase font-bold" onClick={() => handleAddTrack("video")}>
+            + Video
           </Button>
-          <Button variant="ghost" size="icon" onClick={handleUndo} disabled={historyIndex <= 0} className="text-slate-400 hover:bg-white/5">
-            Undo
-          </Button>
-          <Button variant="ghost" size="icon" onClick={handleRedo} disabled={historyIndex >= history.length - 1} className="text-slate-400 hover:bg-white/5">
-            Redo
+          <Button size="sm" variant="ghost" className="h-7 text-[9px] uppercase font-bold" onClick={() => handleAddTrack("audio")}>
+            + Audio
           </Button>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={handleZoomOut} className="text-slate-400 hover:bg-white/5">-</Button>
-          <span className="text-xs text-slate-400">Zoom: {zoom.toFixed(1)}x</span>
-          <Button variant="ghost" size="sm" onClick={handleZoomIn} className="text-slate-400 hover:bg-white/5">+</Button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-black text-slate-500 uppercase">Zoom</span>
+            <input type="range" min="0.1" max="5" step="0.1" value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))} className="w-20 h-1 accent-primary" />
+          </div>
         </div>
       </div>
 
-      {/* Timeline Tracks Area */}
-      <div className="relative flex-1 overflow-x-auto" ref={timelineRef} onMouseMove={handleTrimMove} onMouseUp={handleTrimEnd} onMouseLeave={handleClipDragEnd}>
-        {/* Playhead */}
-        <div
-          className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-50 pointer-events-none"
-          style={{ left: `${currentTime * pixelsPerMillisecond}px` }}
-        />
+      <div className="flex-1 overflow-auto relative" ref={timelineRef}>
+        <div className="absolute top-0 left-0 w-full h-6 bg-[#0a0a0f] border-b border-white/5 z-20 flex">
+          <div className="w-24 border-r border-white/5 flex-shrink-0" />
+          <div className="flex-1 relative">
+            {Array.from({ length: Math.ceil(duration / 1000) + 1 }).map((_, i) => (
+              <div key={i} className="absolute top-0 text-[8px] font-mono text-slate-600 border-l border-white/5 h-full pl-1" style={{ left: i * 1000 * pixelsPerMillisecond }}>
+                {i}s
+              </div>
+            ))}
+          </div>
+        </div>
 
-        {/* Time Ruler */}
-        <div className="absolute top-0 left-0 right-0 h-6 bg-gray-800 border-b border-gray-700 flex items-center">
-          {Array.from({ length: Math.ceil(totalDuration / 1000) + 1 }).map((_, i) => (
-            <div
-              key={i}
-              className="absolute text-xs text-gray-400"
-              style={{ left: `${i * 1000 * pixelsPerMillisecond}px` }}
-            >
-              {i}s
+        <div className="pt-6">
+          {tracks.map((track) => (
+            <div key={track.id} className="flex border-b border-white/5 min-h-[60px] group/track">
+              <div className="w-24 border-r border-white/5 bg-[#0a0a0f] p-2 flex flex-col justify-between flex-shrink-0">
+                <span className="text-[9px] font-bold text-slate-400 truncate uppercase tracking-tighter">{track.name}</span>
+                <div className="flex items-center gap-1 opacity-0 group-hover/track:opacity-100 transition-opacity">
+                  <Button size="icon" variant="ghost" className="w-5 h-5 rounded hover:bg-white/5"><Eye className="w-3 h-3 text-slate-500" /></Button>
+                  <Button size="icon" variant="ghost" className="w-5 h-5 rounded hover:bg-white/5"><Lock className="w-3 h-3 text-slate-500" /></Button>
+                  <Button size="icon" variant="ghost" className="w-5 h-5 rounded hover:bg-red-500/10" onClick={() => handleDeleteTrack(track.id)}><Trash2 className="w-3 h-3 text-red-500/50 hover:text-red-500" /></Button>
+                </div>
+              </div>
+              <div className="flex-1 relative bg-white/[0.01] h-[60px]">
+                {clips.filter(c => c.trackId === track.id).map(clip => (
+                  <div
+                    key={clip.id}
+                    className={`absolute top-1 bottom-1 rounded-md border shadow-lg transition-all cursor-pointer flex flex-col overflow-hidden ${selectedClipId === clip.id ? 'border-primary ring-1 ring-primary ring-offset-2 ring-offset-black z-10' : 'border-white/10 hover:border-white/30'}`}
+                    style={{
+                      left: clip.startTime * pixelsPerMillisecond,
+                      width: clip.duration * pixelsPerMillisecond,
+                      backgroundColor: clip.color + '44',
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleClipSelect(clip.id);
+                      if (editMode === 'blade') handleCutClip(clip.id);
+                    }}
+                    onMouseDown={(e) => handleClipDragStart(e, clip.id)}
+                  >
+                    <div className="px-2 py-1 flex items-center gap-1.5 border-b border-white/5 bg-white/5">
+                      {track.type === 'audio' ? <Music className="w-3 h-3 text-blue-400" /> : <VideoIcon className="w-3 h-3 text-green-400" />}
+                      <span className="text-[9px] font-bold truncate text-white/80">{clip.name}</span>
+                    </div>
+                    
+                    <div className="absolute top-0 bottom-0 left-0 w-1.5 cursor-col-resize hover:bg-primary/50" onMouseDown={(e) => handleTrimStart(e, clip.id, 'left')} />
+                    <div className="absolute top-0 bottom-0 right-0 w-1.5 cursor-col-resize hover:bg-primary/50" onMouseDown={(e) => handleTrimStart(e, clip.id, 'right')} />
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
 
-        {/* Tracks */}
-        <div className="mt-6">
-          {tracks.map((track) => (
-            <div
-              key={track.id}
-              className="relative h-20 border-b border-gray-700 bg-gray-900"
-              onDragOver={(e) => handleDragOver(e, track.id)}
-              onDrop={(e) => handleDrop(e, track.id)}
-              onDragLeave={handleDragLeave}
-            >
-              <div className="absolute inset-y-0 left-0 w-24 bg-gray-800 flex items-center justify-between px-2 text-xs text-gray-400 border-r border-gray-700">
-                <span>{track.name}</span>
-                <div className="flex items-center gap-1">
-                  <Button size="icon" variant="ghost" className="w-5 h-5 text-slate-500 hover:bg-white/5">
-                    {track.isVisible ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-                  </Button>
-                  <Button size="icon" variant="ghost" className="w-5 h-5 text-slate-500 hover:bg-white/5">
-                    {track.isLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
-                  </Button>
-                  <Button size="icon" variant="ghost" onClick={() => handleDeleteTrack(track.id)} className="w-5 h-5 text-red-500 hover:bg-white/5">
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
-              </div>
-              <div className="ml-24 h-full relative">
-                {clips
-                  .filter((clip) => clip.trackId === track.id)
-                  .map((clip) => (
-                    <div
-                      key={clip.id}
-                      className={`absolute h-16 rounded-md cursor-grab ${selectedClipId === clip.id ? "border-2 border-yellow-400" : ""}`}
-                      style={{
-                        left: `${clip.startTime * pixelsPerMillisecond}px`,
-                        width: `${clip.duration * pixelsPerMillisecond}px`,
-                        top: "2px",
-                        backgroundColor: clip.color,
-                      }}
-                      onClick={() => {
-                        setSelectedClipId(clip.id);
-                        if (editMode === "blade") {
-                          handleCutClip(clip.id);
-                        }
-                      }}
-                      onMouseDown={(e) => handleClipDragStart(e as any, clip.id)}
-                    >
-                      <span className="text-xs p-1">{clip.name}</span>
-                      {/* Left trim handle */}
-                      <div
-                        className="absolute top-0 bottom-0 -left-1 w-2 cursor-col-resize hover:bg-blue-300/50"
-                        onMouseDown={(e) => handleTrimStart(e, clip.id, "left")}
-                      />
-                      {/* Right trim handle */}
-                      <div
-                        className="absolute top-0 bottom-0 -right-1 w-2 cursor-col-resize hover:bg-blue-300/50"
-                        onMouseDown={(e) => handleTrimStart(e, clip.id, "right")}
-                      />
-                    </div>
-                  ))}
-              </div>
-            </div>
-          ))}
+        {/* Playhead */}
+        <div 
+          className="absolute top-0 bottom-0 w-px bg-red-500 z-30 pointer-events-none"
+          style={{ left: 96 + (currentTime * pixelsPerMillisecond) }}
+        >
+          <div className="absolute -top-1 -left-1.5 w-3 h-3 bg-red-500 rotate-45" />
         </div>
       </div>
     </div>
