@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import {
     Play, Film, PenTool, Layout,
     ChevronRight, Menu, X, Cpu, Layers, Radio, Camera,
-    Music, Share2, Zap
+    Music, Share2, Zap, DollarSign
 } from "lucide-react";
 import { LoginPage } from "./LoginPage";
 
@@ -85,7 +85,7 @@ export function LandingPage({ onLoginSuccess, isAuthenticated, user }: { onLogin
 
                     {/* Desktop Nav */}
                     <div className="hidden md:flex items-center gap-10">
-                        {["Pipeline", "Features", "Showcase"].map((item) => (
+                        {["Pipeline", "Features", "Pricing", "Showcase"].map((item) => (
                             <a
                                 key={item}
                                 href={`#${item.toLowerCase()}`}
@@ -341,6 +341,44 @@ export function LandingPage({ onLoginSuccess, isAuthenticated, user }: { onLogin
                 </div>
             </section>
 
+            {/* Pricing Summary */}
+            <section id="pricing" className="py-32 relative">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-600/5 rounded-full blur-[180px]" />
+                <div className="container mx-auto px-6 relative z-10">
+                    <div className="flex flex-col items-center mb-16">
+                        <h2 className="text-indigo-500 font-mono text-xs tracking-[0.5em] uppercase mb-4 text-center">Pricing</h2>
+                        <h3 className="text-4xl md:text-6xl font-black text-white text-center">Transparent Plans</h3>
+                        <div className="w-24 h-1 bg-gradient-to-r from-indigo-600 to-cyan-400 mt-8 rounded-full" />
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                        {[
+                            { name: "Starter", price: 20, tokens: "500", desc: "LLM Scripts & Synopses", icon: Zap, gradient: "from-blue-500 to-cyan-400" },
+                            { name: "Pro", price: 50, tokens: "3,000", desc: "Full Creative Pipeline", icon: Film, gradient: "from-indigo-500 to-violet-500", popular: true },
+                            { name: "Enterprise", price: 100, tokens: "10,000", desc: "Maximum Production Power", icon: DollarSign, gradient: "from-amber-500 to-orange-500" },
+                        ].map((plan, idx) => (
+                            <div key={idx} className={`relative group rounded-[2rem] p-px ${plan.popular ? 'md:-translate-y-4 md:scale-105' : ''}`}>
+                                {plan.popular && (
+                                    <div className="absolute -inset-px rounded-[2rem] bg-gradient-to-b from-indigo-500/40 to-violet-500/20 blur-sm" />
+                                )}
+                                <div className="relative bg-[#08081a]/90 backdrop-blur-xl rounded-[2rem] p-8 border border-white/5 hover:border-white/10 transition-all text-center">
+                                    {plan.popular && (
+                                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-indigo-600 to-violet-600 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                                            Most Popular
+                                        </div>
+                                    )}
+                                    <plan.icon className="w-8 h-8 text-indigo-400 mx-auto mb-4 mt-2" />
+                                    <h4 className="text-2xl font-bold text-white mb-2">{plan.name}</h4>
+                                    <div className="text-4xl font-black text-white mb-1">${plan.price}<span className="text-base text-slate-500 font-normal">/mo</span></div>
+                                    <p className="text-xs text-indigo-400 font-mono mb-2">{plan.tokens} tokens included</p>
+                                    <p className="text-sm text-slate-400">{plan.desc}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
             {/* Final CTA */}
             <section className="py-40 relative">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
@@ -358,7 +396,7 @@ export function LandingPage({ onLoginSuccess, isAuthenticated, user }: { onLogin
                         START CREATING
                     </Button>
                     <p className="mt-12 text-slate-500 font-mono text-xs uppercase tracking-widest">
-                        FREE ACCESS DURING BETA • NO CREDIT CARD REQUIRED
+                        Plans from $20/mo • Powered by Stripe • Cancel Anytime
                     </p>
                 </div>
             </section>

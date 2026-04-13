@@ -10,7 +10,6 @@ export async function createCharacter(
     name: string;
     description: string;
     imageUrl: string;
-    isHero: boolean;
   }
 ) {
   const db = await getDb();
@@ -21,8 +20,6 @@ export async function createCharacter(
     name: data.name,
     description: data.description,
     imageUrl: data.imageUrl,
-    isHero: data.isHero,
-    isLocked: false,
   });
 
   return result[0].insertId;
@@ -51,6 +48,11 @@ export async function getProjectCharacters(projectId: number) {
     .where(eq(characters.projectId, projectId));
 }
 
+/**
+ * getLockedCharacter - Legacy helper. 
+ * Since isLocked was removed from characters, we return the first available project character 
+ * to maintain compatibility with storyboard generation anchors.
+ */
 export async function getLockedCharacter(projectId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -58,17 +60,16 @@ export async function getLockedCharacter(projectId: number) {
   const result = await db
     .select()
     .from(characters)
-    .where(
-      and(
-        eq(characters.projectId, projectId),
-        eq(characters.isLocked, true)
-      )
-    )
+    .where(eq(characters.projectId, projectId))
     .limit(1);
 
   return result[0] || null;
 }
 
+/**
+ * getLockedCharacters - Returns all project characters to serve as visual anchors.
+ * isLocked column was dropped in migration 0011.
+ */
 export async function getLockedCharacters(projectId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -76,36 +77,15 @@ export async function getLockedCharacters(projectId: number) {
   return await db
     .select()
     .from(characters)
-    .where(
-      and(
-        eq(characters.projectId, projectId),
-        eq(characters.isLocked, true)
-      )
-    );
+    .where(eq(characters.projectId, projectId));
 }
 
 export async function lockCharacter(projectId: number, characterId: number) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  // Lock the selected character - MULTI-LOCK ENABLED (Removed unlocking others)
-  await db
-    .update(characters)
-    .set({ isLocked: true })
-    .where(and(
-      eq(characters.id, characterId),
-      eq(characters.projectId, projectId)
-    ));
+  // logic removed as isLocked column is dropped
 }
 
 export async function unlockAllCharacters(projectId: number) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  await db
-    .update(characters)
-    .set({ isLocked: false })
-    .where(eq(characters.projectId, projectId));
+  // logic removed as isLocked column is dropped
 }
 
 export async function updateCharacter(
@@ -114,8 +94,6 @@ export async function updateCharacter(
     name: string;
     description: string;
     imageUrl: string;
-    referenceImageUrl: string | null;
-    isHero: boolean;
   }>
 ) {
   const db = await getDb();
@@ -128,8 +106,6 @@ export async function updateCharacter(
   if (data.name !== undefined) updateData.name = data.name;
   if (data.description !== undefined) updateData.description = data.description;
   if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
-  if (data.referenceImageUrl !== undefined) updateData.referenceImageUrl = data.referenceImageUrl;
-  if (data.isHero !== undefined) updateData.isHero = data.isHero;
 
   await db
     .update(characters)
@@ -142,4 +118,4 @@ export async function deleteCharacter(characterId: number) {
   if (!db) throw new Error("Database not available");
 
   await db.delete(characters).where(eq(characters.id, characterId));
-}
+}

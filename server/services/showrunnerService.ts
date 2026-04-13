@@ -23,8 +23,6 @@ export interface CharacterProfile {
     name: string;
     description: string;
     imageUrl: string;
-    isLocked: boolean;
-    isHero: boolean;
 }
 
 export interface ShotBreakdown {
@@ -102,8 +100,6 @@ export async function assembleProductionBible(
             name: c.name,
             description: c.description || "",
             imageUrl: c.imageUrl || "draft",
-            isLocked: c.isLocked || false,
-            isHero: c.isHero || false,
         })
     );
 

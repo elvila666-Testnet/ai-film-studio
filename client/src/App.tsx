@@ -11,6 +11,8 @@ import { CostGuardProvider } from "@/components/FinOps/CostGuard";
 
 import { Route, Switch } from "wouter";
 import { BrandDashboard } from "./pages/BrandDashboard";
+import { PricingPage } from "./pages/PricingPage";
+import { FinOpsCalculatorPage } from "./pages/FinOpsCalculatorPage";
 import { AIProcessingProvider } from "./lib/aiProcessingContext";
 import { AIProcessingModal } from "./components/ui/AIProcessingModal";
 
@@ -47,6 +49,10 @@ function App() {
             <ErrorBoundary>
               <Switch>
                 <Route path="/brand" component={BrandDashboard} />
+                <Route path="/pricing">
+                  <PricingPage />
+                </Route>
+                <Route path="/finops-calculator" component={FinOpsCalculatorPage} />
                 <Route path="/" component={Home} />
                 {/* Fallback to Home for any other route */}
                 <Route><Home /></Route>
@@ -63,4 +69,3 @@ function App() {
 }
 
 export default App;
-

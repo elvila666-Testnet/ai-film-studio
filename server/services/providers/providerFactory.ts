@@ -20,6 +20,7 @@ export class ProviderFactory {
       midjourney: { enabled: false, priority: 10, maxRetries: 2, timeout: 120000 },
       gemini: { enabled: true, priority: 1, maxRetries: 3, timeout: 120000 },
       replicate: { enabled: true, priority: 1, maxRetries: 3, timeout: 120000 },
+      kie: { enabled: true, priority: 1, maxRetries: 3, timeout: 120000 },
     },
     video: {
       flow: { enabled: false, priority: 10, maxRetries: 2, timeout: 120000 },
@@ -143,6 +144,7 @@ export class ProviderFactory {
         midjourney: { enabled: false, priority: 10, maxRetries: 2, timeout: 120000 },
         gemini: { enabled: true, priority: 1, maxRetries: 3, timeout: 120000 },
         replicate: { enabled: true, priority: 1, maxRetries: 3, timeout: 120000 },
+        kie: { enabled: true, priority: 1, maxRetries: 3, timeout: 120000 },
       },
       video: {
         flow: { enabled: false, priority: 10, maxRetries: 2, timeout: 120000 },

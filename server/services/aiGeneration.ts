@@ -5,6 +5,8 @@ import { ReplicateProvider } from "./providers/replicateProvider.ts";
 import { uploadExternalUrlToGCS } from "./storageService.ts";
 import { ENV } from "../_core/env.ts";
 
+import { KieProvider } from "./providers/kieProvider.ts";
+
 const geminiProvider = new GeminiProvider();
 
 let _replicateProvider: ReplicateProvider | null = null;
@@ -16,23 +18,27 @@ export function getReplicateProvider() {
   return _replicateProvider;
 }
 
+let _kieProvider: KieProvider | null = null;
+export function getKieProvider() {
+  if (!_kieProvider) {
+    console.log(`[AI Service] Initializing KIE Provider with token starting with: ${(ENV.kieApiKey || "").substring(0, 5)}...`);
+    _kieProvider = new KieProvider(ENV.kieApiKey || "");
+  }
+  return _kieProvider;
+}
+
 function getProviderFor(modelId?: string) {
   const m = (modelId || "").toLowerCase();
   
-  // High-fidelity multimodal requests are now routed to Replicate for consistent anchoring
-  // unless explicitly requested otherwise.
-  if (m.includes("gemini-3") || m.includes("imagen")) {
-    // We favor Replicate for all Image-to-Image and high-fidelity tasks as per user directive
-    return getReplicateProvider();
+  // Explicitly routing KIE models
+  if (m.includes("kie") || m.includes("kling") || m.includes("veo")) {
+    return getKieProvider();
   }
 
-  if (m.includes("flux") || m.includes("seadream") || m.includes("apiyi") || m.includes("replicate") || m.includes("banana") || m.includes("nano")) {
-    return getReplicateProvider();
-  }
-  
-  // Default to Replicate for all image-related routing in this service
+  // Fallback to Replicate for everything else (Banana, Flux, etc.)
   return getReplicateProvider();
 }
+
 
 /**
  * Ensures an image URL is a permanent GCS link.
@@ -526,41 +532,31 @@ export async function refineImagePrompt(
 export async function generateStoryboardImage(prompt: string, modelId?: string, projectId?: number, userId?: string, resolution: string = "1216x832", imageInputs?: string[]): Promise<string> {
   try {
     const provider = getProviderFor(modelId);
-    const internalModelId = provider instanceof ReplicateProvider ? modelId : "imagen-4.0-generate-001";
+    
+    // Use modelId if provided, otherwise default to flux-schnell through Replicate
+    const internalModelId = modelId || "black-forest-labs/flux-schnell";
 
-    try {
-      const result = await provider.generateImage({
-        prompt,
-        resolution: resolution as any,
-        quality: "standard",
-        projectId,
-        userId,
-        ...(imageInputs && imageInputs.length > 0 ? { imageInputs } : {})
-      }, internalModelId);
-      const rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
-      const url = await ensurePermanentUrl(rawUrl, "storyboards");
-      return url;
-    } catch (primaryError: any) {
-      if (provider instanceof ReplicateProvider) {
-        console.warn(`[AI Service] Replicate failed after retries. Falling back to Gemini/Imagen. Error: ${primaryError.message}`);
-        const fallbackResult = await geminiProvider.generateImage({
-          prompt,
-          resolution: resolution as any,
-          quality: "standard",
-          projectId,
-          userId,
-        }, "imagen-4.0-generate-001");
-        const rawUrl = typeof fallbackResult.url === 'string' ? fallbackResult.url : String(fallbackResult.url);
-        return await ensurePermanentUrl(rawUrl, "storyboards_fallback");
-      }
-      throw primaryError;
-    }
+    console.log(`[AI Service] Storyboard Gen: Using provider ${provider instanceof ReplicateProvider ? 'replicate' : 'kie'} with model ${internalModelId}`);
+
+    const result = await provider.generateImage({
+      prompt,
+      resolution: resolution as any,
+      quality: "standard",
+      projectId,
+      userId,
+      ...(imageInputs && imageInputs.length > 0 ? { imageInputs } : {})
+    }, internalModelId);
+
+    const rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
+    const url = await ensurePermanentUrl(rawUrl, "storyboards");
+    return url;
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[AI Service] Storyboard generation pipeline failed:", message);
     throw new Error(`Storyboard synthesis failed: ${message}`);
   }
 }
+
 
 /**
  * Generate a storyboard GRID image (3×4 layout) using landscape aspect ratio
@@ -576,70 +572,26 @@ export async function generateGridImage(
     const { burnPanelNumbers } = await import("./imageProcessing");
     const axios = (await import("axios")).default;
   try {
-    // Assemble visual anchor references (characters, sets, style references)
     const imageInputs: string[] = visualAnchors;
-
-    // For Storyboard Grids, we primarily use the Replicate API as requested
+    // For Grids, we use nano-banana-pro via Replicate as it supports anchoring best
     const provider = getReplicateProvider();
 
-    try {
-      const result = await provider.generateImage({
-        prompt,
-        resolution: "1344x1024", 
-        quality: "hd",
-        projectId,
-        userId,
-        ...(imageInputs.length > 0 ? { imageInputs } : {}),
-      }, "nano-banana-pro");
-      const rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
-      
-      const responseData = await axios.get(rawUrl, { responseType: 'arraybuffer' });
-      const burnedBuffer = await burnPanelNumbers(Buffer.from(responseData.data), pageNumber);
-      
-      const url = await ensurePermanentUrl(burnedBuffer, "grids");
-      console.log(`[AI Service] Grid successfully generated with ${imageInputs.length} visual anchors: ${url}`);
-      return url;
-    } catch (primaryError: any) {
-        console.warn(`[AI Service] PRIMARY Grid Generation Failed (Model: nano-banana-pro). Error: ${primaryError.message}. Triggering GOOGLE FALLBACK...`);
-        
-        try {
-          const fallbackResult = await geminiProvider.generateImage({
-              prompt,
-              resolution: "1344x1024", 
-              quality: "hd",
-              projectId,
-              userId,
-              ...(imageInputs.length > 0 ? { imageInputs } : {}),
-          }, "imagen-3.0-generate-001");
-          const rawUrl = typeof fallbackResult.url === 'string' ? fallbackResult.url : String(fallbackResult.url);
-          
-          const responseData = await axios.get(rawUrl, { responseType: 'arraybuffer' });
-          const burnedBuffer = await burnPanelNumbers(Buffer.from(responseData.data), pageNumber);
-          
-          return await ensurePermanentUrl(burnedBuffer, "grids_fallback");
-        } catch (secondaryError: any) {
-           console.warn(`[AI Service] GOOGLE FALLBACK WITH ANCHORS FAILED: ${secondaryError.message}. Retrying WITHOUT anchors as last resort...`);
-           
-           try {
-              const lastResortResult = await geminiProvider.generateImage({
-                  prompt,
-                  resolution: "1216x832", 
-                  quality: "standard",
-                  projectId,
-                  userId,
-              }, "imagen-3.0-generate-001");
-              const rawUrl = typeof lastResortResult.url === 'string' ? lastResortResult.url : String(lastResortResult.url);
-              
-              const responseData = await axios.get(rawUrl, { responseType: 'arraybuffer' });
-              const burnedBuffer = await burnPanelNumbers(Buffer.from(responseData.data), pageNumber);
-              
-              return await ensurePermanentUrl(burnedBuffer, "grids_last_resort");
-           } catch (finalError: any) {
-              console.error(`[AI Service] ALL Grid Providers and fallbacks failed. Final Error: ${finalError.message}`);
-              throw finalError;
-           }
-        }
-    }
+    const result = await provider.generateImage({
+      prompt,
+      resolution: "1344x1024", 
+      quality: "hd",
+      projectId,
+      userId,
+      ...(imageInputs.length > 0 ? { imageInputs } : {}),
+    }, "nano-banana-pro");
+    
+    const rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
+    const responseData = await axios.get(rawUrl, { responseType: 'arraybuffer' });
+    const burnedBuffer = await burnPanelNumbers(Buffer.from(responseData.data), pageNumber);
+    
+    const url = await ensurePermanentUrl(burnedBuffer, "grids");
+    console.log(`[AI Service] Grid successfully generated with ${imageInputs.length} visual anchors: ${url}`);
+    return url;
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[AI Service] Final Grid generation pipeline shutdown:", message);
@@ -669,43 +621,26 @@ export async function generateStoryboardImageWithConsistency(
 
   try {
     const provider = getProviderFor(modelId);
-    const internalModelId = provider instanceof ReplicateProvider ? modelId : "imagen-4.0-generate-001";
+    const internalModelId = modelId || (provider instanceof ReplicateProvider ? "black-forest-labs/flux-schnell" : "flux-1.1-pro");
 
-    try {
-      const result = await provider.generateImage({
-        prompt: finalPrompt,
-        resolution: "1216x832",
-        quality: qualityTier === "quality" ? "hd" : "standard",
-        seed: finalSeed,
-        projectId,
-        userId
-      }, internalModelId);
-      const rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
-      const url = await ensurePermanentUrl(rawUrl, "consistent-shots");
-      return { url, seed: finalSeed };
-    } catch (primaryError: any) {
-      if (provider instanceof ReplicateProvider) {
-        console.warn(`[AI Service] Consistency generation failed. Falling back to Gemini. Error: ${primaryError.message}`);
-        const fallbackResult = await geminiProvider.generateImage({
-          prompt: finalPrompt,
-          resolution: "1216x832",
-          quality: "standard",
-          seed: finalSeed,
-          projectId,
-          userId
-        }, "imagen-4.0-generate-001");
-        const rawUrl = typeof fallbackResult.url === 'string' ? fallbackResult.url : String(fallbackResult.url);
-        const url = await ensurePermanentUrl(rawUrl, "consistent-shots_fallback");
-        return { url, seed: finalSeed };
-      }
-      throw primaryError;
-    }
+    const result = await provider.generateImage({
+      prompt: finalPrompt,
+      resolution: "1216x832",
+      quality: qualityTier === "quality" ? "hd" : "standard",
+      seed: finalSeed,
+      projectId,
+      userId
+    }, internalModelId);
+    const rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
+    const url = await ensurePermanentUrl(rawUrl, "consistent-shots");
+    return { url, seed: finalSeed };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[AI Service] Consistency generation pipeline failed:", message);
     throw new Error(`Consistent synthesis failed: ${message}`);
   }
 }
+
 
 /**
  * Generate storyboard image variation with different perspective
@@ -723,44 +658,27 @@ export async function generateStoryboardImageVariation(
   const finalSeed = generateSeed(Date.now(), variationIndex);
   const finalPrompt = generateVariationPrompt(basePrompt, characterReference, variationIndex);
 
-
   try {
     const provider = getProviderFor(modelId);
-    const internalModelId = provider instanceof ReplicateProvider ? modelId : "imagen-4.0-generate-001";
+    const internalModelId = modelId || "black-forest-labs/flux-schnell";
 
-    try {
-      const result = await provider.generateImage({
-        prompt: finalPrompt,
-        resolution: "1216x832",
-        quality: "standard",
-        seed: finalSeed,
-        projectId,
-        userId
-      }, internalModelId);
-      const url = await ensurePermanentUrl(result.url, "variations");
-      return { url, seed: finalSeed };
-    } catch (primaryError: any) {
-      if (provider instanceof ReplicateProvider) {
-        console.warn(`[AI Service] Variation generation failed. Falling back to Gemini. Error: ${primaryError.message}`);
-        const fallbackResult = await geminiProvider.generateImage({
-          prompt: finalPrompt,
-          resolution: "1216x832",
-          quality: "standard",
-          seed: finalSeed,
-          projectId,
-          userId
-        }, "imagen-4.0-generate-001");
-        const url = await ensurePermanentUrl(fallbackResult.url, "variations_fallback");
-        return { url, seed: finalSeed };
-      }
-      throw primaryError;
-    }
+    const result = await provider.generateImage({
+      prompt: finalPrompt,
+      resolution: "1216x832",
+      quality: "standard",
+      seed: finalSeed,
+      projectId,
+      userId
+    }, internalModelId);
+    const url = await ensurePermanentUrl(result.url, "variations");
+    return { url, seed: finalSeed };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[AI Service] Variation generation pipeline failed:", message);
     throw new Error(`Variation synthesis failed: ${message}`);
   }
 }
+
 
 /**
  * Generate a structured style guide from script and visual style using Gemini API

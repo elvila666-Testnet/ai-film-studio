@@ -30,6 +30,7 @@ import { promptEngineerRouter } from "./routers/promptEngineer";
 import { shootingRouter } from "./routers/shooting";
 import { productionDesignRouter } from "./routers/productionDesign";
 import { shotDesignerRouter } from "./routers/shotDesigner";
+import { billingRouter } from "./routers/billingRouter";
 
 export const appRouter = router({
   system: systemRouter,
@@ -80,6 +81,7 @@ export const appRouter = router({
   characters: charactersRouter,
   productionDesign: productionDesignRouter,
   shotDesigner: shotDesignerRouter,
+  billing: billingRouter,
 
   // ============================================================================
   // VIDEO GENERATION ROUTER

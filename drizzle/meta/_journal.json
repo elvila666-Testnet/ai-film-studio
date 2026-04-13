@@ -78,6 +78,20 @@
       "when": 1775580149971,
       "tag": "0010_woozy_lester",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1776108107208,
+      "tag": "0011_magenta_solo",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1776118203095,
+      "tag": "0012_high_marten_broadcloak",
+      "breakpoints": true
     }
   ]
 }

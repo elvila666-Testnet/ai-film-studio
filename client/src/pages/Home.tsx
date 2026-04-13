@@ -3,8 +3,9 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   Loader2, Film, User, LogOut,
-  ChevronDown, ChevronUp, Info
+  ChevronDown, ChevronUp, Info, Calculator
 } from "lucide-react";
+import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -129,6 +130,12 @@ export function Home() {
             </div>
           </div>
           <div className="flex items-center gap-6">
+            <Link href="/finops-calculator">
+              <Button variant="outline" size="sm" className="bg-slate-900 border-white/10 hover:bg-white/5 text-slate-300">
+                <Calculator className="w-4 h-4 mr-2 text-green-400" />
+                FinOps Estimator
+              </Button>
+            </Link>
             <div className="flex flex-col items-end">
               <span className="text-xs font-bold text-white">{user?.email}</span>
               <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">{user?.role} ACCESS</span>

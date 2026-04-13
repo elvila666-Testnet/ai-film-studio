@@ -29,7 +29,7 @@ export function buildStoryboardGridPrompt(
 ): string {
     // ── CHARACTER ANCHORS ──
     const lockedCharacters = bible.characters.filter(
-        (c) => c.isLocked || c.imageUrl !== "draft"
+        (c) => c.imageUrl !== "draft"
     );
 
     // ── FRAME DESCRIPTIONS ──

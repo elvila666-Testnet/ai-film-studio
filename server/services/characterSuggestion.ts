@@ -43,7 +43,7 @@ export async function suggestCharactersForScript(
     const libraryDescription = characterLibrary
       .map(
         (char) =>
-          `- ${char.name}: ${char.description} (Traits: ${char.traits || "N/A"}, Locked: ${char.isLocked})`
+          `- ${char.name}: ${char.description} (Traits: ${char.traits || "N/A"})`
       )
       .join("\n");
 

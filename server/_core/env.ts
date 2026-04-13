@@ -40,10 +40,20 @@ export const ENV = {
   googleClientId: (process.env.GOOGLE_CLIENT_ID ?? "").trim(),
   googleClientSecret: (process.env.GOOGLE_CLIENT_SECRET ?? "").trim(),
   openaiApiKey: (process.env.OPENAI_API_KEY ?? "").trim(),
+  kieApiKey: (process.env.KIE_API_KEY ?? "").trim(),
   gcsBucketName: (process.env.GCS_BUCKET_NAME ?? "").trim(),
   gcpProjectId: (process.env.GCP_PROJECT_ID ?? "").trim(),
+  // Stripe
+  stripeSecretKey: (process.env.STRIPE_SECRET_KEY ?? "").trim(),
+  stripeWebhookSecret: (process.env.STRIPE_WEBHOOK_SECRET ?? "").trim(),
+  stripeStarterPriceId: (process.env.STRIPE_STARTER_PRICE_ID ?? "").trim(),
+  stripeProPriceId: (process.env.STRIPE_PRO_PRICE_ID ?? "").trim(),
+  stripeEnterprisePriceId: (process.env.STRIPE_ENTERPRISE_PRICE_ID ?? "").trim(),
   get gcsConfigured() {
     return !!this.gcsBucketName && !!this.gcpProjectId;
+  },
+  get stripeConfigured() {
+    return !!this.stripeSecretKey;
   }
 };
 

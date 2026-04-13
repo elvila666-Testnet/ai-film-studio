@@ -10,6 +10,7 @@ import {
 } from "./types";
 import { GeminiProvider } from "./geminiProvider";
 import { ReplicateProvider } from "./replicateProvider";
+import { KieProvider } from "./kieProvider";
 
 export class DALLEProvider {
   private apiKey: string;
@@ -191,7 +192,7 @@ export class ImageProviderFactory {
     provider: ImageProvider,
     apiKey: string,
     apiUrl?: string
-  ): DALLEProvider | MidjourneyProvider | NanoBananaProvider | GeminiProvider | ReplicateProvider {
+  ): DALLEProvider | MidjourneyProvider | NanoBananaProvider | GeminiProvider | ReplicateProvider | KieProvider {
     switch (provider) {
       case "dalle":
         return new DALLEProvider(apiKey);
@@ -203,6 +204,8 @@ export class ImageProviderFactory {
         return new GeminiProvider(apiKey);
       case "replicate":
         return new ReplicateProvider(apiKey);
+      case "kie":
+        return new KieProvider(apiKey);
       default:
         throw new Error(`Unknown image provider: ${provider}`);
     }

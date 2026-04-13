@@ -4,7 +4,7 @@
  */
 
 // ============ PROVIDER TYPES ============
-export type ImageProvider = "nanobanana" | "dalle" | "midjourney" | "gemini" | "replicate";
+export type ImageProvider = "nanobanana" | "dalle" | "midjourney" | "gemini" | "replicate" | "kie";
 export type VideoProvider = "flow" | "sora" | "kling" | "whan" | "gemini" | "veo3" | "replicate" | "kie";
 
 export interface ProviderConfig {
@@ -130,8 +130,13 @@ export const IMAGE_PROVIDER_PRICING: Record<ImageProvider, Record<string, number
   replicate: {
     "1024x1024_standard": 0.03,
     "1024x1024_hd": 0.06,
+  },
+  kie: {
+    "standard": 0.02,
+    "hd": 0.05,
   }
 };
+
 
 export const VIDEO_PROVIDER_PRICING: Record<VideoProvider, Record<string, number>> = {
   flow: {

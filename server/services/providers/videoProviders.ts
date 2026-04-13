@@ -8,6 +8,8 @@ import {
   VideoGenerationResult,
   VideoProvider,
 } from "./types";
+import { KieProvider } from "./kieProvider";
+
 
 export class FlowProvider {
   private apiKey: string;
@@ -313,192 +315,8 @@ export class WHANProvider {
   }
 }
 
-export class Veo3Provider {
-  private projectId: string;
-  private readonly vertexBaseUrl = "https://us-central1-aiplatform.googleapis.com/v1";
+// Veo3Provider removed as Vertex AI image/video generation are revoked
 
-  constructor(_apiKey: string, _apiUrl?: string) {
-    this.projectId = process.env.GCP_PROJECT_ID || "ai-film-studio-485900";
-  }
-
-  /**
-   * Acquire OAuth2 access token for Vertex AI.
-   * On Cloud Run the service account is automatic; locally it uses ADC.
-   */
-  private async getAccessToken(): Promise<string> {
-    const { GoogleAuth } = await import("google-auth-library");
-    const auth = new GoogleAuth({ scopes: "https://www.googleapis.com/auth/cloud-platform" });
-    const client = await auth.getClient();
-    const tokenResponse = await client.getAccessToken();
-    if (!tokenResponse.token) {
-      throw new Error("Failed to obtain GCP access token for Vertex AI");
-    }
-    return tokenResponse.token;
-  }
-
-  async generateVideo(params: VideoGenerationParams): Promise<VideoGenerationResult> {
-    const startTime = Date.now();
-    const modelId = params.model || "veo-3.0-generate-001";
-
-    try {
-      // 1. Prepare image instance if keyframe is provided
-      let imageInstance: Record<string, unknown> = {};
-      if (params.keyframeUrl) {
-          const axios = (await import("axios")).default;
-          const imageRes = await axios.get(params.keyframeUrl, { responseType: 'arraybuffer' });
-          const base64 = Buffer.from(imageRes.data).toString('base64');
-          // Vertex AI requires mimeType alongside bytesBase64Encoded
-          const contentType = (imageRes.headers['content-type'] as string) || "image/jpeg";
-          const mimeType = contentType.split(';')[0].trim(); // Strip charset if present
-          imageInstance = {
-              image: {
-                  bytesBase64Encoded: base64,
-                  mimeType: mimeType
-              }
-          };
-          console.log(`[Veo3] Image downloaded: ${base64.length} chars, mimeType: ${mimeType}`);
-      }
-
-      const jsonBody = {
-          instances: [{ 
-              prompt: params.prompt,
-              ...imageInstance
-          }],
-          parameters: {
-            sampleCount: 1,
-            aspectRatio: "16:9",
-            personGeneration: "allow_adult",
-            storageUri: `gs://${process.env.GCS_BUCKET_NAME || "ai-film-studio-assets"}/veo-output/`,
-          }
-      };
-
-      // 2. Get OAuth token (Vertex AI requires Bearer token, not API key)
-      const accessToken = await this.getAccessToken();
-      const url = `${this.vertexBaseUrl}/projects/${this.projectId}/locations/us-central1/publishers/google/models/${modelId}:predictLongRunning`;
-
-      console.log(`[Veo3] Submitting to Vertex AI: ${url}`);
-      console.log(`[Veo3] Payload:`, JSON.stringify({ ...jsonBody, instances: [{ prompt: jsonBody.instances[0].prompt.substring(0, 80) + "...", hasImage: !!params.keyframeUrl }] }, null, 2));
-
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(jsonBody),
-      });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        console.error(`[Veo3] Vertex AI Error (${response.status}): ${errText}`);
-        throw new Error(`Veo3 API error: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      const operationName = data.name; // LRO operation name (e.g., "projects/.../operations/...")
-
-      if (!operationName) {
-        // Immediate result (unlikely for video)
-        if (data.predictions?.[0]?.bytesBase64Encoded) {
-          return this.formatResult(data, params, startTime);
-        }
-        throw new Error("Veo3 did not return an operation name or immediate result.");
-      }
-
-      // 3. Poll the LRO for completion
-      console.log(`[Veo3] Started LRO: ${operationName}. Polling...`);
-      const resultData = await this.pollOperation(operationName, accessToken);
-
-      return this.formatResult(resultData, params, startTime);
-    } catch (error) {
-      throw new Error(`Veo3 generation failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }
-
-  private async pollOperation(operationName: string, accessToken: string): Promise<Record<string, unknown>> {
-    const maxAttempts = 60; // 5 minutes with 5s delay
-    const delayMs = 5000;
-
-    // Extract modelId from operation name: "projects/.../models/MODEL_ID/operations/..."
-    const modelMatch = operationName.match(/models\/([^/]+)/);
-    const modelId = modelMatch?.[1] || "veo-2.0-generate-001";
-    const fetchUrl = `${this.vertexBaseUrl}/projects/${this.projectId}/locations/us-central1/publishers/google/models/${modelId}:fetchPredictOperation`;
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      await new Promise(resolve => setTimeout(resolve, delayMs));
-
-      const response = await fetch(fetchUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ operationName }),
-      });
-
-      if (!response.ok) {
-        console.warn(`[Veo3] Poll failed (${response.status}). Retrying...`);
-        // Re-acquire token if it may have expired (after ~30 min)
-        if (response.status === 401 && attempt > 0) {
-          console.log(`[Veo3] Token may have expired, re-acquiring...`);
-          accessToken = await this.getAccessToken();
-        }
-        continue;
-      }
-
-      const data = await response.json();
-      if (data.done) {
-        if (data.error) {
-          throw new Error(`Veo3 LRO failed: ${data.error.message}`);
-        }
-        console.log(`[Veo3] LRO completed after ${attempt + 1} polls.`);
-        return data.response || data;
-      }
-
-      console.log(`[Veo3] Still processing (attempt ${attempt + 1}/${maxAttempts})...`);
-    }
-
-    throw new Error("Veo3 generation timed out (5 min).");
-  }
-
-  private formatResult(data: Record<string, unknown>, params: VideoGenerationParams, startTime: number): VideoGenerationResult {
-    // Veo returns: { videos: [{ gcsUri: "gs://...", mimeType: "video/mp4" }], raiMediaFilteredCount: 0 }
-    const videos = (data as Record<string, unknown>).videos as Array<Record<string, string>> | undefined;
-
-    let videoUrl = "";
-    if (videos?.[0]?.gcsUri) {
-      // Convert gs:// URI to public HTTPS URL
-      const gcsUri = videos[0].gcsUri;
-      videoUrl = gcsUri.replace("gs://", "https://storage.googleapis.com/");
-      console.log(`[Veo3] Video stored at: ${gcsUri} -> ${videoUrl}`);
-    } else {
-      // Fallback: check for bytesBase64Encoded or other fields
-      const predictions = (data as Record<string, unknown>).predictions as Array<Record<string, unknown>> | undefined;
-      const prediction = predictions?.[0] || (data as Record<string, unknown>);
-      const bytesBase64 = prediction.bytesBase64Encoded as string | undefined;
-      videoUrl = bytesBase64
-        ? `data:video/mp4;base64,${bytesBase64}`
-        : (prediction.videoUri as string) || (prediction.uri as string) || "";
-    }
-
-    return {
-      provider: "veo3",
-      model: params.model || "veo-3.0-generate-001",
-      url: videoUrl,
-      duration: params.duration,
-      width: 1280,
-      height: 720,
-      fps: 24,
-      fileSize: 0,
-      actualCost: 0.18,
-      processingTime: Date.now() - startTime,
-      metadata: {
-        resolution: params.resolution,
-      },
-    };
-  }
-
-}
 
 /**
  * Replicate Video Provider
@@ -599,144 +417,8 @@ export class ReplicateVideoProvider {
   }
 }
 
-/**
- * KIE.ai Video Provider
- * Supports Seedance 2.0, Kling 3.0, and Wan 2.6
- */
-export class KieProvider {
-  private apiKey: string;
-  private apiUrl: string;
+// Pre-existing internal KieProvider class removed.
 
-  constructor(apiKey: string, apiUrl: string = "https://api.kie.ai") {
-    this.apiKey = apiKey;
-    this.apiUrl = apiUrl;
-  }
-
-  async generateVideo(params: VideoGenerationParams): Promise<VideoGenerationResult> {
-    const startTime = Date.now();
-    
-    // Map model from params.model to KIE marketplace endpoint
-    let endpoint = "";
-    const model = params.model || "kie-seedance-2-0";
-
-    switch (model) {
-      case "kie-seedance-2-0":
-        endpoint = "/market/bytedance/seedance-2";
-        break;
-      case "kie-kling-3-0":
-        endpoint = "/market/kling/kling-3-0";
-        break;
-      case "kie-wan-2-6":
-        endpoint = "/market/wan/2-6-image-to-video";
-        break;
-      default:
-        endpoint = "/market/bytedance/seedance-2";
-    }
-
-    try {
-      console.log(`[KieProvider] Submitting task to ${endpoint}`);
-      const body = {
-        prompt: params.prompt,
-        image_url: params.keyframeUrl || params.input_image_url,
-      };
-
-      const response = await fetch(`${this.apiUrl}${endpoint}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.apiKey}`,
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`KIE API submission failed (${response.status}): ${errText}`);
-      }
-
-      const data = await response.json();
-      const taskId = data.task_id;
-
-      if (!taskId) {
-        throw new Error("KIE API did not return a task_id");
-      }
-
-      console.log(`[KieProvider] Task ${taskId} created for model ${model}. Polling...`);
-      
-      // Poll for result
-      const result = await this.pollTask(taskId);
-      const [width, height] = this.parseResolution(params.resolution);
-
-      return {
-        provider: "kie",
-        model: model,
-        url: result.video_url || result.url || "",
-        duration: params.duration,
-        width,
-        height,
-        fps: params.fps || 24,
-        fileSize: 0,
-        actualCost: 0.15, // Approx cost, service-specific
-        processingTime: Date.now() - startTime,
-        metadata: {
-          taskId,
-          status: result.status || result.state,
-        },
-      };
-    } catch (error) {
-      throw new Error(`KIE generation failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }
-
-  private async pollTask(taskId: string): Promise<any> {
-    const maxAttempts = 120; // 10 minutes total
-    const delayMs = 5000;
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      await new Promise(resolve => setTimeout(resolve, delayMs));
-
-      try {
-        const response = await fetch(`${this.apiUrl}/market/common/get-task-detail?task_id=${taskId}`, {
-          headers: {
-            Authorization: `Bearer ${this.apiKey}`,
-          },
-        });
-
-        if (!response.ok) {
-          console.warn(`[KieProvider] Poll attempt ${attempt + 1} failed with status ${response.status}`);
-          continue;
-        }
-
-        const data = await response.json();
-        const status = (data.status || data.state || "").toLowerCase();
-
-        if (status === "succeeded" || status === "completed" || status === "success") {
-          return data;
-        }
-
-        if (status === "failed" || status === "error") {
-          throw new Error(data.error_message || data.msg || "KIE task reported failure status");
-        }
-
-        console.log(`[KieProvider] Task ${taskId} status: ${status} (attempt ${attempt + 1}/${maxAttempts})`);
-      } catch (err: any) {
-        if (err.message.includes("KIE task reported failure")) throw err;
-        console.warn(`[KieProvider] Polling error: ${err.message}. Retrying...`);
-      }
-    }
-
-    throw new Error(`KIE task ${taskId} timed out after 10 minutes.`);
-  }
-
-  private parseResolution(resolution: string): [number, number] {
-    switch (resolution) {
-      case "720p": return [1280, 720];
-      case "1080p": return [1920, 1080];
-      case "4k": return [3840, 2160];
-      default: return [1280, 720];
-    }
-  }
-}
 
 /**
  * Video Provider Factory
@@ -758,11 +440,12 @@ export class VideoProviderFactory {
         return new WHANProvider(apiKey, apiUrl);
       case "veo3":
       case "gemini":
-        return new Veo3Provider(apiKey, apiUrl);
+        return new ReplicateVideoProvider(apiKey); // Route video to Replicate as fallback if KIE not selected
+
       case "replicate":
         return new ReplicateVideoProvider(apiKey);
       case "kie":
-        return new KieProvider(apiKey, apiUrl);
+        return new KieProvider(apiKey);
       default:
         throw new Error(`Unknown video provider: ${provider}`);
     }

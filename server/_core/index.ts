@@ -7,6 +7,7 @@ import cookieParser from "cookie-parser";
 // Dynamic imports for our modules
 import authRoutes from "../routes/auth.js";
 import googleAuthRoutes from "../routes/googleAuth.js";
+import webhookRoutes from "../routes/webhooks.js";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { appRouter } from "../routers.js";
 import { createContext } from "./context";
@@ -23,6 +24,9 @@ const PORT = parseInt(process.env.PORT || "8089");
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(cookieParser());
+
+// Stripe webhooks (must be BEFORE express.json for raw body access)
+app.use("/api/webhooks", webhookRoutes);
 
 // Health check endpoint
 app.get("/api/health", (_req, res) => {

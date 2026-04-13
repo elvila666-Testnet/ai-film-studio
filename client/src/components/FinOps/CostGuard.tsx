@@ -1,9 +1,10 @@
 import React, { useState, createContext, useContext } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { X } from 'lucide-react';
+import { X, Coins, AlertTriangle } from 'lucide-react';
+import { trpc } from '@/lib/trpc';
 
 interface CostApprovalContextType {
-    requestApproval: (cost: number, onApprove: () => void) => void;
+    requestApproval: (cost: number, onApprove: () => void, actionType?: string) => void;
 }
 
 const CostApprovalContext = createContext<CostApprovalContextType | undefined>(undefined);
@@ -19,11 +20,46 @@ export function useCostGuard() {
 export function CostGuardProvider({ children }: { children: React.ReactNode }) {
     const [isOpen, setIsOpen] = useState(false);
     const [cost, setCost] = useState(0);
+    const [tokenCost, setTokenCost] = useState<number | null>(null);
+    const [tokenBalance, setTokenBalance] = useState<number | null>(null);
     const onApproveRef = React.useRef<(() => void) | null>(null);
 
-    const requestApproval = (estimatedCost: number, onApprove: () => void) => {
+    // Fetch token balance when dialog opens
+    const balanceQuery = trpc.finops.getTokenBalance.useQuery(undefined, {
+        enabled: isOpen,
+    });
+
+    React.useEffect(() => {
+        if (balanceQuery.data) {
+            setTokenBalance(balanceQuery.data.balance);
+        }
+    }, [balanceQuery.data]);
+
+    const requestApproval = (estimatedCost: number, onApprove: () => void, actionType?: string) => {
         setCost(estimatedCost);
         onApproveRef.current = onApprove;
+
+        // Try to map action to token cost
+        if (actionType) {
+            // We'll calculate token cost client-side from known rates
+            const tokenRates: Record<string, number> = {
+                image_generation_fast: 5,
+                image_generation_quality: 15,
+                image_upscale: 10,
+                video_generation: 50,
+                video_generation_premium: 100,
+                llm_script: 2,
+                llm_synopsis: 1,
+                llm_analysis: 1,
+                lora_training: 200,
+                tts_voiceover: 5,
+                sound_effect: 3,
+            };
+            setTokenCost(tokenRates[actionType] ?? null);
+        } else {
+            setTokenCost(null);
+        }
+
         setIsOpen(true);
     };
 
@@ -31,6 +67,8 @@ export function CostGuardProvider({ children }: { children: React.ReactNode }) {
         if (onApproveRef.current) onApproveRef.current();
         setIsOpen(false);
     };
+
+    const insufficientTokens = tokenCost !== null && tokenBalance !== null && tokenBalance < tokenCost;
 
     return (
         <CostApprovalContext.Provider value={{ requestApproval }}>
@@ -61,8 +99,45 @@ export function CostGuardProvider({ children }: { children: React.ReactNode }) {
                                 <p className="text-sm text-red-300 uppercase font-mono mb-1">Estimated Cost</p>
                                 <p className="text-3xl font-bold text-white">${cost.toFixed(4)}</p>
                             </div>
+
+                            {/* Token balance display */}
+                            {(tokenCost !== null || tokenBalance !== null) && (
+                                <div className="bg-slate-800/60 p-4 rounded border border-slate-700">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-xs text-slate-400 uppercase font-mono flex items-center gap-1.5">
+                                            <Coins className="w-3 h-3 text-indigo-400" />
+                                            Token Cost
+                                        </span>
+                                        <span className="text-lg font-bold text-indigo-400">
+                                            {tokenCost ?? "?"} tokens
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs text-slate-400 uppercase font-mono">Your Balance</span>
+                                        <span className={`text-lg font-bold ${insufficientTokens ? 'text-red-400' : 'text-green-400'}`}>
+                                            {tokenBalance?.toLocaleString() ?? "..."} tokens
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {insufficientTokens && (
+                                <div className="bg-red-900/30 p-3 rounded border border-red-800/50 flex items-start gap-2">
+                                    <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                        <p className="text-sm text-red-300 font-medium">Insufficient Tokens</p>
+                                        <p className="text-xs text-red-400/80 mt-1">
+                                            You need {tokenCost} tokens but only have {tokenBalance}.{' '}
+                                            <a href="/?view=billing" className="underline hover:text-white">
+                                                Buy more tokens →
+                                            </a>
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
                             <p className="text-sm text-gray-500 italic">
-                                Creating this asset will incur real costs on the connected connected AI provider account.
+                                Creating this asset will incur real costs on the connected AI provider account.
                             </p>
 
                             <div className="flex gap-3 justify-end mt-6">
@@ -73,9 +148,14 @@ export function CostGuardProvider({ children }: { children: React.ReactNode }) {
                                 </Dialog.Close>
                                 <button
                                     onClick={handleApprove}
-                                    className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded font-bold uppercase tracking-wide transition-colors"
+                                    disabled={insufficientTokens}
+                                    className={`px-6 py-2 rounded font-bold uppercase tracking-wide transition-colors ${
+                                        insufficientTokens
+                                            ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                                            : 'bg-red-600 hover:bg-red-700 text-white'
+                                    }`}
                                 >
-                                    Authorize Charge
+                                    {insufficientTokens ? "Need More Tokens" : "Authorize Charge"}
                                 </button>
                             </div>
                         </div>
