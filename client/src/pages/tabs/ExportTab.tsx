@@ -8,7 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Download, FileVideo, CheckCircle2, Loader2, Share2, ShieldCheck, Zap, Settings } from "lucide-react";
+import { Download, FileVideo, CheckCircle2, Loader2, Share2, ShieldCheck, Zap, Settings, FileText } from "lucide-react";
+import { ExportService } from "@/services/ExportService";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
@@ -79,6 +80,48 @@ export default function ExportTab({ projectId }: ExportTabProps) {
       }
     }
   );
+
+  const { data: project } = trpc.project.getById.useQuery({ id: projectId });
+  const { data: script } = trpc.script.getByProjectId.useQuery({ projectId });
+  const { data: storyboard } = trpc.storyboard.getByProjectId.useQuery({ projectId });
+  const { data: characters } = trpc.casting.getCharactersByProject.useQuery({ projectId });
+  const { data: productionDesign } = trpc.productionDesign.getByProjectId.useQuery({ projectId });
+
+  const handleExportPDF = async () => {
+    if (!project) {
+      toast.error("Project data not loaded yet");
+      return;
+    }
+
+    toast.promise(
+      ExportService.exportToPDF({
+        title: project.name,
+        synopsis: project.synopsis || "",
+        directorProposal: project.directorProposal || "",
+        script: script?.content || "",
+        characters: characters?.map(c => ({
+          name: c.name,
+          description: c.description || "",
+          imageUrl: c.imageUrl || undefined
+        })) || [],
+        sets: productionDesign?.sets?.map(s => ({
+          name: s.name,
+          description: s.description || "",
+          imageUrl: s.imageUrl || undefined
+        })) || [],
+        storyboard: storyboard?.shots?.map(s => ({
+          shotNumber: s.shotNumber,
+          imageUrl: s.imageUrl || undefined,
+          visualDescription: s.visualDescription || ""
+        })) || []
+      }),
+      {
+        loading: "Generating Cinematic Dossier...",
+        success: "PDF Dossier exported successfully!",
+        error: "Failed to generate PDF"
+      }
+    );
+  };
 
   const isExporting = currentJobId && jobStatus?.status !== 'completed' && jobStatus?.status !== 'failed';
   const exportComplete = jobStatus?.status === 'completed';
@@ -175,6 +218,33 @@ export default function ExportTab({ projectId }: ExportTabProps) {
           </div>
         </div>
       </div>
+      <div className="glass-panel p-8 rounded-[2rem] space-y-8 border-white/5">
+        <div className="flex justify-between items-start">
+          <div>
+            <h3 className="production-label mb-2">Project Documentation</h3>
+            <p className="text-[10px] uppercase font-black tracking-widest text-slate-500">Export Script, Storyboard & Dossier</p>
+          </div>
+          <Badge variant="outline" className="border-amber-500/50 text-amber-400">PRODUCTION ASSETS</Badge>
+        </div>
+
+        <Button
+          variant="outline"
+          className="w-full h-20 rounded-[1.5rem] border-white/10 bg-white/5 hover:bg-white/10 text-white justify-between px-8"
+          onClick={handleExportPDF}
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-amber-500/20 rounded-xl text-amber-400">
+              <FileText className="w-6 h-6" />
+            </div>
+            <div className="text-left">
+              <div className="font-bold uppercase tracking-wider text-sm">Export Full Project Dossier</div>
+              <div className="text-[10px] text-slate-400 font-mono mt-1">PDF · Includes Script, Storyboard & Characters</div>
+            </div>
+          </div>
+          <Download className="w-5 h-5 text-slate-400" />
+        </Button>
+      </div>
+
       <div className="glass-panel p-8 rounded-[2rem] space-y-8 border-white/5">
         <div className="flex justify-between items-start">
           <div>
