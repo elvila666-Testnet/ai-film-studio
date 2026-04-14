@@ -252,7 +252,8 @@ export default function Timeline({
   };
 
   const handleAddTrack = (type: "video" | "audio") => {
-    createTrackMutation.mutate({ editorProjectId, name: `New ${type} Track`, trackType: type });
+    const trackNumber = tracks.length + 1;
+    createTrackMutation.mutate({ editorProjectId, name: `New ${type} Track`, trackType: type, trackNumber });
   };
 
   useEffect(() => {

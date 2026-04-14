@@ -232,18 +232,26 @@ export const videoRouter = router({
                 modelId,
                 status: "pending",
             });
-            const videoId = videoEntry[0].insertId;
+            const videoId = videoEntry[0]?.insertId;
+            if (!videoId) {
+                console.error("[VideoRouter] Critical Error: Failed to insert video entry or retrieve insertId.");
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Failed to initialize video generation record in database."
+                });
+            }
 
             // 5. Generate (Async)
             try {
                 console.log(`[VideoRouter] Calling generateVideo for shot ${input.shotNumber} with provider ${provider}`);
                 const result = await videoProvider.generateVideo({
                     prompt,
+                    model: modelId,
                     keyframeUrl: imageUrl,
                     duration: input.duration,
                     resolution: input.resolution,
                     fps: 24,
-                }, modelId);
+                });
 
                 // 7. Asset Ownership: Download -> GCS (Mandated by Constitution)
                 const { ensurePermanentUrl } = await import("../services/aiGeneration");
@@ -505,16 +513,25 @@ export const videoRouter = router({
                     const motionPrompt = `${frameToAnimate[0]?.prompt || "Cinematic scene"}\n\n[DIRECTOR NOTES]: ${input.directorNotes}`;
 
                     // Create video provider
-                    const provider = ProviderFactory.createVideoProvider("veo3", "");
-                    const modelId = "veo-3.0-generate-001";
+                    // Create video provider with proper API key
+                    const vProviderName = "replicate"; // Default for director revision
+                    const vConfig = await db.select().from(modelConfigs).where(and(
+                        eq(modelConfigs.category, "video"),
+                        eq(modelConfigs.isActive, true)
+                    )).limit(1);
+                    
+                    const vApiKey = vConfig[0]?.apiKey || process.env.REPLICATE_API_TOKEN || "";
+                    const videoProvider = ProviderFactory.createVideoProvider(vProviderName, vApiKey);
+                    const vModelId = vConfig[0]?.modelId || "minimax/video-01";
 
-                    const result = await provider.generateVideo({
+                    const result = await videoProvider.generateVideo({
                         prompt: motionPrompt,
+                        model: vModelId,
                         keyframeUrl,
                         duration: 8,
                         resolution: "720p",
                         fps: 24,
-                    }, modelId);
+                    });
 
                     // Secure asset
                     const { ensurePermanentUrl } = await import("../services/aiGeneration");

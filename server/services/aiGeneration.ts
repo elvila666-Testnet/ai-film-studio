@@ -45,14 +45,19 @@ function getProviderFor(modelId?: string) {
  * If it's a base64 Data URI, uploads it to GCS.
  * If it's a temporary URL (like Replicate), downloads and uploads to GCS.
  */
-export async function ensurePermanentUrl(input: string | Buffer, folder: string = "generations"): Promise<string> {
+export async function ensurePermanentUrl(input?: string | Buffer | null, folder: string = "generations"): Promise<string> {
+  if (!input) {
+    console.warn("[ensurePermanentUrl] Received null/undefined input, returning placeholder or empty string");
+    return "";
+  }
+
   if (Buffer.isBuffer(input)) {
     const { uploadBufferToGCS } = await import("../_core/gcs");
     return await uploadBufferToGCS(input, folder, `image_${Date.now()}.png`);
   }
 
-  const url = input;
-  if (url.startsWith("data:image/")) {
+  const url = input as string;
+  if (url && typeof url === "string" && url.startsWith("data:image/")) {
     return await uploadBase64Image(url, folder);
   }
 

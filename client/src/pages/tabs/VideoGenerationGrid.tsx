@@ -34,14 +34,12 @@ interface VideoModelDef {
 }
 
 const VIDEO_MODELS: VideoModelDef[] = [
-    { id: "veo3-fast",    label: "Veo 3 Fast",     provider: "veo3", modelId: "veo-3.0-generate-001",  available: true,  badge: "Default" },
-    { id: "veo3-quality", label: "Veo 3 Quality",   provider: "veo3", modelId: "veo-3.0-generate-001",  available: true,  badge: "HQ" },
-    { id: "kie-seedance", label: "Seedream / Seedance 2.0", provider: "kie",  modelId: "kie-seedance-2-0",     available: true,  badge: "KIE" },
-    { id: "kie-kling",    label: "Kling 3.0",           provider: "kie",  modelId: "kie-kling-3-0",        available: true,  badge: "KIE" },
-    { id: "kie-wan",      label: "Wan 2.6",             provider: "kie",  modelId: "kie-wan-2-6",          available: true,  badge: "KIE" },
+    { id: "kie-seedance", label: "Seedance 2.0 (Fast)", provider: "kie",  modelId: "kie-seedance-2-0",     available: true,  badge: "Default" },
+    { id: "kie-kling",    label: "Kling 3.0 (Quality)", provider: "kie",  modelId: "kie-kling-3-0",        available: true,  badge: "HQ" },
+    { id: "replicate-minimax", label: "Minimax Video-01", provider: "replicate", modelId: "minimax/video-01", available: true, badge: "Replicate" },
+    { id: "veo3-fast",    label: "Veo 3 (Internal)",     provider: "veo3", modelId: "veo-3.0-generate-001",  available: true,  badge: "Legacy" },
+    { id: "kie-wan",      label: "Wan 2.6",             provider: "kie",  modelId: "kie-wan-2-6",          available: true,  badge: "New" },
     { id: "sora",         label: "Sora",            provider: "sora", modelId: "sora-1.0",              available: false },
-    { id: "kling",        label: "Kling (Beta)",    provider: "kling", modelId: "kling-v1",             available: false },
-    { id: "wan",          label: "Wan (Beta)",      provider: "whan", modelId: "wan-v1",                available: false },
 ];
 
 export function VideoGenerationGrid({ projectId }: VideoGenerationGridProps) {
@@ -64,7 +62,7 @@ export function VideoGenerationGrid({ projectId }: VideoGenerationGridProps) {
     const [modelDropdown, setModelDropdown] = useState<number | null>(null);
 
     const getSelectedModel = (shotId: number): VideoModelDef => {
-        const modelId = shotModels[shotId] || "veo3-fast";
+        const modelId = shotModels[shotId] || "kie-seedance";
         return VIDEO_MODELS.find(m => m.id === modelId) || VIDEO_MODELS[0];
     };
 
