@@ -224,7 +224,10 @@ export const storyboardRouter = router({
         const setsInShot = approvedSets.filter((s: any) => setSpace.includes(s.name.toLowerCase()));
         if (setsInShot.length > 0) {
             cinematicPrompt += `SET DESIGN: [${setsInShot[0].name}: ${setsInShot[0].description}]. `;
-            if (setsInShot[0].referenceImageUrl && !imageAnchors.includes(setsInShot[0].referenceImageUrl)) imageAnchors.push(setsInShot[0].referenceImageUr        const finalAnchors = imageAnchors.slice(0, 3); // Replicate supports multiple anchors
+            if (setsInShot[0].referenceImageUrl && !imageAnchors.includes(setsInShot[0].referenceImageUrl)) imageAnchors.push(setsInShot[0].referenceImageUrl);
+        }
+
+        const finalAnchors = imageAnchors.slice(0, 3); // Replicate supports multiple anchors
         const targetModel = "nano-banana-pro"; // Nano-Banana Pro via Replicate for all shots
 
         // 5. Generate

@@ -587,7 +587,8 @@ export async function generateGridImage(
       projectId,
       userId,
       ...(imageInputs.length > 0 ? { imageInputs } : {}),
-    }, "nano-banana-pro");onst rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
+    }, "nano-banana-pro");
+    const rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
     const responseData = await axios.get(rawUrl, { responseType: 'arraybuffer' });
     const burnedBuffer = await burnPanelNumbers(Buffer.from(responseData.data), pageNumber);
     
