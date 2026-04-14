@@ -224,11 +224,8 @@ export const storyboardRouter = router({
         const setsInShot = approvedSets.filter((s: any) => setSpace.includes(s.name.toLowerCase()));
         if (setsInShot.length > 0) {
             cinematicPrompt += `SET DESIGN: [${setsInShot[0].name}: ${setsInShot[0].description}]. `;
-            if (setsInShot[0].referenceImageUrl && !imageAnchors.includes(setsInShot[0].referenceImageUrl)) imageAnchors.push(setsInShot[0].referenceImageUrl);
-        }
-
-        const finalAnchors = imageAnchors.slice(0, 1); // Enforce 1 anchor for Vertex AI Img2Img bounds
-        const targetModel = "nano-banana-pro"; // Strict consistency requires Pro
+            if (setsInShot[0].referenceImageUrl && !imageAnchors.includes(setsInShot[0].referenceImageUrl)) imageAnchors.push(setsInShot[0].referenceImageUr        const finalAnchors = imageAnchors.slice(0, 3); // Replicate supports multiple anchors
+        const targetModel = "nano-banana-pro"; // Nano-Banana Pro via Replicate for all shots
 
         // 5. Generate
         const imageUrl = await generateStoryboardImage(
@@ -238,9 +235,7 @@ export const storyboardRouter = router({
           ctx.user.id.toString(),
           "1216x832",
           finalAnchors
-        );
-
-        // 5. Save
+        );      // 5. Save
         await saveStoryboardImage(input.projectId, input.shotNumber, imageUrl, input.prompt);
 
         return { imageUrl };

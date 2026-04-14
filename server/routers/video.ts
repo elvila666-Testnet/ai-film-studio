@@ -465,7 +465,7 @@ export const videoRouter = router({
                     const { generateStoryboardImage } = await import("../services/aiGeneration");
                     newImageUrl = await generateStoryboardImage(
                         refinedPrompt,
-                        "nano-banana-pro",
+                        "nano-banana-pro", // Using Nano-Banana Pro via Replicate for Director Revisions
                         input.projectId,
                         userId,
                         "1344x768",

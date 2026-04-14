@@ -538,10 +538,10 @@ export async function generateStoryboardImage(prompt: string, modelId?: string, 
   try {
     const provider = getProviderFor(modelId);
     
-    // Use modelId if provided, otherwise default to flux-schnell through Replicate
-    const internalModelId = modelId || "black-forest-labs/flux-schnell";
+    // Forcing Nano-Banana Pro via Replicate as the exclusive model for all image generations
+    const internalModelId = "nano-banana-pro";
 
-    console.log(`[AI Service] Storyboard Gen: Using provider ${provider instanceof ReplicateProvider ? 'replicate' : 'kie'} with model ${internalModelId}`);
+    console.log(`[AI Service] Storyboard Gen: Using Nano-Banana Pro via Replicate for all images`);
 
     const result = await provider.generateImage({
       prompt,
@@ -577,8 +577,7 @@ export async function generateGridImage(
     const { burnPanelNumbers } = await import("./imageProcessing");
     const axios = (await import("axios")).default;
   try {
-    const imageInputs: string[] = visualAnchors;
-    // For Grids, we use nano-banana-pro via Replicate as it supports anchoring best
+    const imageInputs: string[] = visualA    // For Grids, we use Nano-Banana Pro via Replicate for consistent visual style
     const provider = getReplicateProvider();
 
     const result = await provider.generateImage({
@@ -588,9 +587,7 @@ export async function generateGridImage(
       projectId,
       userId,
       ...(imageInputs.length > 0 ? { imageInputs } : {}),
-    }, "nano-banana-pro");
-    
-    const rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
+    }, "nano-banana-pro");onst rawUrl = typeof result.url === 'string' ? result.url : String(result.url);
     const responseData = await axios.get(rawUrl, { responseType: 'arraybuffer' });
     const burnedBuffer = await burnPanelNumbers(Buffer.from(responseData.data), pageNumber);
     
@@ -625,8 +622,8 @@ export async function generateStoryboardImageWithConsistency(
     : prompt;
 
   try {
-    const provider = getProviderFor(modelId);
-    const internalModelId = modelId || (provider instanceof ReplicateProvider ? "black-forest-labs/flux-schnell" : "flux-1.1-pro");
+    const provider = getReplicateProvider();
+    const internalModelId = "nano-banana-pro";
 
     const result = await provider.generateImage({
       prompt: finalPrompt,
@@ -664,8 +661,8 @@ export async function generateStoryboardImageVariation(
   const finalPrompt = generateVariationPrompt(basePrompt, characterReference, variationIndex);
 
   try {
-    const provider = getProviderFor(modelId);
-    const internalModelId = modelId || "black-forest-labs/flux-schnell";
+    const provider = getReplicateProvider();
+    const internalModelId = "nano-banana-pro";
 
     const result = await provider.generateImage({
       prompt: finalPrompt,

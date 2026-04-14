@@ -68,7 +68,7 @@ export default function StoryboardTab({ projectId }: StoryboardTabProps) {
   const handleGenerateGrid = async () => {
     requestApproval(0.10, async () => {
       try {
-        toast.info("Generating paginated 3×4 Storyboard Grids (Nanobanana 2.0 - Gemini 1.5 Pro)...");
+        toast.info("Generating paginated 3×4 Storyboard Grids (Nanobanana Pro via Replicate)...");
         setCurrentPage(0);
         
         // Get visual style from project data if available
@@ -79,7 +79,7 @@ export default function StoryboardTab({ projectId }: StoryboardTabProps) {
           globalInstructions: globalInstructions || undefined,
           visualStyle: visualStyle,
         });
-        toast.success("Storyboard Grid pages materialized with Nanobanana 2.0!");
+        toast.success("Storyboard Grid pages materialized with Nanobanana Pro!");
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : String(e);
         toast.error(`Grid synthesis failed: ${message}`);
@@ -201,7 +201,7 @@ export default function StoryboardTab({ projectId }: StoryboardTabProps) {
                   Materializing Storyboard Grid
                 </span>
                 <span className="text-[10px] text-slate-500 uppercase tracking-widest block">
-                  3×4 · 16:9 · 12 Frames/Page · Nanobanana Pro · 8K HDR
+                  3×4 · 16:9 · 12 Frames/Page · Nanobanana Pro · IMAX 8K
                 </span>
               </div>
             </div>
