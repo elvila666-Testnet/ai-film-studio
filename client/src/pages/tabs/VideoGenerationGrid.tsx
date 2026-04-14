@@ -34,11 +34,11 @@ interface VideoModelDef {
 }
 
 const VIDEO_MODELS: VideoModelDef[] = [
-    { id: "kie-seedance", label: "Seedance 2.0 (Fast)", provider: "kie",  modelId: "kie-seedance-2-0",     available: true,  badge: "Default" },
-    { id: "kie-kling",    label: "Kling 3.0 (Quality)", provider: "kie",  modelId: "kie-kling-3-0",        available: true,  badge: "HQ" },
+    { id: "kie-veo",      label: "Veo 3.1 (KIE)",       provider: "kie",  modelId: "google/veo-3.1",       available: true,  badge: "HQ" },
+    { id: "kie-seadance", label: "SeaDance 2.0 (KIE)",   provider: "kie",  modelId: "seadance-2.0",         available: true,  badge: "Pro" },
+    { id: "kie-kling",    label: "Kling 2.1 (KIE)",      provider: "kie",  modelId: "kling-2.1",            available: true,  badge: "Fast" },
+    { id: "kie-wan",      label: "Wan 2.1 (KIE)",        provider: "kie",  modelId: "wan-2.1",              available: true,  badge: "New" },
     { id: "replicate-minimax", label: "Minimax Video-01", provider: "replicate", modelId: "minimax/video-01", available: true, badge: "Replicate" },
-    { id: "veo3-fast",    label: "Veo 3 (Internal)",     provider: "veo3", modelId: "veo-3.0-generate-001",  available: true,  badge: "Legacy" },
-    { id: "kie-wan",      label: "Wan 2.6",             provider: "kie",  modelId: "kie-wan-2-6",          available: true,  badge: "New" },
     { id: "sora",         label: "Sora",            provider: "sora", modelId: "sora-1.0",              available: false },
 ];
 
@@ -62,18 +62,21 @@ export function VideoGenerationGrid({ projectId }: VideoGenerationGridProps) {
     const [modelDropdown, setModelDropdown] = useState<number | null>(null);
 
     const getSelectedModel = (shotId: number): VideoModelDef => {
-        const modelId = shotModels[shotId] || "kie-seedance";
+        const modelId = shotModels[shotId] || "kie-veo";
         return VIDEO_MODELS.find(m => m.id === modelId) || VIDEO_MODELS[0];
     };
 
     const handleAnimate = async (shotNumber: number, motionPrompt: string, shotId: number) => {
         const model = getSelectedModel(shotId);
-        let costEstimate = 0.25;
+        let costEstimate = 0.50; // Default fallback cost
+        
+        // Dynamic cost estimation based on provider/model
         if (model.provider === "kie") {
-            if (model.id === "kie-kling") costEstimate = 0.18 * 5;
-            else costEstimate = 0.15 * 5;
-        } else if (model.provider === "veo3") {
-            costEstimate = 0.055 * 8;
+            if (model.modelId.includes("kling")) costEstimate = 0.90; // $0.18 * 5s
+            else if (model.modelId.includes("wan")) costEstimate = 0.75; // $0.15 * 5s
+            else costEstimate = 1.25; // Veo 3.1 / SeaDance $0.25 * 5s
+        } else if (model.provider === "replicate") {
+            costEstimate = 0.35; // Minimax flat rate
         }
 
         requestApproval(costEstimate, async () => {

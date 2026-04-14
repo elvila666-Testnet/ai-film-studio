@@ -88,16 +88,23 @@ export class KieProvider {
         };
     }
 
-    async generateVideo(params: VideoGenerationParams, modelId: string = "kling-2.1"): Promise<VideoGenerationResult> {
+    async generateVideo(params: VideoGenerationParams, modelId: string = "google/veo-3.1"): Promise<VideoGenerationResult> {
         const startTime = Date.now();
         console.log(`[KieProvider] Submitting video task for ${modelId}...`);
 
+        // Normalizing model name for KIE API
+        const targetModel = modelId.includes("veo") ? "google/veo-3.1" : 
+                            modelId.includes("seadance") ? "seadance-2.0" :
+                            modelId.includes("kling") ? "kling-2.1" :
+                            modelId.includes("wan") ? "wan-2.1" : modelId;
+
         const payload = {
-            model: modelId,
+            model: targetModel,
             prompt: params.prompt,
             image_url: params.input_image_url || params.keyframeUrl,
             duration: params.duration || 5,
-            resolution: params.resolution === "4k" ? "3840x2160" : "1920x1080",
+            resolution: params.resolution === "4k" ? "3840x2160" : 
+                        params.resolution === "1080p" ? "1920x1080" : "1280x720",
             fps: params.fps || 24
         };
 
