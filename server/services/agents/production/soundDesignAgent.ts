@@ -13,6 +13,10 @@ export interface SoundDesignShot {
     silenceStrategy: string;
     scoreDirection: string;
     frequencyEmphasis: string;
+    /** NEW: Specific prompt for ElevenLabs SFX generation */
+    sfxGenerationPrompt: string;
+    /** NEW: Specific script for ElevenLabs Voiceover if applicable */
+    voiceoverScript?: string;
 }
 
 export interface SoundDesignOutput {
@@ -58,6 +62,8 @@ PER SHOT RESPONSIBILITIES:
 - silenceStrategy (Why is it quiet?)
 - scoreDirection (Musical or rhythmic intent)
 - frequencyEmphasis (sub-bass, mid tension, high dissonance)
+- sfxGenerationPrompt (A concise, descriptive prompt for AI sound generation. E.g., 'Heavy blizzard wind howling through mountain peaks, cinematic low rumble')
+- voiceoverScript (If there is a narration or dialogue, provide the exact text for this shot)
 
 RULES:
 - Sound must reinforce psychological objective from the Director.

@@ -463,6 +463,7 @@ export const audioAssets = mysqlTable("audioAssets", {
   url: text("url").notNull(),
   duration: int("duration"),
   label: varchar("label", { length: 255 }),
+  metadata: json("metadata"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

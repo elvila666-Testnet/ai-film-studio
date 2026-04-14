@@ -37,10 +37,12 @@ export async function generateTTS(
             },
             data: {
                 text,
-                model_id: "eleven_monolingual_v1",
+                model_id: "eleven_multilingual_v2", // Upgraded to v2 for better quality and emotional range
                 voice_settings: {
-                    stability: 0.5,
-                    similarity_boost: 0.75,
+                    stability: 0.45, // Slightly lower for more expressive cinematic delivery
+                    similarity_boost: 0.8,
+                    style: 0.5, // Added style for more dramatic flair
+                    use_speaker_boost: true
                 }
             },
             responseType: 'stream',
@@ -82,35 +84,45 @@ export async function generateSFX(
 ): Promise<{ audioUrl: string }> {
     console.log(`[AudioService] Generating SFX: "${prompt}"`);
 
-    // Using AudioLDM-2 via Replicate
-    // Model: hao heli/audioldm-2
-    // Version: default to latest or specific version
-    const MODEL_ID = "haoheliu/audioldm-2:b61392adecdd660326fc9cfc5398182437dbe5e97b5decfb36e1a36de68b5b95";
+    // Using ElevenLabs Sound Effects (higher quality than AudioLDM-2)
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+    if (!apiKey) {
+        throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'ElevenLabs API Key not configured',
+        });
+    }
 
     try {
-        const result = await generateAsset(
-            MODEL_ID,
-            {
-                text: prompt,
-                duration_seconds: 5,
-                guidance_scale: 3.5,
-                n_candidates: 3,
+        const response = await axios({
+            method: 'POST',
+            url: 'https://api.elevenlabs.io/v1/sound-effects',
+            headers: {
+                'xi-api-key': apiKey,
+                'Content-Type': 'application/json',
             },
-            projectId,
-            userId
-        );
+            data: {
+                text: prompt,
+                duration_seconds: 10, // Increased for better cinematic atmosphere
+                prompt_influence: 0.3,
+            },
+            responseType: 'stream',
+        });
 
-        // The generateAsset service already handles download -> GCS upload
-        // but it might save as .png extension if default is used. 
-        // We should really update replicateService to handle content-types, 
-        // but for now let's assume it returns a URL and we might need to fix extension 
-        // if generateAsset is strictly image focused. 
-        // Looking at replicateService, it hardcodes .png. 
+        // Upload to GCS
+        const filename = `projects/${projectId}/audio/sfx/${uuidv4()}.mp3`;
+        const file = storage.bucket(BUCKET_NAME).file(filename);
 
-        // TODO: Refactor replicateService to detect mime-type. 
-        // For now, allow it, but in future optimization, fix extension.
+        const writeStream = file.createWriteStream({
+            metadata: { contentType: 'audio/mpeg' },
+        });
 
-        return { audioUrl: result.imageUrl }; // reusing imageUrl field for now
+        await pipeline(response.data, writeStream);
+
+        const publicUrl = `https://storage.googleapis.com/${BUCKET_NAME}/${filename}`;
+        console.log(`[AudioService] SFX saved to ${publicUrl}`);
+
+        return { audioUrl: publicUrl };
     } catch (error) {
         console.error('[AudioService] SFX Generation Failed:', error);
         throw error;

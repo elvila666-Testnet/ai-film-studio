@@ -433,6 +433,10 @@ export default function EditorTab({ projectId }: EditorTabProps) {
                                                     audioUrl={selectedClip.fileUrl} 
                                                     height={60} 
                                                     color="#3b82f6"
+                                                    onTimeClick={(timeInSeconds) => {
+                                                        const timeInMs = timeInSeconds * 1000;
+                                                        setPlaybackTime(selectedClip.startTime + timeInMs);
+                                                    }}
                                                 />
                                             </div>
                                         )}

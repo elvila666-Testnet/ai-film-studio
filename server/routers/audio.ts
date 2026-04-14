@@ -133,9 +133,9 @@ export const audioRouter = router({
         .mutation(async ({ input, ctx }) => {
             if (!ctx.user) throw new Error("Unauthorized");
 
-            // Cost Estimate
-            const cost = estimateCost('haoheliu/audioldm-2', 1);
-            validateCost(cost, false); // No force flag in SFX for now
+            // Cost Estimate - ElevenLabs SFX is slightly more expensive than AudioLDM
+            const cost = estimateCost('elevenlabs/sfx', 1);
+            validateCost(cost, false);
 
             const result = await generateSFX(input.prompt, input.projectId, ctx.user.id.toString());
 
@@ -147,12 +147,13 @@ export const audioRouter = router({
                     sceneId: input.sceneId || null,
                     type: "SFX",
                     url: result.audioUrl,
-                    label: input.prompt
+                    label: input.prompt,
+                    duration: 10000 // Default 10s as per audioService.ts
                 });
             }
 
             // Log Usage
-            await logUsage(input.projectId, ctx.user.id.toString(), 'haoheliu/audioldm-2', cost, "SFX_GENERATION");
+            await logUsage(input.projectId, ctx.user.id.toString(), 'elevenlabs/sfx', cost, "SFX_GENERATION");
 
             return result;
         }),
