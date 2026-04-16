@@ -88,23 +88,28 @@ export class KieProvider {
         };
     }
 
-    async generateVideo(params: VideoGenerationParams, modelId: string = "google/veo-3.1"): Promise<VideoGenerationResult> {
+    async generateVideo(params: VideoGenerationParams, defaultModelId: string = "bytedance/seedance-2"): Promise<VideoGenerationResult> {
+        const actualModelId = params.model || defaultModelId;
         const startTime = Date.now();
-        console.log(`[KieProvider] Submitting video task for ${modelId}...`);
+        console.log(`[KieProvider] Submitting video task for requested model: ${actualModelId}...`);
 
-        let targetModel = modelId;
-        const lowerModel = modelId.toLowerCase();
+        let targetModel = actualModelId;
+        const lowerModel = actualModelId.toLowerCase();
         
-        // Automatically map known Replicate format "minimax/video-01" or naked strings to KIE syntax
-        if (lowerModel === "minimax/video-01" || lowerModel === "hailuo") {
+        // Aggressive normalization to prevent 422 errors on KIE's unified jobs/createTask endpoint
+        if (lowerModel.includes("veo")) {
+            // Veo has its own separate API path in Kie, passing it to unified endpoint fails. Fallback gracefully.
+            targetModel = "bytedance/seedance-2"; 
+        } else if (lowerModel.includes("hailuo") || lowerModel.includes("minimax")) {
             targetModel = "hailuo/02-image-to-video-pro";
+        } else if (lowerModel.includes("seedream") || lowerModel.includes("seadance")) {
+            targetModel = "bytedance/seedance-2";
+        } else if (lowerModel.includes("kling")) {
+            targetModel = lowerModel.includes("/") ? actualModelId : "kling/v2-1-standard";
+        } else if (lowerModel.includes("wan")) {
+            targetModel = lowerModel.includes("/") ? actualModelId : "wan/2-6-image-to-video";
         } else if (!lowerModel.includes("/")) {
-            // Naked string mapping for backward compatibility
-            if (lowerModel.includes("veo")) targetModel = "google/veo-3-1080-p-video";
-            else if (lowerModel.includes("seedream") || lowerModel.includes("seadance")) targetModel = "bytedance/seedance-2";
-            else if (lowerModel.includes("kling")) targetModel = "kling/v2-1-standard";
-            else if (lowerModel.includes("wan")) targetModel = "wan/2-6-image-to-video";
-            else targetModel = "bytedance/seedance-2"; // Safe and capable default provided by user
+            targetModel = "bytedance/seedance-2"; // Safe and capable default
         }
 
         const inputImageUrl = params.input_image_url || params.keyframeUrl;
