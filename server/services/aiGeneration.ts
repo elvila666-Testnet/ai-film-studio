@@ -577,8 +577,10 @@ export async function generateGridImage(
     const { burnPanelNumbers } = await import("./imageProcessing");
     const axios = (await import("axios")).default;
   try {
-    const imageInputs: string[] = visualA    // For Grids, we use Nano-Banana Pro via Replicate for consistent visual style
+    // For Grids, we use Nano-Banana Pro via Replicate for consistent visual style
+    const imageInputs: string[] = visualAnchors.filter(Boolean);
     const provider = getReplicateProvider();
+
 
     const result = await provider.generateImage({
       prompt,
