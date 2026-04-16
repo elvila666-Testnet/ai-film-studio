@@ -100,12 +100,14 @@ export class KieProvider {
 
         const payload = {
             model: targetModel,
-            prompt: params.prompt,
-            image_url: params.input_image_url || params.keyframeUrl,
-            duration: params.duration || 5,
-            resolution: params.resolution === "4k" ? "3840x2160" : 
-                        params.resolution === "1080p" ? "1920x1080" : "1280x720",
-            fps: params.fps || 24
+            input: {
+                prompt: params.prompt,
+                image_url: params.input_image_url || params.keyframeUrl,
+                duration: params.duration || 5,
+                resolution: params.resolution === "4k" ? "3840x2160" : 
+                            params.resolution === "1080p" ? "1920x1080" : "1280x720",
+                fps: params.fps || 24
+            }
         };
 
         const data = await this.withRetry(() => fetch(`${this.baseUrl}/api/v1/jobs/createTask`, {
