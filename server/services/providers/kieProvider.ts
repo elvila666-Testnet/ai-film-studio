@@ -95,23 +95,29 @@ export class KieProvider {
         let targetModel = modelId;
         const lowerModel = modelId.toLowerCase();
         
-        if (lowerModel.includes("veo")) targetModel = "google/veo";
-        else if (lowerModel.includes("seedream") || lowerModel.includes("seadance")) targetModel = "seedream";
-        else if (lowerModel.includes("runway")) targetModel = "runway-gen3";
-        else if (lowerModel.includes("kling")) targetModel = "kling";
-        else if (lowerModel.includes("luma")) targetModel = "luma";
-        else if (lowerModel.includes("wan")) targetModel = "wan";
-        else if (lowerModel.includes("minimax") || lowerModel.includes("hailuo")) targetModel = "hailuo";
-        else targetModel = "kling"; // Safe ultimate fallback for KIE API
+        // Automatically map known Replicate format "minimax/video-01" or naked strings to KIE syntax
+        if (lowerModel === "minimax/video-01" || lowerModel === "hailuo") {
+            targetModel = "hailuo/02-image-to-video-pro";
+        } else if (!lowerModel.includes("/")) {
+            // Naked string mapping for backward compatibility
+            if (lowerModel.includes("veo")) targetModel = "google/veo-3-1080-p-video";
+            else if (lowerModel.includes("seedream") || lowerModel.includes("seadance")) targetModel = "bytedance/seedance-2";
+            else if (lowerModel.includes("kling")) targetModel = "kling/v2-1-standard";
+            else if (lowerModel.includes("wan")) targetModel = "wan/2-6-image-to-video";
+            else targetModel = "bytedance/seedance-2"; // Safe and capable default provided by user
+        }
+
+        const inputImageUrl = params.input_image_url || params.keyframeUrl;
 
         const payload = {
             model: targetModel,
             input: {
                 prompt: params.prompt,
-                image_url: params.input_image_url || params.keyframeUrl,
+                image_url: inputImageUrl,
+                first_frame_url: inputImageUrl, // Many KIE models like seedance-2 expect this
                 duration: params.duration || 5,
-                resolution: params.resolution === "4k" ? "3840x2160" : 
-                            params.resolution === "1080p" ? "1920x1080" : "1280x720",
+                resolution: params.resolution || "720p",
+                aspect_ratio: "16:9",
                 fps: params.fps || 24
             }
         };
