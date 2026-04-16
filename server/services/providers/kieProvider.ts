@@ -92,11 +92,17 @@ export class KieProvider {
         const startTime = Date.now();
         console.log(`[KieProvider] Submitting video task for ${modelId}...`);
 
-        // Normalizing model name for KIE API
-        const targetModel = modelId.includes("veo") ? "google/veo-3.1" : 
-                            modelId.includes("seadance") ? "seadance-2.0" :
-                            modelId.includes("kling") ? "kling-2.1" :
-                            modelId.includes("wan") ? "wan-2.1" : modelId;
+        let targetModel = modelId;
+        const lowerModel = modelId.toLowerCase();
+        
+        if (lowerModel.includes("veo")) targetModel = "google/veo";
+        else if (lowerModel.includes("seedream") || lowerModel.includes("seadance")) targetModel = "seedream";
+        else if (lowerModel.includes("runway")) targetModel = "runway-gen3";
+        else if (lowerModel.includes("kling")) targetModel = "kling";
+        else if (lowerModel.includes("luma")) targetModel = "luma";
+        else if (lowerModel.includes("wan")) targetModel = "wan";
+        else if (lowerModel.includes("minimax") || lowerModel.includes("hailuo")) targetModel = "hailuo";
+        else targetModel = "kling"; // Safe ultimate fallback for KIE API
 
         const payload = {
             model: targetModel,
