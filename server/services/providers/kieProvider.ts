@@ -108,7 +108,7 @@ export class KieProvider {
             fps: params.fps || 24
         };
 
-        const data = await this.withRetry(() => fetch(`${this.baseUrl}/v1/video/generations`, {
+        const data = await this.withRetry(() => fetch(`${this.baseUrl}/api/v1/jobs/createTask`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -117,8 +117,8 @@ export class KieProvider {
             body: JSON.stringify(payload)
         }));
 
-        const taskId = data.id || data.task_id;
-        if (!taskId) throw new Error("Kie.ai did not return a task ID for video generation");
+        const taskId = data.id || data.task_id || data.data?.taskId || data.taskId;
+        if (!taskId) throw new Error("Kie.ai did not return a task ID for video generation. Response: " + JSON.stringify(data));
 
         console.log(`[KieProvider] Video task ${taskId} submitted. Polling for results...`);
         const result = await this.pollTask(taskId);
@@ -126,7 +126,7 @@ export class KieProvider {
         return {
             provider: "kie",
             model: modelId,
-            url: result.url || result.video_url,
+            url: result.url || result.video_url || result.data?.url || result.data?.video_url,
             duration: params.duration,
             width: params.resolution === "4k" ? 3840 : 1920,
             height: params.resolution === "4k" ? 2160 : 1080,
@@ -149,26 +149,30 @@ export class KieProvider {
             await new Promise(resolve => setTimeout(resolve, delayMs));
 
             try {
-                const response = await fetch(`${this.baseUrl}/v1/tasks/${taskId}`, {
+                const response = await fetch(`${this.baseUrl}/api/v1/jobs/recordInfo?taskId=${taskId}`, {
                     headers: { "Authorization": `Bearer ${this.apiKey}` }
                 });
 
-                if (!response.ok) continue;
+                if (!response.ok) {
+                    console.warn(`[KieProvider] Polling returned status ${response.status}`);
+                    continue;
+                }
 
-                const data = await response.json();
+                const responseData = await response.json();
+                const data = responseData.data || responseData; 
                 const status = (data.status || data.state || "").toLowerCase();
 
                 if (status === "succeeded" || status === "completed" || status === "success") {
                     return data;
                 }
 
-                if (status === "failed" || status === "error") {
-                    throw new Error(data.error_message || "Kie.ai task failed");
+                if (status === "failed" || status === "fail" || status === "error") {
+                    throw new Error(data.error_message || data.failReason || "Kie.ai task failed");
                 }
 
                 console.log(`[KieProvider] Task ${taskId} status: ${status} (attempt ${attempt + 1})`);
             } catch (err: any) {
-                if (err.message.includes("failed")) throw err;
+                if (err.message.includes("failed") || err.message.includes("fail")) throw err;
                 console.warn(`[KieProvider] Polling error: ${err.message}`);
             }
         }
