@@ -145,7 +145,7 @@ export class KieProvider {
         return {
             provider: "kie",
             model: actualModelId,
-            url: result.url || result.video_url || result.data?.url || result.data?.video_url,
+            url: result.url || result.video_url || result.video_link || result.videoUrl || result.task_result?.video_url || result.data?.url || result.data?.video_url || result.data?.video_link || (typeof result.result === 'string' ? result.result : result.result?.url),
             duration: params.duration,
             width: params.resolution === "4k" ? 3840 : 1920,
             height: params.resolution === "4k" ? 2160 : 1080,
