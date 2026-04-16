@@ -144,7 +144,7 @@ export class KieProvider {
 
         return {
             provider: "kie",
-            model: modelId,
+            model: actualModelId,
             url: result.url || result.video_url || result.data?.url || result.data?.video_url,
             duration: params.duration,
             width: params.resolution === "4k" ? 3840 : 1920,
