@@ -5,6 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useCostGuard } from "@/components/FinOps/CostGuard";
 import { VoiceInput } from "@/components/ui/VoiceInput";
+import { ExportService } from "@/services/ExportService";
+import { Download } from "lucide-react";
 
 interface DirectorViewProps {
     projectId: number;
@@ -142,6 +144,22 @@ export function DirectorView({ projectId }: DirectorViewProps) {
                     <p className="production-label text-primary">Technical Script Breakdown</p>
                 </div>
                 <div className="flex gap-3">
+                    {technicalStatus === "approved" && shotsQuery.data && (
+                        <Button
+                            onClick={async () => {
+                                if (!projectQuery.data) return;
+                                try {
+                                    await ExportService.exportSceneBreakdownOnly(projectQuery.data.name, shotsQuery.data || []);
+                                    toast.success("Scene Breakdown exported!");
+                                } catch (e) { toast.error("Failed to export PDF"); }
+                            }}
+                            variant="outline"
+                            className="border-white/10 text-slate-400 hover:text-white hover:bg-white/5 font-bold h-10 px-6 rounded-xl"
+                        >
+                            <Download className="w-4 h-4 mr-2" /> PDF
+                        </Button>
+                    )}
+
                     {proposalStatus !== 'approved' && (
                         <Button
                             onClick={() => generateProposalMutation.mutate({ projectId })}
@@ -197,7 +215,23 @@ export function DirectorView({ projectId }: DirectorViewProps) {
                                 <Layout className="w-5 h-5" />
                                 Master Creative Proposal
                             </h3>
-                            <StatusBadge status={proposalStatus} />
+                            <div className="flex items-center gap-3">
+                                <Button
+                                    onClick={async () => {
+                                        if (!projectQuery.data) return;
+                                        try {
+                                            await ExportService.exportDirectorProposalOnly(projectQuery.data.name, projectQuery.data.content?.creativeProposal || "");
+                                            toast.success("Director Proposal exported!");
+                                        } catch (e) { toast.error("Failed to export PDF"); }
+                                    }}
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-cyan-500/30 text-cyan-400 hover:text-white hover:bg-cyan-500/20 h-8"
+                                >
+                                    <Download className="w-3 h-3" />
+                                </Button>
+                                <StatusBadge status={proposalStatus} />
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 gap-6 mb-8">

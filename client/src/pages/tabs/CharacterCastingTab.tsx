@@ -5,6 +5,8 @@ import { Loader2, Trash2, Star, Sparkles, User, ImageIcon, X, Maximize2, CheckCi
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useAIProcessing } from "@/lib/aiProcessingContext";
+import { ExportService } from "@/services/ExportService";
+import { Download } from "lucide-react";
 
 interface CharacterCastingTabProps {
   projectId: number;
@@ -154,6 +156,26 @@ export default function CharacterCastingTab({ projectId }: CharacterCastingTabPr
             {validateCastingMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
             Send to Director
           </Button>
+
+          {lockedCharacterQuery.data && (lockedCharacterQuery.data as any[]).length > 0 && (
+            <Button
+              onClick={async () => {
+                if (!projectQuery.data) return;
+                try {
+                  const lockedChars = lockedCharacterQuery.data as any[];
+                  await ExportService.exportCastingOnly(
+                    projectQuery.data.name,
+                    lockedChars.map(c => ({ name: c.name, description: c.description || "", imageUrl: c.imageUrl && c.imageUrl !== "draft" ? c.imageUrl : undefined }))
+                  );
+                  toast.success("Casting exported!");
+                } catch (e) { toast.error("Failed to export PDF"); }
+              }}
+              variant="outline"
+              className="border-white/10 text-slate-400 hover:text-white hover:bg-white/5"
+            >
+              <Download className="w-4 h-4 mr-2" /> PDF
+            </Button>
+          )}
 
           <Button onClick={() => handleGenerateOptions()} disabled={isGeneratingOptions} className="bg-primary text-white hover:bg-primary/80">
             {isGeneratingOptions ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}

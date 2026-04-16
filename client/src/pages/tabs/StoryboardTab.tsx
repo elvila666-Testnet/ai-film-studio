@@ -5,6 +5,8 @@ import { Loader2, Sparkles, Video, X, Maximize2, ChevronLeft, ChevronRight, Clap
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useCostGuard } from "@/components/FinOps/CostGuard";
+import { ExportService } from "@/services/ExportService";
+import { Download } from "lucide-react";
 
 interface StoryboardImage {
   id: number;
@@ -96,6 +98,26 @@ export default function StoryboardTab({ projectId }: StoryboardTabProps) {
           <p className="production-label text-primary">Stage 4: Visual Storyboarding</p>
         </div>
         <div className="flex gap-4">
+          {storyboardQuery.data && (storyboardQuery.data as any[]).length > 0 && (
+            <Button
+              onClick={async () => {
+                if (!projectQuery.data) return;
+                try {
+                  const images = (storyboardQuery.data as any[]).filter(s => s.shotNumber < 999);
+                  await ExportService.exportStoryboardSectionOnly(
+                    projectQuery.data.name,
+                    images.map(s => ({ shotNumber: s.shotNumber, imageUrl: s.imageUrl, visualDescription: s.prompt }))
+                  );
+                  toast.success("Storyboard exported!");
+                } catch (e) { toast.error("Failed to export PDF"); }
+              }}
+              variant="outline"
+              className="border-white/10 text-slate-400 hover:text-white hover:bg-white/5 font-black h-12 px-6 rounded-xl"
+            >
+              <Download className="w-5 h-5 mr-2" /> PDF
+            </Button>
+          )}
+
           <Button
             onClick={handleRunPipeline}
             disabled={runPipelineMutation.isPending}

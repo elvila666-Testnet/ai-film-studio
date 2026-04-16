@@ -4,6 +4,8 @@ import { Loader2, Sparkles, Save, CheckCircle2, Lock, Unlock, AlertCircle } from
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useCostGuard } from "@/components/FinOps/CostGuard";
+import { ExportService } from "@/services/ExportService";
+import { Download } from "lucide-react";
 import { ScriptRefinementPanel } from "@/features/Project/ScriptRefinementPanel";
 import { ScreenplayEditor } from "@/features/Project/ScreenplayEditor";
 
@@ -86,6 +88,16 @@ export default function ScriptTab({ projectId }: ScriptTabProps) {
       toast.success("Script saved to vault");
     } catch { toast.error("Failed to save script"); }
     finally { setIsSaving(false); }
+  };
+
+  const handleExportPDF = async () => {
+    if (!projectQuery.data) return;
+    try {
+      await ExportService.exportScriptOnly(projectQuery.data.name, script);
+      toast.success("Script exported successfully!");
+    } catch (e) {
+      toast.error("Failed to export script");
+    }
   };
 
   const handleValidateBrief = async () => {
@@ -181,6 +193,15 @@ export default function ScriptTab({ projectId }: ScriptTabProps) {
         </div>
 
         <div className="flex items-center gap-3">
+          <Button 
+            onClick={handleExportPDF} 
+            variant="outline"
+            className="h-12 border-white/10 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl px-6 font-black uppercase text-[10px] tracking-widest transition-all"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            PDF
+          </Button>
+
           {!isApproved && (
             <>
               <Button 

@@ -4,6 +4,8 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAIProcessing } from "@/lib/aiProcessingContext";
+import { ExportService } from "@/services/ExportService";
+import { Download } from "lucide-react";
 import { SetCard } from "./ProductionDesign/SetCard";
 
 interface ProductionDesignTabProps {
@@ -93,6 +95,25 @@ export default function ProductionDesignTab({ projectId }: ProductionDesignTabPr
                         {validatePDMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
                         Send to Director
                     </Button>
+
+                    {setsQuery.data && setsQuery.data.length > 0 && (
+                        <Button
+                            onClick={async () => {
+                                if (!projectQuery.data) return;
+                                try {
+                                    await ExportService.exportProductionDesignOnly(
+                                        projectQuery.data.name,
+                                        setsQuery.data.map((s: any) => ({ name: s.name, description: s.description || "", imageUrl: s.imageUrl || undefined }))
+                                    );
+                                    toast.success("Production Design exported!");
+                                } catch (e) { toast.error("Failed to export PDF"); }
+                            }}
+                            variant="outline"
+                            className="border-white/10 text-slate-400 hover:text-white hover:bg-white/5"
+                        >
+                            <Download className="w-4 h-4 mr-2" /> PDF
+                        </Button>
+                    )}
 
                     <Button 
                         onClick={() => handleBreakdown()} 
