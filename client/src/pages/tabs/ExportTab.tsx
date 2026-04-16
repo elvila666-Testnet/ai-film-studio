@@ -86,6 +86,57 @@ export default function ExportTab({ projectId }: ExportTabProps) {
   const { data: storyboard } = trpc.storyboard.getByProjectId.useQuery({ projectId });
   const { data: characters } = trpc.casting.getCharactersByProject.useQuery({ projectId });
   const { data: productionDesign } = trpc.productionDesign.getByProjectId.useQuery({ projectId });
+  const { data: scenes } = trpc.director.getScenes.useQuery({ projectId });
+
+  const handleExportSection = async (section: string) => {
+    if (!project) {
+      toast.error("Project data not loaded yet");
+      return;
+    }
+
+    try {
+      switch (section) {
+        case 'script':
+          await ExportService.exportScriptOnly(project.name, script?.content || "");
+          toast.success("Script exported successfully!");
+          break;
+        case 'director':
+          await ExportService.exportDirectorProposalOnly(project.name, project.directorProposal || "");
+          toast.success("Director's Proposal exported successfully!");
+          break;
+        case 'casting':
+          await ExportService.exportCastingOnly(
+            project.name, 
+            characters?.map(c => ({ name: c.name, description: c.description || "", imageUrl: c.imageUrl || undefined })) || []
+          );
+          toast.success("Casting exported successfully!");
+          break;
+        case 'production':
+          await ExportService.exportProductionDesignOnly(
+            project.name, 
+            productionDesign?.sets?.map(s => ({ name: s.name, description: s.description || "", imageUrl: s.imageUrl || undefined })) || []
+          );
+          toast.success("Production Design exported successfully!");
+          break;
+        case 'scenes':
+          await ExportService.exportSceneBreakdownOnly(
+            project.name, 
+            scenes || []
+          );
+          toast.success("Scene Breakdown exported successfully!");
+          break;
+        case 'storyboard':
+          await ExportService.exportStoryboardSectionOnly(
+            project.name, 
+            storyboard?.shots?.map(s => ({ shotNumber: s.shotNumber, imageUrl: s.imageUrl || undefined, visualDescription: s.visualDescription || "" })) || []
+          );
+          toast.success("Storyboard exported successfully!");
+          break;
+      }
+    } catch (e) {
+      toast.error("Failed to generate specific PDF");
+    }
+  };
 
   const handleExportPDF = async () => {
     if (!project) {
@@ -243,6 +294,28 @@ export default function ExportTab({ projectId }: ExportTabProps) {
           </div>
           <Download className="w-5 h-5 text-slate-400" />
         </Button>
+
+        {/* SECIFIC EXPORTS */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
+          <Button variant="outline" className="h-12 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-white text-xs text-left justify-start px-4" onClick={() => handleExportSection('script')}>
+            <FileText className="w-4 h-4 mr-2" /> Script
+          </Button>
+          <Button variant="outline" className="h-12 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-white text-xs text-left justify-start px-4" onClick={() => handleExportSection('director')}>
+            <FileText className="w-4 h-4 mr-2" /> Director Proposal
+          </Button>
+          <Button variant="outline" className="h-12 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-white text-xs text-left justify-start px-4" onClick={() => handleExportSection('scenes')}>
+            <FileText className="w-4 h-4 mr-2" /> Scene Breakdown
+          </Button>
+          <Button variant="outline" className="h-12 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-white text-xs text-left justify-start px-4" onClick={() => handleExportSection('casting')}>
+            <FileText className="w-4 h-4 mr-2" /> Casting
+          </Button>
+          <Button variant="outline" className="h-12 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-white text-xs text-left justify-start px-4" onClick={() => handleExportSection('production')}>
+            <FileText className="w-4 h-4 mr-2" /> Production Design
+          </Button>
+          <Button variant="outline" className="h-12 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-white text-xs text-left justify-start px-4" onClick={() => handleExportSection('storyboard')}>
+            <FileText className="w-4 h-4 mr-2" /> Cinematography & Storyboard
+          </Button>
+        </div>
       </div>
 
       <div className="glass-panel p-8 rounded-[2rem] space-y-8 border-white/5">
