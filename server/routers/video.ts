@@ -256,6 +256,9 @@ export const videoRouter = router({
                 // 7. Asset Ownership: Download -> GCS (Mandated by Constitution)
                 const { ensurePermanentUrl } = await import("../services/aiGeneration");
                 const finalVideoUrl = await ensurePermanentUrl(result.url, "videos");
+                if (!finalVideoUrl || finalVideoUrl.trim() === "") {
+                    console.error("[VideoRouter] CRITICAL ERROR: Asset secured is blank! Extracted URL was empty. Raw KI response:", JSON.stringify((result.metadata as any)?.rawResponse));
+                }
                 console.log(`[VideoRouter] Asset secured: ${finalVideoUrl}`);
 
                 // Update DB with persistent URL

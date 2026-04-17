@@ -145,17 +145,21 @@ export class KieProvider {
         console.log(`[KieProvider] Video task ${taskId} submitted. Polling for results...`);
         const result = await this.pollTask(taskId);
 
-        // Deep JSON scanner to infallibly extract the .mp4 URL regardless of KIE's schema (avoids guessing array vs nested object keys)
+        // Deep JSON scanner to infallibly extract the .mp4 URL regardless of KIE's schema
         const findVideoUrl = (obj: any): string | undefined => {
-            if (typeof obj === 'string' && obj.startsWith('http') && !obj.includes('cover') && !obj.includes('.png') && !obj.includes('.jpg')) {
-                if (obj.includes('.mp4') || obj.includes('video') || obj.includes('tempfile.aiquickdraw.com')) return obj;
+            if (!obj) return undefined;
+            if (typeof obj === 'string') {
+                if (obj.startsWith('http') && !obj.includes('cover') && !obj.includes('.png') && !obj.includes('.jpg')) {
+                    if (obj.includes('.mp4') || obj.includes('video') || obj.includes('tempfile.aiquickdraw.com')) return obj;
+                }
+                if (obj.startsWith('{') || obj.startsWith('[')) {
+                    try { const parsed = JSON.parse(obj); return findVideoUrl(parsed); } catch(e) {}
+                }
+                return undefined;
             }
             if (Array.isArray(obj)) {
-                for (const item of obj) {
-                    const res = findVideoUrl(item);
-                    if (res) return res;
-                }
-            } else if (obj && typeof obj === 'object') {
+                for (const item of obj) { const res = findVideoUrl(item); if (res) return res; }
+            } else if (typeof obj === 'object') {
                 for (const key of Object.keys(obj)) {
                     if (key.includes("cover") || key.includes("image") || key.includes("callback")) continue;
                     const res = findVideoUrl(obj[key]);
