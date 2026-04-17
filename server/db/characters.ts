@@ -10,6 +10,7 @@ export async function createCharacter(
     name: string;
     description: string;
     imageUrl: string;
+    referenceImageUrl?: string | null;
   }
 ) {
   const db = await getDb();
@@ -20,6 +21,7 @@ export async function createCharacter(
     name: data.name,
     description: data.description,
     imageUrl: data.imageUrl,
+    referenceImageUrl: data.referenceImageUrl,
   });
 
   return result[0].insertId;
@@ -94,6 +96,7 @@ export async function updateCharacter(
     name: string;
     description: string;
     imageUrl: string;
+    referenceImageUrl: string | null;
   }>
 ) {
   const db = await getDb();
@@ -106,6 +109,7 @@ export async function updateCharacter(
   if (data.name !== undefined) updateData.name = data.name;
   if (data.description !== undefined) updateData.description = data.description;
   if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
+  if (data.referenceImageUrl !== undefined) updateData.referenceImageUrl = data.referenceImageUrl;
 
   await db
     .update(characters)
