@@ -325,7 +325,7 @@ export class ExportService {
     yPos += 15;
 
     for (const char of characters) {
-      if (yPos + 40 > pageHeight - margin) { doc.addPage(); yPos = margin; }
+      if (yPos + 20 > pageHeight - margin) { doc.addPage(); yPos = margin; }
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.text(char.name, margin, yPos);
@@ -334,8 +334,12 @@ export class ExportService {
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       const lines = doc.splitTextToSize(char.description, contentWidth);
-      doc.text(lines, margin, yPos);
-      yPos += lines.length * 5 + 10;
+      for (let i = 0; i < lines.length; i++) {
+        if (yPos > pageHeight - margin) { doc.addPage(); yPos = margin; }
+        doc.text(lines[i], margin, yPos);
+        yPos += 5;
+      }
+      yPos += 10;
     }
     
     doc.save(`${title.replace(/\s+/g, "_")}_Casting.pdf`);
@@ -357,7 +361,7 @@ export class ExportService {
     yPos += 15;
 
     for (const set of sets) {
-      if (yPos + 40 > pageHeight - margin) { doc.addPage(); yPos = margin; }
+      if (yPos + 20 > pageHeight - margin) { doc.addPage(); yPos = margin; }
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.text(set.name, margin, yPos);
@@ -366,8 +370,12 @@ export class ExportService {
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       const lines = doc.splitTextToSize(set.description, contentWidth);
-      doc.text(lines, margin, yPos);
-      yPos += lines.length * 5 + 10;
+      for (let i = 0; i < lines.length; i++) {
+        if (yPos > pageHeight - margin) { doc.addPage(); yPos = margin; }
+        doc.text(lines[i], margin, yPos);
+        yPos += 5;
+      }
+      yPos += 10;
     }
     
     doc.save(`${title.replace(/\s+/g, "_")}_ProductionDesign.pdf`);
@@ -389,7 +397,7 @@ export class ExportService {
     yPos += 15;
 
     for (const scene of scenes) {
-      if (yPos + 40 > pageHeight - margin) { doc.addPage(); yPos = margin; }
+      if (yPos + 20 > pageHeight - margin) { doc.addPage(); yPos = margin; }
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.text(`Scene ${scene.order}: ${scene.title || 'Untitled'}`, margin, yPos);
@@ -398,8 +406,12 @@ export class ExportService {
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       const lines = doc.splitTextToSize(scene.description || "", contentWidth);
-      doc.text(lines, margin, yPos);
-      yPos += lines.length * 5 + 10;
+      for (let i = 0; i < lines.length; i++) {
+        if (yPos > pageHeight - margin) { doc.addPage(); yPos = margin; }
+        doc.text(lines[i], margin, yPos);
+        yPos += 5;
+      }
+      yPos += 10;
     }
     
     doc.save(`${title.replace(/\s+/g, "_")}_SceneBreakdown.pdf`);
@@ -437,14 +449,19 @@ export class ExportService {
         doc.setFontSize(8);
         doc.text(`SHOT ${shot.shotNumber}`, xPos, yPos - 2);
         
+        let localY = yPos + imgHeight + 5;
         if (shot.visualDescription) {
           const descLines = doc.splitTextToSize(shot.visualDescription, imgWidth);
           doc.setFont("helvetica", "italic");
-          doc.text(descLines, xPos, yPos + imgHeight + 5);
+          for (let l = 0; l < descLines.length; l++) {
+              doc.text(descLines[l], xPos, localY);
+              localY += 5;
+          }
         }
 
         if (i % 2 !== 0 || i === storyboard.length - 1) {
-          yPos += imgHeight + 30;
+          // Find the max text height of the bottom of the row
+          yPos += imgHeight + 35; // Standard row gap + description room buffer
         }
     }
     

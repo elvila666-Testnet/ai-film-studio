@@ -1085,7 +1085,7 @@ export async function generateSetNano(
     const prompt = `8K RAW cinematic master set photograph. PRODUCTION DESIGN ARCHITECTURE: ${description}. 
     Focus on physical set construction, tactile materials (concrete, aged wood, brushed metal), atmospheric depth, and realistic global illumination. 
     Cinematography: Panavision Primo 70 lenses, 1.33x Anamorphic squeeze, ACES color science. 
-    Strictly: NO CONCEPT ART, NO PEOPLE, NO STUDIO LIGHTS IN FRAME. This must look like an actual location on a film set.`;
+    Strictly: NO CONCEPT ART, NO PEOPLE. The scene MUST BE pure diegetic reality. Absolutely NO scaffolds, NO film lights, NO cameras, and NO film crew equipment. It must look like an actual uninterrupted location.`;
 
     try {
         console.log(`[AI Service] Generating set image with reference: ${referenceImageUrl ? "YES" : "NO"}`);
@@ -1138,7 +1138,7 @@ export async function generatePropNano(
     const prompt = `8K RAW MACRO product photography of a HERO PROP: ${description}. 
     Extreme fidelity on materials, surface wear, mechanical imperfections, and high-resolution textures. 
     Lighting: Precise cinematic rim lighting, volumetric depth, ACES color space. 
-    Strictly: Isolated on a professional, dark neutral cinematic staging area. No people.`;
+    Strictly: Isolated on a professional, dark neutral cinematic staging area. No people. Absolutely NO scaffolds, NO film lights, and NO film crew equipment.`;
 
     try {
         const provider = getProviderFor(geminiModelId);

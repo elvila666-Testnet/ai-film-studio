@@ -202,7 +202,10 @@ export async function renderCharacterPortrait(
     const char = charResult[0];
     if (!char) throw new TRPCError({ code: "NOT_FOUND", message: "Character not found" });
 
-    const referenceImages = char.referenceImageUrl ? [char.referenceImageUrl] : [];
+    const referenceImages = [];
+    if (char.referenceImageUrl) referenceImages.push(char.referenceImageUrl);
+    else if (char.imageUrl && char.imageUrl !== "draft") referenceImages.push(char.imageUrl);
+    
     let prompt = char.description || "";
 
     // BUG-03 FIX: If there are directorial notes, use an LLM to refine the prompt

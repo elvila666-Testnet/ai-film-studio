@@ -230,9 +230,9 @@ export default function CharacterCastingTab({ projectId }: CharacterCastingTabPr
                   <p className="text-[9px] uppercase font-bold tracking-widest text-slate-500 mt-1">Verifying Ledger Persistence...</p>
                 </div>
               </div>
-            ) : Array.isArray(lockedCharacterQuery.data) && lockedCharacterQuery.data.length > 0 ? (
+            ) : Array.isArray(lockedCharacterQuery.data) && lockedCharacterQuery.data.filter((c: any) => c.imageUrl && c.imageUrl !== "draft").length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {lockedCharacterQuery.data.map((char: any) => (
+                {lockedCharacterQuery.data.filter((c: any) => c.imageUrl && c.imageUrl !== "draft").map((char: any) => (
                   <div key={char.id} className="flex gap-4 items-start bg-black/20 p-4 rounded-3xl border border-white/5 group/cast">
                     <div className="relative group/img cursor-pointer flex-shrink-0" onClick={() => setLightboxUrl(char.imageUrl)}>
                       <img src={char.imageUrl} className="w-24 h-32 rounded-2xl object-contain border-2 border-primary transition-transform hover:scale-[1.02]" alt={char.name} />
