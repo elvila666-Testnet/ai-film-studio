@@ -48,11 +48,11 @@ export class ReplicateProvider {
         // Default to schnëll for fast text-to-image, or dev/pro for high quality/image-to-image
         // If image inputs are provided, we must use a model that supports image_prompt or image-to-image
         // Default to schnëll for fast text-to-image.
-        // We prioritize google/nano-banana-pro for ALL anchoring (Img2Img) requests as it supports multi-anchor logic.
+        // We prioritize black-forest-labs/flux-dev for ALL anchoring (Img2Img) requests as it supports prompt_strength perfectly.
         let replicateModel = "black-forest-labs/flux-schnell";
         
         if (modelId?.toLowerCase().includes("banana") || modelId?.toLowerCase().includes("nano") || hasImageRefs) {
-            replicateModel = "google/nano-banana-pro";
+            replicateModel = "black-forest-labs/flux-dev";
         } else if (params.quality === "hd" || modelId?.includes("pro") || modelId?.includes("1.1")) {
             replicateModel = "black-forest-labs/flux-1.1-pro";
         }
@@ -87,17 +87,11 @@ export class ReplicateProvider {
 
             // Handle image-to-image / anchors
             if (hasImageRefs && params.imageInputs) {
-                if (replicateModel.includes("nano-banana-pro")) {
-                    // Nano Banana Pro strictly expects 'image_input' as a file array
-                    input.image_input = params.imageInputs;
-                    input.prompt_strength = isGrid ? 0.30 : 0.45; // Lower for grids to maintain layout
-                    console.log(`[ReplicateProvider] Nano Banana: Using anchors with strength ${input.prompt_strength}`);
-                } else if (!isGrid) {
-                    input.image = params.imageInputs[0];
-                    input.prompt_strength = 0.75; 
-                } else {
-                    console.log("[ReplicateProvider] Skipping Img2Img for Grid request to preserve layout.");
-                }
+                input.image = params.imageInputs[0];
+                // Flux Dev supports image and prompt_strength
+                // Setting very conservative strength for character continuity
+                input.prompt_strength = isGrid ? 0.30 : 0.25; 
+                console.log(`[ReplicateProvider] Native Replicate Img2Img with strength ${input.prompt_strength}`);
             }
 
             const output = await this.withRetry(() => 
