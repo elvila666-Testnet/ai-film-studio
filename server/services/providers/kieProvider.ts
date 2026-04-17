@@ -114,11 +114,17 @@ export class KieProvider {
 
         const inputImageUrl = params.input_image_url || params.keyframeUrl;
 
+        // Normalize Kling and Wan payload parameters natively to strict option strings
+        let safeDuration = params.duration ? String(params.duration) : "5";
+        if (targetModel.includes("kling") || targetModel.includes("wan")) {
+            safeDuration = Number(params.duration) > 5 ? "10" : "5";
+        }
+
         const payload: Record<string, any> = {
             model: targetModel,
             input: {
                 prompt: params.prompt || "cinematic scene, extremely high quality",
-                duration: params.duration ? String(params.duration) : "5",
+                duration: safeDuration,
                 resolution: params.resolution || "720p",
                 aspect_ratio: "16:9",
                 fps: params.fps ? String(params.fps) : "24"
