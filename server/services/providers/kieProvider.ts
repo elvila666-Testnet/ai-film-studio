@@ -114,18 +114,21 @@ export class KieProvider {
 
         const inputImageUrl = params.input_image_url || params.keyframeUrl;
 
-        const payload = {
+        const payload: Record<string, any> = {
             model: targetModel,
             input: {
-                prompt: params.prompt,
-                image_url: inputImageUrl,
-                first_frame_url: inputImageUrl, // Many KIE models like seedance-2 expect this
+                prompt: params.prompt || "cinematic scene, extremely high quality",
                 duration: params.duration || 5,
                 resolution: params.resolution || "720p",
                 aspect_ratio: "16:9",
                 fps: params.fps || 24
             }
         };
+
+        if (inputImageUrl) {
+            payload.input.image_url = inputImageUrl;
+            payload.input.first_frame_url = inputImageUrl;
+        }
 
         const data = await this.withRetry(() => fetch(`${this.baseUrl}/api/v1/jobs/createTask`, {
             method: "POST",
@@ -142,13 +145,30 @@ export class KieProvider {
         console.log(`[KieProvider] Video task ${taskId} submitted. Polling for results...`);
         const result = await this.pollTask(taskId);
 
+        // Deep JSON scanner to infallibly extract the .mp4 URL regardless of KIE's schema (avoids guessing array vs nested object keys)
+        const findVideoUrl = (obj: any): string | undefined => {
+            if (typeof obj === 'string' && obj.startsWith('http') && !obj.includes('cover') && !obj.includes('.png') && !obj.includes('.jpg')) {
+                if (obj.includes('.mp4') || obj.includes('video') || obj.includes('tempfile.aiquickdraw.com')) return obj;
+            }
+            if (Array.isArray(obj)) {
+                for (const item of obj) {
+                    const res = findVideoUrl(item);
+                    if (res) return res;
+                }
+            } else if (obj && typeof obj === 'object') {
+                for (const key of Object.keys(obj)) {
+                    if (key.includes("cover") || key.includes("image") || key.includes("callback")) continue;
+                    const res = findVideoUrl(obj[key]);
+                    if (res) return res;
+                }
+            }
+            return undefined;
+        };
+
         return {
             provider: "kie",
             model: actualModelId,
-            url: (() => {
-                const rawUrl = result.url || result.video_url || result.video_link || result.videoUrl || result.task_result?.video_url || result.data?.url || result.data?.video_url || result.data?.video_link || (typeof result.result === 'string' ? result.result : result.result?.url);
-                return Array.isArray(rawUrl) ? rawUrl[0] : rawUrl;
-            })(),
+            url: findVideoUrl(result) || result.url || result.video_url || result.video_link || result.task_result?.video_url || result.data?.url || result.data?.video_url,
             duration: params.duration,
             width: params.resolution === "4k" ? 3840 : 1920,
             height: params.resolution === "4k" ? 2160 : 1080,
