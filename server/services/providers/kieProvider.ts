@@ -118,10 +118,10 @@ export class KieProvider {
             model: targetModel,
             input: {
                 prompt: params.prompt || "cinematic scene, extremely high quality",
-                duration: params.duration || 5,
+                duration: params.duration ? String(params.duration) : "5",
                 resolution: params.resolution || "720p",
                 aspect_ratio: "16:9",
-                fps: params.fps || 24
+                fps: params.fps ? String(params.fps) : "24"
             }
         };
 
