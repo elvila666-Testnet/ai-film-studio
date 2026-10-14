@@ -18,6 +18,7 @@ from .media import classify, probe_media, tools_available
 from .models import Bin, MediaClip, Project
 from .playback import format_timecode, frame_duration_ms
 from .theme import ACCENT, BORDER, MUTED, PANEL, PANEL_ALT
+from .timeline import TimelineModel, TimelineWidget
 
 
 class MainWindow(QMainWindow):
@@ -26,6 +27,7 @@ class MainWindow(QMainWindow):
         self.project = Project()
         self.clips: dict[str, MediaClip] = {}
         self.selected_clip: MediaClip | None = None
+        self.timeline_model = TimelineModel()
         self.thumbnail_dir = Path.home() / ".mictlan" / "thumbnails"
         self.in_point: int | None = None
         self.out_point: int | None = None
@@ -107,13 +109,48 @@ class MainWindow(QMainWindow):
 
     def _make_timeline(self) -> QWidget:
         frame, layout = self._panel("Timeline  /  Sequence 01")
-        frame.setMinimumHeight(190)
-        self.timeline_slider = QSlider(Qt.Orientation.Horizontal); self.timeline_slider.setRange(0, 0); self.timeline_slider.sliderMoved.connect(self._seek); layout.addWidget(self.timeline_slider)
-        ruler = QLabel("00:00:00:00     00:00:10:00     00:00:20:00     00:00:30:00     00:00:40:00"); ruler.setStyleSheet(f"color: {MUTED}; font-family: monospace; border: 0; padding-left: 58px;"); layout.addWidget(ruler)
-        for track, color in (("V1", ACCENT), ("A1", "#6B8FB3")):
-            row = QHBoxLayout(); label = QLabel(track); label.setFixedWidth(34); label.setStyleSheet(f"color: {color}; font-weight: 700; border: 0;")
-            lane = QFrame(); lane.setMinimumHeight(35); lane.setStyleSheet(f"background: {PANEL_ALT}; border: 1px solid {BORDER}; border-radius: 3px;"); row.addWidget(label); row.addWidget(lane, 1); layout.addLayout(row)
+        frame.setMinimumHeight(235)
+        actions = QHBoxLayout()
+        for label, callback in (("＋ Add V1", lambda: self._add_selected_to_timeline("V1")), ("＋ Add A1", lambda: self._add_selected_to_timeline("A1")), ("✂ Cut at playhead", self._cut_at_playhead), ("Trim left", self._trim_left), ("Trim right", self._trim_right), ("Delete clip", self._delete_timeline_clip)):
+            button = QPushButton(label); button.clicked.connect(callback); actions.addWidget(button)
+        actions.addStretch(); layout.addLayout(actions)
+        self.timeline = TimelineWidget(self.timeline_model); self.timeline.selectionChanged.connect(self._timeline_selection_changed); self.timeline.playheadRequested.connect(self._timeline_playhead_requested); layout.addWidget(self.timeline, 1)
         return frame
+
+    def _add_selected_to_timeline(self, track: str) -> None:
+        if not self.selected_clip:
+            self.status.showMessage("Select a clip in the bin before adding it to the timeline")
+            return
+        item = self.timeline.add_source(self.selected_clip, track)
+        self.status.showMessage(f"Added {item.source.name} to {track}")
+
+    def _cut_at_playhead(self) -> None:
+        result = self.timeline_model.split_at(self.timeline.playhead_ms)
+        if result:
+            self.timeline.selected_id = result.clip_id; self.timeline.changed.emit(); self.timeline.update(); self.status.showMessage("Clip cut at playhead")
+        else:
+            self.status.showMessage("Place the playhead inside a timeline clip to cut")
+
+    def _trim_left(self) -> None:
+        clip = self.timeline_model.get(self.timeline.selected_id)
+        if clip and clip.start_ms < self.timeline.playhead_ms < clip.end_ms:
+            self.timeline_model.trim_left(clip.clip_id, self.timeline.playhead_ms); self.timeline.changed.emit(); self.timeline.update(); self.status.showMessage("Left edge trimmed")
+
+    def _trim_right(self) -> None:
+        clip = self.timeline_model.get(self.timeline.selected_id)
+        if clip and clip.start_ms < self.timeline.playhead_ms < clip.end_ms:
+            self.timeline_model.trim_right(clip.clip_id, self.timeline.playhead_ms); self.timeline.changed.emit(); self.timeline.update(); self.status.showMessage("Right edge trimmed")
+
+    def _delete_timeline_clip(self) -> None:
+        if self.timeline_model.remove(self.timeline.selected_id or ""):
+            self.timeline.selected_id = None; self.timeline.changed.emit(); self.timeline.update(); self.status.showMessage("Timeline clip deleted")
+
+    def _timeline_selection_changed(self, clip: object) -> None:
+        if clip is not None:
+            self.status.showMessage(f"Selected timeline clip · {clip.source.name}")
+
+    def _timeline_playhead_requested(self, position: int) -> None:
+        self.player.setPosition(position)
 
     def _refresh_bins(self) -> None:
         self.bin_tree.clear()
@@ -151,7 +188,8 @@ class MainWindow(QMainWindow):
         clip = self.clips.get(item.data(Qt.ItemDataRole.UserRole))
         if not clip: return
         self.selected_clip = clip; self.in_point = None; self.out_point = None; self._update_range_label()
-        self.player.setSource(QUrl.fromLocalFile(str(clip.path))); self.viewer_stack.setCurrentIndex(1); self.timeline_slider.setValue(0)
+        self.timeline.select_source(clip)
+        self.player.setSource(QUrl.fromLocalFile(str(clip.path))); self.viewer_stack.setCurrentIndex(1); self.timeline.set_playhead(0)
         self.inspector.clear()
         for label, value in (("NAME", clip.name), ("PATH", str(clip.path)), ("DURATION", clip.duration_label), ("RESOLUTION", clip.resolution), ("FPS", f"{clip.fps:.2f}"), ("CODEC", clip.codec)):
             self.inspector.addItem(f"{label}\n{value}")
@@ -167,14 +205,14 @@ class MainWindow(QMainWindow):
         self.player.pause(); self.player.setPosition(max(0, min(self.player.duration(), self.player.position() + direction * frame_duration_ms(self.selected_clip.fps))))
 
     def _seek(self, value: int) -> None:
-        if not self._updating_slider: self.player.setPosition(value)
+        self.player.setPosition(value)
 
     def _position_changed(self, position: int) -> None:
-        self._updating_slider = True; self.timeline_slider.setValue(position); self._updating_slider = False
+        self.timeline.set_playhead(position)
         fps = self.selected_clip.fps if self.selected_clip else 24.0; self.timecode.setText(format_timecode(position, fps))
 
     def _duration_changed(self, duration: int) -> None:
-        self.timeline_slider.setRange(0, max(0, duration))
+        self.timeline.update()
 
     def _playback_state_changed(self, state: QMediaPlayer.PlaybackState) -> None:
         playing = state == QMediaPlayer.PlaybackState.PlayingState; self.play_button.setText("Ⅱ" if playing else "▶")
@@ -204,7 +242,7 @@ class MainWindow(QMainWindow):
         else: super().keyPressEvent(event)
 
     def new_project(self) -> None:
-        self.player.stop(); self.project = Project(); self.clips.clear(); self.selected_clip = None; self.setWindowTitle("Mictlan Editor  /  Untitled Project"); self._refresh_bins(); self.inspector.clear(); self.viewer_stack.setCurrentIndex(0); self.range_label.setText("IN  —    OUT  —")
+        self.player.stop(); self.project = Project(); self.clips.clear(); self.selected_clip = None; self.timeline_model = TimelineModel(); self.timeline.model = self.timeline_model; self.timeline.selected_id = None; self.timeline.update(); self.setWindowTitle("Mictlan Editor  /  Untitled Project"); self._refresh_bins(); self.inspector.clear(); self.viewer_stack.setCurrentIndex(0); self.range_label.setText("IN  —    OUT  —")
 
     def open_project(self) -> None:
         QMessageBox.information(self, "Open project", "La persistencia de proyectos está prevista para la siguiente iteración.")

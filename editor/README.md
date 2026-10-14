@@ -1,6 +1,6 @@
 # Mictlan Editor
 
-Editor de vídeo de escritorio para el flujo Mictlan. Las fases 1 y 2 están implementadas: gestión de medios, miniaturas, metadatos, reproducción y controles de transporte.
+Editor de vídeo de escritorio para el flujo Mictlan. Las fases 1, 2 y 3 están implementadas: gestión de medios, reproducción, timecode y edición multipista no destructiva.
 
 ## Requisitos
 
@@ -10,18 +10,18 @@ Editor de vídeo de escritorio para el flujo Mictlan. Las fases 1 y 2 están imp
 
 ## Ejecutar
 
-Desde el repositorio:
-
 ```bash
 cd editor
 python -m pip install -e '.[test]'
 PYTHONPATH=src python -m mictlan_editor
 ```
 
-## Flujo actual
+## Flujo de edición
 
-Selecciona **Import media** y elige uno o varios vídeos/audio. El editor inspecciona el archivo con `ffprobe`, genera una miniatura con FFmpeg y los agrupa automáticamente en `Footage` o `Audio`. Haz clic en el clip para cargarlo en el visor.
+Importa un clip y selecciónalo en el bin. En la barra de la timeline puedes usar `Add V1` o `Add A1` para colocarlo en una pista; los clips se apilan automáticamente al final de su pista. El playhead rojo se puede mover haciendo clic sobre un espacio vacío de la timeline y sigue la posición del visor.
 
-El visor ofrece play/pause, avance y retroceso fotograma a fotograma, slider de timeline, timecode SMPTE y marcas In/Out. Los atajos son `J` (fotograma atrás), `K` (pausa), `L` (reproducir), flechas izquierda/derecha (fotograma), `I` (In) y `O` (Out). En escritorios con PipeWire activo se puede habilitar la salida de audio con `MICTLAN_ENABLE_AUDIO=1`; el modo silencioso por defecto mantiene el visor estable en CI, contenedores y sandboxes sin dispositivo de audio.
+Haz clic en un clip para seleccionarlo y arrástralo para moverlo. Arrastra sus bordes izquierdo o derecho para recortar sin alterar el archivo original. `Cut at playhead` divide el clip en dos segmentos independientes. `Delete clip` elimina el segmento seleccionado de la secuencia, sin borrar el medio del bin.
 
-Las siguientes fases están preparadas en la estructura del módulo para añadir edición multipista, conform, VFX, servidor compartido y exportación OTIO.
+Los atajos de reproducción son `J` (fotograma atrás), `K` (pausa), `L` (reproducir), flechas izquierda/derecha (fotograma), `I` (In) y `O` (Out). En escritorios con PipeWire activo se puede habilitar la salida de audio con `MICTLAN_ENABLE_AUDIO=1`.
+
+Las siguientes fases están preparadas para conform, VFX, servidor compartido y exportación OTIO.

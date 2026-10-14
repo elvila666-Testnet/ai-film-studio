@@ -10,16 +10,23 @@
 
 ## Fase 2 — Visor y reproducción (entregada)
 
-- [x] Visor de vídeo real con Qt Multimedia y salida de audio.
+- [x] Visor de vídeo real con Qt Multimedia.
 - [x] Timecode HH:MM:SS:FF sincronizado con el fps del clip.
-- [x] Reproducir y pausar con el botón central o la tecla `L`.
-- [x] Pausar con `K` y avanzar/retroceder fotograma a fotograma con `J`, flechas y los botones de transporte.
-- [x] Marcas In/Out con botones y teclas `I`/`O`.
-- [x] Slider de timeline sincronizado con la posición del reproductor.
+- [x] Reproducir/pausar y avance o retroceso fotograma a fotograma.
+- [x] Marcas In/Out y slider de timeline sincronizado.
+
+## Fase 3 — Edición multipista (entregada)
+
+- [x] Secuencia no destructiva con pistas V2, V1 y A1.
+- [x] Añadir un clip del bin a la pista seleccionada y colocarlo al final de la pista.
+- [x] Seleccionar clips visibles en la timeline y moverlos horizontalmente o entre pistas.
+- [x] Cortar un clip en el playhead con `Cut at playhead`.
+- [x] Recortar borde izquierdo o derecho arrastrando los handles del clip.
+- [x] Eliminar el clip seleccionado con `Delete clip`.
+- [x] Timeline y playhead sincronizados con el visor.
 
 ## Próximas fases
 
-- [ ] Línea de tiempo multipista: cortar, recortar y mover.
 - [ ] Conform desde EDL/XML y re-enlace de medios.
 - [ ] Planos VFX con nombres, handles, versiones y exportación de plates.
 - [ ] Servidor FastAPI + SQLite compartido con Mictlan web.
