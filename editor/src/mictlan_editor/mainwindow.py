@@ -9,7 +9,7 @@ from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtWidgets import (
     QFileDialog, QFrame, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
-    QMainWindow, QMessageBox, QPushButton, QSlider, QSplitter, QStackedWidget,
+    QInputDialog, QMainWindow, QMessageBox, QPushButton, QSlider, QSplitter, QStackedWidget,
     QStatusBar, QToolBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
     QSizePolicy,
 )
@@ -111,7 +111,7 @@ class MainWindow(QMainWindow):
         frame, layout = self._panel("Timeline  /  Sequence 01")
         frame.setMinimumHeight(235)
         actions = QHBoxLayout()
-        for label, callback in (("＋ Add V1", lambda: self._add_selected_to_timeline("V1")), ("＋ Add A1", lambda: self._add_selected_to_timeline("A1")), ("✂ Cut at playhead", self._cut_at_playhead), ("Trim left", self._trim_left), ("Trim right", self._trim_right), ("Delete clip", self._delete_timeline_clip)):
+        for label, callback in (("＋ Add V1", lambda: self._add_selected_to_timeline("V1")), ("＋ Add A1", lambda: self._add_selected_to_timeline("A1")), ("✂ Cut at playhead", self._cut_at_playhead), ("Trim left", self._trim_left), ("Trim right", self._trim_right), ("↔ Dissolve", lambda: self._add_transition("Dissolve")), ("Wipe", lambda: self._add_transition("Wipe")), ("＋ Title", self._add_title), ("Delete", self._delete_timeline_clip)):
             button = QPushButton(label); button.clicked.connect(callback); actions.addWidget(button)
         actions.addStretch(); layout.addLayout(actions)
         self.timeline = TimelineWidget(self.timeline_model); self.timeline.selectionChanged.connect(self._timeline_selection_changed); self.timeline.playheadRequested.connect(self._timeline_playhead_requested); layout.addWidget(self.timeline, 1)
@@ -142,12 +142,38 @@ class MainWindow(QMainWindow):
             self.timeline_model.trim_right(clip.clip_id, self.timeline.playhead_ms); self.timeline.changed.emit(); self.timeline.update(); self.status.showMessage("Right edge trimmed")
 
     def _delete_timeline_clip(self) -> None:
+        if self.timeline.selected_title_id and self.timeline_model.remove_title(self.timeline.selected_title_id):
+            self.timeline.selected_title_id = None; self.timeline.changed.emit(); self.timeline.update(); self.status.showMessage("Title deleted"); return
         if self.timeline_model.remove(self.timeline.selected_id or ""):
             self.timeline.selected_id = None; self.timeline.changed.emit(); self.timeline.update(); self.status.showMessage("Timeline clip deleted")
 
+    def _add_transition(self, kind: str) -> None:
+        selected = self.timeline_model.get(self.timeline.selected_id)
+        if selected is None:
+            self.status.showMessage("Select a timeline clip before adding a transition")
+            return
+        following = self.timeline_model.next_clip(selected.clip_id)
+        if following is None:
+            self.status.showMessage("Add an adjacent clip on the same track first")
+            return
+        transition = self.timeline_model.add_transition(selected.clip_id, following.clip_id, kind)
+        if transition is None:
+            self.status.showMessage("That transition already exists or the clips are not compatible")
+        else:
+            self.timeline.changed.emit(); self.timeline.update(); self.status.showMessage(f"{kind} transition added · {transition.duration_ms} ms")
+
+    def _add_title(self) -> None:
+        text, accepted = QInputDialog.getText(self, "Add title", "Title text:", text="New title")
+        if accepted and text.strip():
+            title = self.timeline.add_title(text.strip())
+            self.status.showMessage(f"Title added · {title.text}")
+
     def _timeline_selection_changed(self, clip: object) -> None:
         if clip is not None:
-            self.status.showMessage(f"Selected timeline clip · {clip.source.name}")
+            if hasattr(clip, "source"):
+                self.status.showMessage(f"Selected timeline clip · {clip.source.name}")
+            else:
+                self.status.showMessage(f"Selected title · {clip.text}")
 
     def _timeline_playhead_requested(self, position: int) -> None:
         self.player.setPosition(position)

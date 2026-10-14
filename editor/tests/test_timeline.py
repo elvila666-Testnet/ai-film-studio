@@ -33,3 +33,16 @@ def test_trim_and_move():
 def test_remove():
     model = TimelineModel(); item = model.add(clip())
     assert model.remove(item.clip_id) is True and model.clips == []
+
+
+def test_add_transition_between_adjacent_clips():
+    model = TimelineModel(); left = model.add(clip("a.mov", 4), "V1"); right = model.add(clip("b.mov", 4), "V1")
+    transition = model.add_transition(left.clip_id, right.clip_id, "Dissolve", 600)
+    assert transition is not None
+    assert transition.kind == "Dissolve" and transition.duration_ms == 600
+
+
+def test_title_overlay_is_editable_and_removable():
+    model = TimelineModel(); title = model.add_title("Opening", 1200, 2500)
+    assert title.end_ms == 3700 and title.track == "V2"
+    assert model.remove_title(title.title_id) is True and model.titles == []

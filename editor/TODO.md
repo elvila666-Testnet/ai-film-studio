@@ -25,6 +25,14 @@
 - [x] Eliminar el clip seleccionado con `Delete clip`.
 - [x] Timeline y playhead sincronizados con el visor.
 
+## Fase 4 — Transiciones y títulos (entregada)
+
+- [x] Transiciones `Dissolve` y `Wipe` entre clips consecutivos.
+- [x] Duración de transición representada en la secuencia y visible como bloque entre clips.
+- [x] Capas de títulos editables sobre la pista V2.
+- [x] Crear títulos desde la timeline con texto y duración inicial de 3 segundos.
+- [x] Mover títulos arrastrándolos y eliminarlos desde la timeline.
+
 ## Próximas fases
 
 - [ ] Conform desde EDL/XML y re-enlace de medios.

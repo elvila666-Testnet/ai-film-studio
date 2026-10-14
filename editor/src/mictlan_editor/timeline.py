@@ -38,11 +38,43 @@ class TimelineClip:
         return self.start_ms + self.duration_ms
 
 
+@dataclass(slots=True)
+class TimelineTransition:
+    left_clip_id: str
+    right_clip_id: str
+    kind: str = "Dissolve"
+    duration_ms: int = 500
+    transition_id: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.transition_id:
+            self.transition_id = uuid4().hex
+
+
+@dataclass(slots=True)
+class TitleOverlay:
+    text: str
+    start_ms: int
+    duration_ms: int = 3000
+    track: str = "V2"
+    title_id: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.title_id:
+            self.title_id = uuid4().hex
+
+    @property
+    def end_ms(self) -> int:
+        return self.start_ms + max(1, self.duration_ms)
+
+
 class TimelineModel:
     """Non-destructive sequence model: source media is never modified."""
 
     def __init__(self) -> None:
         self.clips: list[TimelineClip] = []
+        self.transitions: list[TimelineTransition] = []
+        self.titles: list[TitleOverlay] = []
 
     def add(self, source: MediaClip, track: str = "V1", start_ms: int | None = None) -> TimelineClip:
         track = track if track in TRACKS else "V1"
@@ -96,7 +128,35 @@ class TimelineModel:
 
     def remove(self, clip_id: str) -> bool:
         before = len(self.clips); self.clips = [clip for clip in self.clips if clip.clip_id != clip_id]
+        if len(self.clips) != before:
+            self.transitions = [item for item in self.transitions if item.left_clip_id != clip_id and item.right_clip_id != clip_id]
         return len(self.clips) != before
+
+    def next_clip(self, clip_id: str) -> TimelineClip | None:
+        current = self.get(clip_id)
+        if current is None:
+            return None
+        candidates = [clip for clip in self.clips if clip.track == current.track and clip.start_ms >= current.end_ms]
+        return min(candidates, key=lambda clip: clip.start_ms, default=None)
+
+    def add_transition(self, left_id: str, right_id: str, kind: str = "Dissolve", duration_ms: int = 500) -> TimelineTransition | None:
+        left, right = self.get(left_id), self.get(right_id)
+        if left is None or right is None or left.track != right.track:
+            return None
+        if any(item.left_clip_id == left_id and item.right_clip_id == right_id for item in self.transitions):
+            return None
+        if right.start_ms < left.end_ms:
+            duration_ms = min(duration_ms, max(1, left.duration_ms // 2), max(1, right.duration_ms // 2))
+        return self.transitions.append(TimelineTransition(left_id, right_id, kind, max(1, duration_ms))) or self.transitions[-1]
+
+    def add_title(self, text: str, start_ms: int, duration_ms: int = 3000, track: str = "V2") -> TitleOverlay:
+        title = TitleOverlay(text.strip() or "Title", max(0, start_ms), max(500, duration_ms), track if track in TRACKS else "V2")
+        self.titles.append(title)
+        return title
+
+    def remove_title(self, title_id: str) -> bool:
+        before = len(self.titles); self.titles = [title for title in self.titles if title.title_id != title_id]
+        return len(self.titles) != before
 
 
 class TimelineWidget(QWidget):
@@ -113,6 +173,7 @@ class TimelineWidget(QWidget):
         super().__init__(parent)
         self.model = model
         self.selected_id: str | None = None
+        self.selected_title_id: str | None = None
         self.playhead_ms = 0
         self._gesture: str | None = None
         self._gesture_start_x = 0
@@ -140,6 +201,13 @@ class TimelineWidget(QWidget):
                 return clip, edge
         return None, None
 
+    def _hit_title(self, point: QPoint) -> TitleOverlay | None:
+        for title in reversed(self.model.titles):
+            x = self.time_to_x(title.start_ms); end = self.time_to_x(title.end_ms); y = self._track_y(title.track)
+            if x <= point.x() <= end and y <= point.y() <= y + self.TRACK_HEIGHT - 4:
+                return title
+        return None
+
     def paintEvent(self, _event) -> None:
         painter = QPainter(self); painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.fillRect(self.rect(), QColor(PANEL_ALT))
@@ -155,6 +223,17 @@ class TimelineWidget(QWidget):
             selected = clip.clip_id == self.selected_id; color = QColor("#80663B" if selected else "#46576A") if clip.track != "A1" else QColor("#3F5D76")
             painter.setBrush(color); painter.setPen(QPen(QColor(ACCENT if selected else BORDER), 2 if selected else 1)); painter.drawRoundedRect(x, y + 3, width, self.TRACK_HEIGHT - 8, 4, 4)
             painter.setPen(QColor(TEXT)); painter.drawText(x + 8, y + 22, clip.source.name[: max(5, width // 8)])
+        for title in self.model.titles:
+            x = self.time_to_x(title.start_ms); width = max(28, self.time_to_x(title.end_ms) - x); y = self._track_y(title.track)
+            selected = title.title_id == self.selected_title_id
+            painter.setBrush(QColor("#8A6A2E" if selected else "#5D4E31")); painter.setPen(QPen(QColor(ACCENT), 2 if selected else 1)); painter.drawRoundedRect(x, y + 7, width, self.TRACK_HEIGHT - 16, 3, 3)
+            painter.setPen(QColor("#FFF1C7")); painter.drawText(x + 7, y + 23, f"T · {title.text[:max(5, width // 8)]}")
+        for transition in self.model.transitions:
+            left = self.model.get(transition.left_clip_id); right = self.model.get(transition.right_clip_id)
+            if left is None or right is None: continue
+            boundary = self.time_to_x(min(left.end_ms, right.start_ms)); width = max(12, round(transition.duration_ms / 1000 * self.PX_PER_SECOND))
+            y = self._track_y(left.track) + 2; painter.setBrush(QColor("#9B6C9A")); painter.setPen(QPen(QColor("#D6A8D5"), 1)); painter.drawRect(boundary - width // 2, y, width, self.TRACK_HEIGHT - 7)
+            painter.setPen(QColor("#F4DDF4")); painter.drawText(boundary - width // 2 + 3, y + 16, transition.kind[:8])
         playhead_x = self.time_to_x(self.playhead_ms); painter.setPen(QPen(QColor("#E35D6A"), 2)); painter.drawLine(playhead_x, 0, playhead_x, self.height())
 
     def select_source(self, source: MediaClip) -> TimelineClip | None:
@@ -166,23 +245,32 @@ class TimelineWidget(QWidget):
         self.update()
 
     def add_source(self, source: MediaClip, track: str = "V1") -> TimelineClip:
-        clip = self.model.add(source, track); self.selected_id = clip.clip_id; self.changed.emit(); self.update(); return clip
+        clip = self.model.add(source, track); self.selected_id = clip.clip_id; self.selected_title_id = None; self.changed.emit(); self.update(); return clip
+
+    def add_title(self, text: str, start_ms: int | None = None) -> TitleOverlay:
+        title = self.model.add_title(text, self.playhead_ms if start_ms is None else start_ms); self.selected_title_id = title.title_id; self.selected_id = None; self.changed.emit(); self.update(); return title
 
     def select_at_playhead(self) -> TimelineClip | None:
         clip = self.model.at(self.playhead_ms)
         self.selected_id = clip.clip_id if clip else None; self.selectionChanged.emit(clip); self.update(); return clip
 
     def mousePressEvent(self, event) -> None:
-        clip, mode = self._hit(event.position().toPoint())
-        if clip:
-            self.selected_id = clip.clip_id; self.selectionChanged.emit(clip)
+        title = self._hit_title(event.position().toPoint())
+        clip, mode = (None, None) if title else self._hit(event.position().toPoint())
+        if title:
+            self.selected_title_id = title.title_id; self.selected_id = None; self.selectionChanged.emit(title); self._gesture = "title_move"; self._gesture_start_x = event.position().x(); self._gesture_original_start = title.start_ms
+        elif clip:
+            self.selected_id = clip.clip_id; self.selected_title_id = None; self.selectionChanged.emit(clip)
             self._gesture = mode; self._gesture_start_x = event.position().x(); self._gesture_original_start = clip.start_ms; self._gesture_original_end = clip.end_ms
         else:
-            self._gesture = None; self.playhead_ms = self.x_to_time(round(event.position().x())); self.playheadRequested.emit(self.playhead_ms)
+            self.selected_title_id = None; self._gesture = None; self.playhead_ms = self.x_to_time(round(event.position().x())); self.playheadRequested.emit(self.playhead_ms)
         self.update()
 
     def mouseMoveEvent(self, event) -> None:
         clip = self.model.get(self.selected_id)
+        title = next((item for item in self.model.titles if item.title_id == self.selected_title_id), None)
+        if self._gesture == "title_move" and title:
+            delta = self.x_to_time(round(event.position().x())) - self.x_to_time(round(self._gesture_start_x)); title.start_ms = max(0, self._gesture_original_start + delta); self.changed.emit(); self.update(); return
         if not clip or not self._gesture: return
         delta = self.x_to_time(round(event.position().x())) - self.x_to_time(round(self._gesture_start_x))
         if self._gesture == "move":
