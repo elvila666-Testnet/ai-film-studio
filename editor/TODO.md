@@ -33,9 +33,18 @@
 - [x] Crear títulos desde la timeline con texto y duración inicial de 3 segundos.
 - [x] Mover títulos arrastrándolos y eliminarlos desde la timeline.
 
+## Fase 5 — Exportación y render final (entregada)
+
+- [x] Exportar la secuencia como OTIO JSON con clips, recortes, pistas, transiciones y títulos.
+- [x] Exportar EDL CMX 3600 con nombres de clip, archivos fuente y timecodes.
+- [x] Exportar FCP XML compatible con herramientas de edición no lineal.
+- [x] Renderizar MP4 H.264 con FFmpeg en formato de proyecto 1920×1080 16:9.
+- [x] Mantener la proporción de los clips usando escala con letterbox, sin deformar la imagen.
+- [x] Componer títulos sobre el vídeo durante el render final.
+
 ## Próximas fases
 
 - [ ] Conform desde EDL/XML y re-enlace de medios.
 - [ ] Planos VFX con nombres, handles, versiones y exportación de plates.
 - [ ] Servidor FastAPI + SQLite compartido con Mictlan web.
-- [ ] Exportación EDL/XML/OTIO, render FFmpeg y color OpenColorIO.
+- [ ] Color OpenColorIO.

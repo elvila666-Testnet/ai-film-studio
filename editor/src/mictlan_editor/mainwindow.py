@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 
 from .media import classify, probe_media, tools_available
 from .models import Bin, MediaClip, Project
+from .exporter import export_edl, export_fcp_xml, export_otio, render_sequence
 from .playback import format_timecode, frame_duration_ms
 from .theme import ACCENT, BORDER, MUTED, PANEL, PANEL_ALT
 from .timeline import TimelineModel, TimelineWidget
@@ -63,6 +64,9 @@ class MainWindow(QMainWindow):
             action = QAction(label, self); action.triggered.connect(callback); toolbar.addAction(action)
         toolbar.addSeparator()
         import_action = QAction("＋ Import media", self); import_action.triggered.connect(self.import_media); toolbar.addAction(import_action)
+        toolbar.addSeparator()
+        for label, callback in (("Export OTIO", self.export_otio_file), ("Export EDL", self.export_edl_file), ("Export XML", self.export_xml_file), ("Render MP4", self.render_mp4)):
+            action = QAction(label, self); action.triggered.connect(callback); toolbar.addAction(action)
         spacer = QWidget(); spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred); toolbar.addWidget(spacer)
         toolbar.addWidget(QLabel("PROJECT  /  MICTLAN"))
 
@@ -201,6 +205,37 @@ class MainWindow(QMainWindow):
             except Exception as exc: errors.append(f"{path.name}: {exc}")
         self._refresh_bins(); self._show_bin_clips(self.project.selected_bin); self.status.showMessage(f"Imported {imported} clip(s)" + (f" · {len(errors)} failed" if errors else ""))
         if errors: QMessageBox.warning(self, "Algunos medios no se pudieron importar", "\n".join(errors[:5]))
+
+    def export_otio_file(self) -> None:
+        path, _ = QFileDialog.getSaveFileName(self, "Export OTIO", "sequence.otio", "OpenTimelineIO JSON (*.otio *.json)")
+        if not path: return
+        try:
+            export_otio(self.timeline_model, Path(path), self.project.name); self.status.showMessage(f"OTIO exported · {path}")
+        except Exception as exc: QMessageBox.critical(self, "Export failed", str(exc))
+
+    def export_edl_file(self) -> None:
+        path, _ = QFileDialog.getSaveFileName(self, "Export EDL", "sequence.edl", "CMX 3600 EDL (*.edl)")
+        if not path: return
+        try:
+            export_edl(self.timeline_model, Path(path)); self.status.showMessage(f"EDL exported · {path}")
+        except Exception as exc: QMessageBox.critical(self, "Export failed", str(exc))
+
+    def export_xml_file(self) -> None:
+        path, _ = QFileDialog.getSaveFileName(self, "Export FCP XML", "sequence.xml", "Final Cut Pro XML (*.xml)")
+        if not path: return
+        try:
+            export_fcp_xml(self.timeline_model, Path(path)); self.status.showMessage(f"XML exported · {path}")
+        except Exception as exc: QMessageBox.critical(self, "Export failed", str(exc))
+
+    def render_mp4(self) -> None:
+        path, _ = QFileDialog.getSaveFileName(self, "Render final MP4", "mictlan_render.mp4", "H.264 MP4 (*.mp4)")
+        if not path: return
+        try:
+            self.status.showMessage("Rendering 1920×1080 16:9…")
+            render_sequence(self.timeline_model, Path(path), progress=self.status.showMessage)
+            self.status.showMessage(f"Render complete · {path}")
+        except Exception as exc:
+            QMessageBox.critical(self, "Render failed", str(exc)); self.status.showMessage("Render failed")
 
     def _show_bin_clips(self, name: str) -> None:
         self.inspector.clear(); bin_model = next((b for b in self.project.bins if b.name == name), None)
