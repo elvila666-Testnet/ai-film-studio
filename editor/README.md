@@ -1,6 +1,6 @@
 # Mictlan Editor
 
-Editor de vídeo de escritorio para el flujo Mictlan. Esta primera entrega implementa la **fase 1** del plan: proyecto, bins, importación de clips, miniaturas y metadatos.
+Editor de vídeo de escritorio para el flujo Mictlan. Las fases 1 y 2 están implementadas: gestión de medios, miniaturas, metadatos, reproducción y controles de transporte.
 
 ## Requisitos
 
@@ -18,13 +18,10 @@ python -m pip install -e '.[test]'
 PYTHONPATH=src python -m mictlan_editor
 ```
 
-En Windows se puede usar `python -m mictlan_editor` después de instalar el paquete.
-
 ## Flujo actual
 
-1. Selecciona **Import media** y elige uno o varios vídeos/audio.
-2. El editor inspecciona el archivo con `ffprobe` y genera una miniatura con FFmpeg.
-3. Los clips se agrupan automáticamente en los bins `Footage` o `Audio`.
-4. Selecciona un clip para ver resolución, duración, fps, codec y ruta.
+Selecciona **Import media** y elige uno o varios vídeos/audio. El editor inspecciona el archivo con `ffprobe`, genera una miniatura con FFmpeg y los agrupa automáticamente en `Footage` o `Audio`. Haz clic en el clip para cargarlo en el visor.
 
-Las siguientes fases están preparadas en la estructura del módulo para añadir visor, timeline, conform, VFX y exportación OTIO sin rehacer la base.
+El visor ofrece play/pause, avance y retroceso fotograma a fotograma, slider de timeline, timecode SMPTE y marcas In/Out. Los atajos son `J` (fotograma atrás), `K` (pausa), `L` (reproducir), flechas izquierda/derecha (fotograma), `I` (In) y `O` (Out). En escritorios con PipeWire activo se puede habilitar la salida de audio con `MICTLAN_ENABLE_AUDIO=1`; el modo silencioso por defecto mantiene el visor estable en CI, contenedores y sandboxes sin dispositivo de audio.
+
+Las siguientes fases están preparadas en la estructura del módulo para añadir edición multipista, conform, VFX, servidor compartido y exportación OTIO.
